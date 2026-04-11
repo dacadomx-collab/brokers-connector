@@ -1,4 +1,4 @@
-https://new.brokersconnector.com/
+https://newbrokers.tourfindy.com/
 
 leolage@acadep.com 
 acadep01
@@ -10,16 +10,16 @@ http://localhost/brokersconnect_dev/public_html/
 
 **************************************************************************	**********	Data Bases	******************************************
 **************************************************************************	
-URL:  https://new.brokersconnector.com/
-Database: brokersconnect_newbrokers_db
-Privileged Users: brokersconnect_bajasur
+URL:  https://newbrokers.tourfindy.com/
+Database: tourfindycom_newbrokers_db
+Privileged Users: tourfindycom_newbrokers
 Pass: 0!DQq-a2go(zI39;
 
 **************************************************************************	**********	FTP 	**************************************************
 **************************************************************************	
-FTP Username: new_ftp_brokers@new.brokersconnector.com
+FTP Username: new_ftp_brokers@newbrokers.tourfindy.com
 Pass: +y!jp9?F.DF0-=$1
-FTP server: ftp.brokersconnector.com
+FTP server: ftp.tourfindy.com
 FTP & explicit FTPS port:  21
 **************************************************************************	**********		******************************************
 **************************************************************************	
@@ -30,4 +30,4 @@ Local Pruebas:
 http://localhost/brokersconnect_dev/public_html/
 
 Nuevo Test
-https://new.brokersconnector.com/
+https://newbrokers.tourfindy.com/
