@@ -1,0 +1,10 @@
+/brokers/vendor/
+/brokers/.env
+/brokers/storage/framework/
+/brokers/storage/logs/
+/public_html/newbrokers/companies/
+/public_html/newbrokers/storage/
+node_modules/
+BackUp/
+*.zip
+*.sql

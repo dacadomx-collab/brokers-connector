@@ -1,0 +1,33 @@
+https://new.brokersconnector.com/
+
+leolage@acadep.com 
+acadep01
+
+**************************************************************************	**********	SITE NEW WEB	******************************************
+**************************************************************************	
+https://new.brokersconnector.com/
+http://localhost/brokersconnect_dev/public_html/
+
+**************************************************************************	**********	Data Bases	******************************************
+**************************************************************************	
+URL:  https://new.brokersconnector.com/
+Database: brokersconnect_newbrokers_db
+Privileged Users: brokersconnect_bajasur
+Pass: 0!DQq-a2go(zI39;
+
+**************************************************************************	**********	FTP 	**************************************************
+**************************************************************************	
+FTP Username: new_ftp_brokers@new.brokersconnector.com
+Pass: +y!jp9?F.DF0-=$1
+FTP server: ftp.brokersconnector.com
+FTP & explicit FTPS port:  21
+**************************************************************************	**********		******************************************
+**************************************************************************	
+Servidor Original
+https://brokersconnector.com/login
+
+Local Pruebas:
+http://localhost/brokersconnect_dev/public_html/
+
+Nuevo Test
+https://new.brokersconnector.com/

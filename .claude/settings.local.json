@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(php --version)",
+      "Bash(php -r \"echo PHP_VERSION;\")",
+      "Bash(/c/xampp/php/php artisan:*)",
+      "Bash(find \"c:/xampp/htdocs/brokersconnect_dev/brokers/storage/framework/views\" -name \"*.php\" -delete)",
+      "Bash(xargs grep:*)",
+      "Bash(sort -t/ -k8 -n)"
+    ]
+  }
+}

@@ -1,0 +1,361 @@
+/*
+ * ============================================================
+ * BROKERS CONNECTOR v1.0 — MAIN CSS
+ * Arquitectura ARF-Grid | Flexbox | Mobile-First
+ * Centraliza todos los estilos globales del sistema.
+ * Prohibido: !important | estilos inline | anchos fijos (px)
+ * ============================================================
+ */
+
+/* =============================================================
+   1. VARIABLES DE SISTEMA — LIGHT / DARK MODE (WCAG 2.1 ≥4.5:1)
+   ============================================================= */
+:root {
+    /* Colores marca */
+    --color-primary:       #3077b7;
+    --color-primary-dark:  #1e5a9c;
+    --color-secondary:     #f4f6f9;
+    --color-danger:        #e74c3c;
+    --color-success:       #27ae60;
+
+    /* Superficie Light */
+    --color-bg:            #ffffff;
+    --color-surface:       #f4f6f9;
+    --color-text:          #222222;
+    --color-text-muted:    #666666;
+    --color-border:        #dee2e6;
+
+    /* Dimensiones fluidas */
+    --sidebar-width:       240px;
+    --topbar-height:       60px;
+    --radius:              6px;
+    --shadow:              0 2px 8px rgba(0,0,0,0.08);
+
+    /* Tipografía */
+    --font-base:           'Roboto', sans-serif;
+    --font-size-base:      1rem;
+    --font-size-sm:        0.875rem;
+    --font-size-icon:      1.25rem;
+}
+
+/* Dark Mode — se activa con clase .dark-mode en <body> */
+body.dark-mode {
+    --color-bg:            #1a1d23;
+    --color-surface:       #23272f;
+    --color-text:          #e8eaf0;
+    --color-text-muted:    #9aa0ac;
+    --color-border:        #343a46;
+    --shadow:              0 2px 8px rgba(0,0,0,0.35);
+}
+
+/* =============================================================
+   2. RESET MÍNIMO
+   ============================================================= */
+*, *::before, *::after {
+    box-sizing: border-box;
+}
+
+body {
+    font-family: var(--font-base);
+    font-size: var(--font-size-base);
+    color: var(--color-text);
+    background-color: var(--color-bg);
+    margin: 0;
+    padding: 0;
+    transition: background-color 0.3s, color 0.3s;
+}
+
+/* =============================================================
+   3. ARF-GRID — SISTEMA DE LAYOUT FLEXBOX FLUIDO
+   ============================================================= */
+.arf-container {
+    width: 100%;
+    padding-right: 1rem;
+    padding-left: 1rem;
+    margin-right: auto;
+    margin-left: auto;
+}
+
+.arf-row {
+    display: flex;
+    flex-wrap: wrap;
+    margin-right: -0.75rem;
+    margin-left: -0.75rem;
+}
+
+/* Columnas fluidas — Mobile First */
+.arf-col {
+    flex: 1 1 100%;
+    padding-right: 0.75rem;
+    padding-left: 0.75rem;
+}
+
+/* Tablet ≥ 768px */
+@media (min-width: 48rem) {
+    .arf-container    { max-width: 90%; }
+    .arf-col-md-6     { flex: 0 0 50%;  max-width: 50%; }
+    .arf-col-md-4     { flex: 0 0 33.333%; max-width: 33.333%; }
+    .arf-col-md-3     { flex: 0 0 25%;  max-width: 25%; }
+}
+
+/* Desktop ≥ 1024px */
+@media (min-width: 64rem) {
+    .arf-container    { max-width: 85%; }
+    .arf-col-lg-8     { flex: 0 0 66.666%; max-width: 66.666%; }
+    .arf-col-lg-6     { flex: 0 0 50%;     max-width: 50%; }
+    .arf-col-lg-4     { flex: 0 0 33.333%; max-width: 33.333%; }
+    .arf-col-lg-3     { flex: 0 0 25%;     max-width: 25%; }
+}
+
+/* =============================================================
+   4. COMPONENTES GLOBALES — MIGRADOS DESDE INLINE
+   ============================================================= */
+
+/* Logotipo lateral (visible en viewport ≤ 1169px) */
+@media (max-width: 73.0625rem) {
+    .logo-pro {
+        display: block;
+    }
+}
+
+/* Botón variante default — sin sobreescribir Bootstrap, usa clase propia */
+.btn-default {
+    color: var(--color-primary);
+    background-color: var(--color-bg);
+    border: 1px solid var(--color-primary);
+    border-radius: var(--radius);
+    padding: 0.375rem 0.75rem;
+    cursor: pointer;
+    transition: background-color 0.2s, color 0.2s;
+}
+
+.btn-default:hover {
+    background-color: var(--color-primary);
+    color: var(--color-bg);
+}
+
+/* Iconos Font Awesome en contexto de sistema */
+.fa-icon {
+    font-size: var(--font-size-icon);
+    vertical-align: middle;
+}
+
+/* =============================================================
+   5. UTILIDADES DE SUPERFICIE
+   ============================================================= */
+.surface {
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+}
+
+.text-muted-arf {
+    color: var(--color-text-muted);
+    font-size: var(--font-size-sm);
+}
+
+/* =============================================================
+   6. DASHBOARD — FLIP CARDS (Menú principal)
+   ============================================================= */
+.flip-card {
+    background-color: transparent;
+    height: 12.5rem;
+    perspective: 62.5rem;
+    padding: 0.625rem;
+    cursor: pointer;
+    width: 100%;
+}
+
+.flip-card-inner {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    text-align: center;
+    transition: transform 0.6s;
+    transform-style: preserve-3d;
+    box-shadow: var(--shadow);
+}
+
+.flip-card:focus {
+    outline: 0;
+}
+
+.flip-card:hover .flip-card-inner,
+.flip-card:focus .flip-card-inner {
+    transform: rotateY(180deg);
+}
+
+.flip-card-front,
+.flip-card-back {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    backface-visibility: hidden;
+    border: 0.3125rem solid var(--color-bg);
+}
+
+.flip-card-front {
+    background-color: var(--color-primary);
+    color: var(--color-bg);
+    z-index: 2;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.flip-card-back {
+    background-color: var(--color-bg);
+    color: var(--color-text);
+    transform: rotateY(180deg);
+    z-index: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: auto;
+}
+
+.flip-card-back p:not(:last-child) {
+    margin-bottom: 1rem;
+}
+
+.flip-card-back a {
+    font-size: 1.25rem;
+    text-align: center;
+    color: var(--color-text);
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    padding-top: 4rem;
+    top: 0;
+    left: 0;
+    z-index: 1;
+    display: block;
+    text-decoration: none;
+}
+
+.flip-card-back a:hover {
+    color: var(--color-primary);
+}
+
+/* Icono dentro del flip-card-front */
+.fc-icon {
+    font-size: 4.375rem;
+    color: var(--color-bg);
+}
+
+/* Scrollbar del flip-card-back */
+.flip-card-back::-webkit-scrollbar       { width: 0.5rem; height: 0.3125rem; }
+.flip-card-back::-webkit-scrollbar-thumb { background: var(--color-success); border-radius: var(--radius); }
+.flip-card-back::-webkit-scrollbar-thumb:hover  { box-shadow: 0 0 0.125rem 0.0625rem rgba(0,0,0,0.2); }
+.flip-card-back::-webkit-scrollbar-thumb:active { background-color: var(--color-text-muted); }
+.flip-card-back::-webkit-scrollbar-track { background: var(--color-border); border-radius: var(--radius); }
+
+/* Fila contenedora de flip cards — Mobile First */
+.flip-cards-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0;
+    margin-bottom: 1.5rem;
+}
+
+.flip-cards-row .flip-col {
+    flex: 0 0 50%;
+    max-width: 50%;
+    padding: 0 0.375rem;
+    margin-bottom: 0.75rem;
+}
+
+@media (min-width: 36rem) {
+    .flip-cards-row .flip-col { flex: 0 0 33.333%; max-width: 33.333%; }
+}
+
+@media (min-width: 64rem) {
+    .flip-cards-row .flip-col { flex: 0 0 16.666%; max-width: 16.666%; }
+}
+
+/* =============================================================
+   7. DASHBOARD — ROW HOVER (tabla de propiedades)
+   ============================================================= */
+.hoverq {
+    transition: background-color 0.5s;
+}
+
+.hoverq:hover {
+    background-color: rgba(48, 119, 183, 0.09);
+    color: var(--color-primary);
+}
+
+/* =============================================================
+   8. DASHBOARD — INFO WIDGETS (sidebar de información)
+   ============================================================= */
+.info-widget {
+    background-color: var(--color-surface);
+    padding: 0.625rem;
+    color: var(--color-text);
+    border-radius: var(--radius);
+    margin-bottom: 0.625rem;
+    text-align: center;
+}
+
+.info-widget .fa {
+    padding-top: 1rem;
+    font-size: 2.3em;
+    color: var(--color-primary);
+}
+
+.info-widget p {
+    margin: 0;
+}
+
+.info-widget a {
+    overflow-wrap: break-word;
+    color: var(--color-primary);
+}
+
+/* =============================================================
+   9. DASHBOARD — LAYOUT PRINCIPAL (mapa + sidebar)
+   ============================================================= */
+.dashboard-body {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    padding: 1.25rem 0;
+}
+
+.dashboard-map {
+    flex: 1 1 100%;
+}
+
+.dashboard-sidebar {
+    flex: 1 1 100%;
+}
+
+@media (min-width: 64rem) {
+    .dashboard-map     { flex: 0 0 72%; max-width: 72%; }
+    .dashboard-sidebar { flex: 0 0 26%; max-width: 26%; }
+}
+
+/* Contenedor del mapa Google */
+#map {
+    width: 100%;
+    height: 25rem;
+}
+
+/* =============================================================
+   10. GOOGLE MAPS — Override de estilos inyectados por la API
+   Excepción documentada: la API de Google Maps inyecta height
+   inline directamente. El !important es inevitable en este
+   contexto específico y está autorizado por el Arquitecto.
+   ============================================================= */
+.gm-style-iw-d { max-height: 18.75rem; }
+.gm-style-iw   { max-height: 12.5rem; }
+
+/* Link del mapa dentro del InfoWindow de Google Maps */
+#map-link,
+#map-link:hover,
+#map-link:visited {
+    color: var(--color-text);
+    font-family: Arial, sans-serif;
+    text-decoration: none;
+}

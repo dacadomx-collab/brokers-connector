@@ -1,0 +1,12 @@
+RUTAS:
+
+http://localhost/brokersconnect_dev/public_html/
+http://localhost/brokersconnect_dev/brokers/resources/views/complete-register.blade.php
+
+http://localhost/brokersconnect_dev/public_html/index.php/login
+
+C:\xampp\htdocs\brokersconnect_dev\brokers\vendor\laravel\framework\src\Illuminate\Container\BoundMethod.php
+
+C:\xampp\htdocs\brokersconnect_dev\brokers\vendor\laravel\framework\src\Illuminate\Container\Container.php
+
+C:\xampp\htdocs\brokersconnect_dev\brokers\resources\views\complete-register.blade.php
