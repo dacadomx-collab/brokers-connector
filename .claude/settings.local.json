@@ -6,7 +6,24 @@
       "Bash(/c/xampp/php/php artisan:*)",
       "Bash(find \"c:/xampp/htdocs/brokersconnect_dev/brokers/storage/framework/views\" -name \"*.php\" -delete)",
       "Bash(xargs grep:*)",
-      "Bash(sort -t/ -k8 -n)"
+      "Bash(sort -t/ -k8 -n)",
+      "Bash(python3 -c ':*)",
+      "Bash(php -r ':*)",
+      "Bash(c:/xampp/php/php.exe -r ':*)",
+      "Bash(c:/xampp/php/php.exe -l \"c:/xampp/htdocs/brokersconnect_dev/brokers_new/app/Http/Kernel.php\")",
+      "Bash(c:/xampp/php/php.exe -l \"c:/xampp/htdocs/brokersconnect_dev/brokers_new/app/Providers/AppServiceProvider.php\")",
+      "Bash(c:/xampp/php/php.exe artisan:*)",
+      "Bash(c:/xampp/php/php.exe -d display_errors=1 -d error_reporting=E_ALL artisan env)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code} - size:%{size_download} bytes\" \"http://localhost/brokersconnect_dev/public_html/\")",
+      "Bash(curl -s \"http://localhost/brokersconnect_dev/public_html/\")",
+      "Bash(curl -s -o /dev/null -w \"HTTP %{http_code} — %{size_download} bytes\" \"http://localhost/brokersconnect_dev/public_html/\")",
+      "Bash(curl -s -o /dev/null -w \"HTTP %{http_code} — %{size_download} bytes\" \"http://localhost/brokersconnect_dev/public_html/login\")",
+      "Bash(ls c:/xampp/htdocs/brokersconnect_dev/brokers_new/app/*.php)",
+      "Bash(grep -r \"fetch\\\\|axios\\\\|\\\\.ajax\\\\|\\\\$.get\\\\|\\\\$.post\\\\|XMLHttpRequest\" c:/xampp/htdocs/brokersconnect_dev/public_html/js/ --include=\"*.js\" -l)",
+      "Bash(grep -v \"//.*dd\\(\")",
+      "Bash(grep \"//Route\\\\|// Route\" c:/xampp/htdocs/brokersconnect_dev/brokers_new/routes/web.php)",
+      "Bash(xargs ls:*)",
+      "Bash(grep -n \"use App\\\\\\\\\\\\\\\\City\\\\|use City\" c:/xampp/htdocs/brokersconnect_dev/brokers_new/app/Property.php)"
     ]
   }
 }

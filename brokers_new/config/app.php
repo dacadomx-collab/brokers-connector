@@ -80,7 +80,7 @@ return [
         ],
     ],
 
-    'server' => 'http://'.isset($_SERVER['SERVER_NAME']) ? $_SERVER['SERVER_NAME'] : 'localhost',
+    'server' => 'http://' . (isset($_SERVER['SERVER_NAME']) ? $_SERVER['SERVER_NAME'] : 'localhost'),
 
     'version' => 'v8',
 
@@ -199,7 +199,7 @@ return [
         /*
          * Laravel Framework Service Providers...
          */
-        Barryvdh\Debugbar\ServiceProvider::class,
+        // Barryvdh\Debugbar\ServiceProvider::class,  // Desactivado: incompatible con PHP 8.4 (BeyondCode\DumpServer ReflectionClass)
         Barryvdh\DomPDF\ServiceProvider::class,
         Illuminate\Auth\AuthServiceProvider::class,
         Illuminate\Broadcasting\BroadcastServiceProvider::class,
@@ -253,7 +253,7 @@ return [
     */
 
     'aliases' => [
-        'Debugbar' => Barryvdh\Debugbar\Facade::class,
+        // 'Debugbar' => Barryvdh\Debugbar\Facade::class,  // Desactivado con el ServiceProvider
         'PDF' => Barryvdh\DomPDF\Facade::class,
         'App' => Illuminate\Support\Facades\App::class,
         'Arr' => Illuminate\Support\Arr::class,

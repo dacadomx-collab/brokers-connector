@@ -139,14 +139,14 @@ class Company extends Model
    // atributo que retorna si una compañia esta activa o no
    public function getIsActiveAttribute()
    {
-      //obtenemos el ultimo recibo
       $last_invoice = $this->invoices()
-      ->where("status", 1)->latest()->first();
+         ->where("status", 1)->latest()->first();
 
+      if (!$last_invoice) {
+         return false;
+      }
 
-      //si la fecha de expiracion del ultimo recibo es mayor, retorna true (significa que esta vigemte), caso contrario retorna false
       return $last_invoice->due_date->greaterThan(Carbon::now());
-
    }
 
 

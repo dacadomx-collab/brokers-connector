@@ -110,7 +110,11 @@ class HomeController extends Controller
         }
 
         $company = auth()->user()->company;
-        
+
+        // Comparación estricta: solo 0 explícito activa el modal de suspensión.
+        // NULL (empresa nueva) NO debe disparar el bloqueo.
+        $company_suspended = ($company !== null && $company->active === 0);
+
         $allMyProperties=User::allMyProperties();
       
         if($allMyProperties->count())
@@ -131,7 +135,7 @@ class HomeController extends Controller
 
         $services = Service::all();
 
-        return view('home')->with(compact('properties','company','number_properties','services','allMyProperties'));
+        return view('home')->with(compact('properties','company','number_properties','services','allMyProperties','company_suspended'));
     }
 
     public function profile()

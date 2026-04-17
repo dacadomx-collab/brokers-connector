@@ -8,9 +8,9 @@
  */
 
 define('LARAVEL_START', microtime(true));
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
 
+// display_errors desactivado: cualquier output PHP antes del DOCTYPE activa Quirks Mode.
+// Para depuración local usar APP_DEBUG=true en .env — Laravel intercepta excepciones.
 error_reporting(E_ALL ^ E_DEPRECATED ^ E_USER_DEPRECATED);
 
 /*
@@ -25,7 +25,7 @@ error_reporting(E_ALL ^ E_DEPRECATED ^ E_USER_DEPRECATED);
 |
 */
 
-require __DIR__.'/../../brokers_new/vendor/autoload.php';
+require __DIR__.'/../brokers_new/vendor/autoload.php';
 
 /*
 |--------------------------------------------------------------------------
@@ -39,7 +39,7 @@ require __DIR__.'/../../brokers_new/vendor/autoload.php';
 |
 */
 
-$app = require_once __DIR__.'/../../brokers_new/bootstrap/app.php';
+$app = require_once __DIR__.'/../brokers_new/bootstrap/app.php';
 
 /*
 |--------------------------------------------------------------------------

@@ -86,10 +86,8 @@
             $("#company_information").modal('show');
         @endif
 
-        @if(Auth::user()->company != null)
-            @if(Auth::user()->company->active == 0)
-                $("#company_activate").modal('show');
-            @endif
+        @if($company_suspended)
+            $("#company_activate").modal('show');
         @endif
 
         @if (Session::has('success'))

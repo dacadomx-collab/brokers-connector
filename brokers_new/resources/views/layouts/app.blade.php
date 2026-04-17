@@ -1,7 +1,7 @@
-<!doctype html>
-<html class="no-js" lang="es">
+<!DOCTYPE html>
+<html lang="es">
+<head> <!-- <html class="no-js" lang="es">-->
 
-<head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 
     <!-- Global site tag (gtag.js) - Google Analytics -->
