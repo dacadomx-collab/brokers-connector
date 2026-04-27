@@ -48,7 +48,7 @@ class CompanyController extends Controller
         $email->addContent(
             "text/html", 'La compañia '. $company->id . ' quiere cambiar del paquete de'. $company->m_package->service.'-'.$company->m_package->id .' a el paquete'. $request->package
         );
-        $sendgrid = new \SendGrid('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');
+        $sendgrid = new \SendGrid(env('SENDGRID_API_KEY'));
         try {
             $response = $sendgrid->send($email);
         } catch (Exception $e) {

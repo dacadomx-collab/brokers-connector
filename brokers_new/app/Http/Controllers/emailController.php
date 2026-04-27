@@ -38,7 +38,7 @@ class emailController extends Controller
        $email->addContent(
            "text/html", strval(view('email.email')->with(compact('request', 'company_name')))
        );
-       $sendgrid = new \SendGrid('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');
+       $sendgrid = new \SendGrid(env('SENDGRID_API_KEY'));
        try {
            $response = $sendgrid->send($email);
        } catch (Exception $e) {

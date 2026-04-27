@@ -2,28 +2,6 @@
 
 use App\User;
 
-// =============================================================
-// RUTA TEMPORAL — EXTRACCIÓN DE SCHEMA PARA EL CODEX
-// SIN middleware. ELIMINAR antes de producción (Mandamiento #8)
-// Acceso: http://localhost/brokersconnect_dev/public_html/generar-codex
-// =============================================================
-Route::get('/generar-codex', function () {
-    $tables = DB::select('SHOW TABLES');
-    $markdown = "# ESTRUCTURA DE TABLAS EXTRAÍDA PARA EL CODEX\n\n";
-
-    foreach ($tables as $tableObj) {
-        $tableName = array_values((array)$tableObj)[0];
-        $markdown .= "### Tabla: `{$tableName}`\n";
-
-        $columns = DB::select("SHOW COLUMNS FROM `{$tableName}`");
-        foreach ($columns as $col) {
-            $markdown .= "- `{$col->Field}`: [{$col->Type}] - \n";
-        }
-        $markdown .= "\n";
-    }
-
-    return response($markdown)->header('Content-Type', 'text/plain');
-});
 
 /*
 |--------------------------------------------------------------------------

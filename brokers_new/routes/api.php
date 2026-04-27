@@ -88,6 +88,11 @@ Route::get('/getfeatures', function () {
 
 
 
+// IA / Chat — requiere Bearer Token (Passport)
+Route::group(['prefix' => 'ai', 'middleware' => ['auth:api']], function () {
+    Route::post('/chat', 'AiChatController@sendMessage');
+});
+
 //API APP MOBILE
 
 Route::group(['prefix' => 'mobile'], function() {

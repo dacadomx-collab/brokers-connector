@@ -57,8 +57,7 @@ class InvoicesController extends Controller
         $services = $services = $invoice->services;
         try {
 
-        $openpay = Openpay::getInstance('myad9doynwfpb6iyoyci',
-        'sk_a616a096b2b447f2b8f43281c1110143');
+        $openpay = Openpay::getInstance(env('OPENPAY_SANDBOX_ID'), env('OPENPAY_SANDBOX_KEY'));
 
 
             $customer = array(
@@ -77,7 +76,7 @@ class InvoicesController extends Controller
                 'customer' => $customer);
         $charge = $openpay->charges->create($chargeData);
 
-        $url = "https://sandbox-dashboard.openpay.mx/paynet-pdf/myad9doynwfpb6iyoyci/".$charge->payment_method->reference;
+        $url = "https://sandbox-dashboard.openpay.mx/paynet-pdf/".env('OPENPAY_SANDBOX_ID')."/".$charge->payment_method->reference;
 
         return Redirect::intended($url);
     } catch (OpenpayApiTransactionError $e) {
@@ -97,8 +96,7 @@ class InvoicesController extends Controller
     $error_m = getErrorMessage($error_code);
         if("Error desconocido.2003" == $error_m)
         {
-            $openpay = Openpay::getInstance('myad9doynwfpb6iyoyci',
-            'sk_a616a096b2b447f2b8f43281c1110143');
+            $openpay = Openpay::getInstance(env('OPENPAY_SANDBOX_ID'), env('OPENPAY_SANDBOX_KEY'));
 
             $searchParams = array(
                 'order_id' => $invoice->id,
@@ -107,7 +105,7 @@ class InvoicesController extends Controller
             $charge = $openpay->charges->getList($searchParams);
 
             //dd($charge[0]->payment_method->reference);
-            $url = "https://sandbox-dashboard.openpay.mx/paynet-pdf/myad9doynwfpb6iyoyci/".$charge[0]->payment_method->reference;
+            $url = "https://sandbox-dashboard.openpay.mx/paynet-pdf/".env('OPENPAY_SANDBOX_ID')."/".$charge[0]->payment_method->reference;
             return Redirect::intended($url);
         }
 
@@ -121,8 +119,7 @@ class InvoicesController extends Controller
             $invoice = Invoice::find($invoice);
             $company = Company::find($invoice->company_id);
             $services = $services = $invoice->services;
-            $openpay = Openpay::getInstance('myad9doynwfpb6iyoyci',
-            'sk_a616a096b2b447f2b8f43281c1110143');
+            $openpay = Openpay::getInstance(env('OPENPAY_SANDBOX_ID'), env('OPENPAY_SANDBOX_KEY'));
             $customer = array(
 
                 'name' => $company->owner_user->full_name,
@@ -139,7 +136,7 @@ class InvoicesController extends Controller
 
       $charge = $openpay->charges->create($chargeData);
       //dd($charge);
-      $url = "https://sandbox-dashboard.openpay.mx/spei-pdf/myad9doynwfpb6iyoyci/".$charge->id;
+      $url = "https://sandbox-dashboard.openpay.mx/spei-pdf/".env('OPENPAY_SANDBOX_ID')."/".$charge->id;
 
       return Redirect::intended($url);
     } catch (OpenpayApiTransactionError $e) {
@@ -158,8 +155,7 @@ class InvoicesController extends Controller
     $error_m = getErrorMessage($error_code);
     if("Error desconocido.1006" == $error_m)
     {
-        $openpay = Openpay::getInstance('myad9doynwfpb6iyoyci',
-        'sk_a616a096b2b447f2b8f43281c1110143');
+        $openpay = Openpay::getInstance(env('OPENPAY_SANDBOX_ID'), env('OPENPAY_SANDBOX_KEY'));
 
         $searchParams = array(
             'order_id' => $invoice->id,
@@ -168,7 +164,7 @@ class InvoicesController extends Controller
         $list = $openpay->charges->getList($searchParams);
 
        //dd($list);
-        $url = "https://sandbox-dashboard.openpay.mx/spei-pdf/myad9doynwfpb6iyoyci/".$list[0]->id;
+        $url = "https://sandbox-dashboard.openpay.mx/spei-pdf/".env('OPENPAY_SANDBOX_ID')."/".$list[0]->id;
         return Redirect::intended($url);
     }
 

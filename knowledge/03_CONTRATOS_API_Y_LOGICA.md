@@ -182,6 +182,50 @@ api_key (required), id (required|numeric), description, ubication, comission, si
 
 ---
 
+---
+
+### `POST /api/ai/chat`
+**Enviar mensaje a la IA. Crea o continúa un hilo de conversación por tenant.**
+
+- **Middleware:** `auth:api` (requiere `Bearer {access_token}`)
+- **Controlador:** `AiChatController@sendMessage`
+- **Payload (JSON):**
+```json
+{
+  "message":         "string|required — texto del mensaje del usuario",
+  "conversation_id": "integer|nullable — omitir para iniciar un nuevo hilo"
+}
+```
+- **Response 200 — Mensaje recibido (placeholder pre-OpenAI):**
+```json
+{
+  "conversation_id": 12,
+  "message_id":      47,
+  "status":          "received",
+  "ai_response":     null
+}
+```
+- **Response 403 — Sin empresa asociada:**
+```json
+{ "error": "No company associated with this user." }
+```
+- **Response 403 — Conversación de otro tenant:**
+```json
+{ "error": "Conversation not found or access denied." }
+```
+- **Response 422 — Validación fallida (Laravel estándar):**
+```json
+{ "message": "The given data was invalid.", "errors": { "message": ["..."] } }
+```
+- **Reglas de Piedra:**
+  1. `company_id` se toma **siempre** de `auth()->user()->company_id`. Nunca del payload.
+  2. Si `conversation_id` viene en el request, se verifica que `ai_conversations.company_id == company_id` del usuario autenticado antes de continuar. Acceso cruzado → 403.
+  3. Si no viene `conversation_id`, se crea una nueva `AiConversation` con `title` = primeros 80 caracteres del mensaje.
+  4. El mensaje del usuario se persiste en `ai_messages` con `role = 'user'` antes de llamar a la IA.
+  5. `ai_response` es `null` hasta la Fase 7.5 (integración OpenAI). El endpoint ya está listo para recibir carga real.
+
+---
+
 ## 🌐 ENDPOINTS WEB (Panel Interno — requieren sesión)
 
 > Todos los siguientes requieren el triple middleware: `auth` + `company` + `companyPayment`

@@ -17,11 +17,21 @@ jobs:
         server: ${{ secrets.FTP_SERVER }}
         username: ${{ secrets.FTP_USERNAME }}
         password: ${{ secrets.FTP_PASSWORD }}
+        # 🛡️ BLINDAJE DE PRODUCCIÓN (Regla de ORO)
         exclude: |
           **/.git*
           **/.git*/**
           **/node_modules/**
           .env
+          brokers/.env
           BackUp/**
           *.zip
           *.sql
+          knowledge/**
+          # Protegemos los archivos físicos de las Inmobiliarias
+          public_html/companies/**
+          # Protegemos las sesiones y logs del servidor
+          brokers/storage/logs/**
+          brokers/storage/framework/cache/**
+          brokers/storage/framework/sessions/**
+          brokers/storage/framework/views/**

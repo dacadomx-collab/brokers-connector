@@ -20,6 +20,9 @@
 | Imagen destacada | `featured_image` → `file_properties.id` | BIGINT FK | Self-reference dentro de `file_properties` |
 | Portales activos | `property_stocks` (24_7, aspi, ampi) | TINYINT flags | Tabla auxiliar por propiedad |
 | Soft delete | `deleted_at` | TIMESTAMP NULL | En: `users`, `contacts`, `properties`, `invoices` |
+| Hilo de chat IA | `conversation_id` → `ai_conversations.id` | BIGINT FK | En `ai_messages`; aislado por `company_id` |
+| Rol de mensaje IA | `role` | ENUM('user','assistant','system') | En `ai_messages`; define el emisor |
+| Tokens consumidos | `tokens_used` | INT DEFAULT 0 | En `ai_messages`; para auditoría de costos |
 
 > **NOTA DE FUNDACIÓN:** Todas las conexiones a BD deben realizarse a través de la clase centralizada, leyendo variables del archivo `.env`.
 
@@ -431,6 +434,36 @@
 
 ---
 
+---
+
+### 🤖 Tabla: `ai_conversations`
+> Hilos de chat IA por tenant. Raíz del módulo de Inteligencia Artificial.
+
+| Columna | Tipo | Notas |
+| :--- | :--- | :--- |
+| `id` | BIGINT UNSIGNED PK | Auto-increment |
+| `company_id` | BIGINT UNSIGNED — INDEX | FK → `companies.id` **[TENANT LOCK]** |
+| `user_id` | BIGINT UNSIGNED NULL | FK → `users.id` (agente que inició el hilo) |
+| `title` | VARCHAR(255) | Título del hilo de conversación |
+| `status` | BOOLEAN DEFAULT 1 | 1 = activa, 0 = archivada |
+| `created_at` / `updated_at` | TIMESTAMP NULL | Timestamps Laravel |
+
+---
+
+### 💬 Tabla: `ai_messages`
+> Mensajes individuales de un hilo IA. Inmutables post-creación.
+
+| Columna | Tipo | Notas |
+| :--- | :--- | :--- |
+| `id` | BIGINT UNSIGNED PK | Auto-increment |
+| `conversation_id` | BIGINT UNSIGNED | FK → `ai_conversations.id` CASCADE DELETE |
+| `role` | ENUM('user','assistant','system') | Emisor del mensaje |
+| `content` | LONGTEXT | Cuerpo del mensaje |
+| `tokens_used` | INT DEFAULT 0 | Tokens consumidos (auditoría de costos) |
+| `created_at` / `updated_at` | TIMESTAMP NULL | Timestamps Laravel |
+
+---
+
 ## 🧠 REGISTRO SEMÁNTICO (VOCABULARIO CONTROLADO)
 
 ### ✅ Términos Permitidos
@@ -473,6 +506,11 @@ services  ──< invoices_services    (service_id)
 
 states    ──< cities               (state_id)
 cities    ──< districts            (city_id)
+
+── IA / CHAT ──
+companies ──< ai_conversations     (company_id)   ← AISLAMIENTO DE TENANT obligatorio
+users     ──< ai_conversations     (user_id)      ← nullable; sesión del agente
+ai_conversations ──< ai_messages   (conversation_id, CASCADE DELETE)
 ```
 
 ---
