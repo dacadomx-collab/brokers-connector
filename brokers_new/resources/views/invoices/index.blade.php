@@ -112,7 +112,7 @@
 
             OpenPay.setId("{{env('OPENPAY_ID')}}");
             OpenPay.setApiKey("{{env('OPENPAY_KEY_PUBLIC')}}");
-            OpenPay.setSandboxMode(true);
+            OpenPay.setSandboxMode({{ env('OPENPAY_PRODUCTION', false) ? 'false' : 'true' }});
             //Se genera el id de dispositivo
             var deviceSessionId = OpenPay.deviceData.setup("payment-form", "deviceIdHiddenFieldName");
             

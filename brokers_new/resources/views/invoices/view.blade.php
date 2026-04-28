@@ -107,13 +107,7 @@
 
 @push('scripts')
     <script src="{{ asset('admin/js/notifications/Lobibox.js') }}"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/imask/3.4.0/imask.min.js"></script>
-    <script src="{{ asset('js/card.js') }}"></script>
-    <script type="text/javascript" src="https://openpay.s3.amazonaws.com/openpay.v1.min.js"></script>
-    <script type='text/javascript' src="https://openpay.s3.amazonaws.com/openpay-data.v1.min.js"></script>
 
-    
-  
 
 
 @if (Session::has('error_code'))

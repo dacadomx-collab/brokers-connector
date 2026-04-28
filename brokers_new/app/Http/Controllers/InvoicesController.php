@@ -50,9 +50,10 @@ class InvoicesController extends Controller
 
     public function openPay_paynet($invoice)
     {
-
-       // dd('here');
-        $invoice = Invoice::find($invoice);
+        // TENANT LOCK — previene acceso cross-tenant
+        $invoice = Invoice::where('id', $invoice)
+            ->where('company_id', auth()->user()->company_id)
+            ->firstOrFail();
         $company = Company::find($invoice->company_id);
         $services = $services = $invoice->services;
         try {
@@ -93,7 +94,7 @@ class InvoicesController extends Controller
         $error_code = $e->getErrorCode();
     }
 
-    $error_m = getErrorMessage($error_code);
+    $error_m = $this->getErrorMessage($error_code);
         if("Error desconocido.2003" == $error_m)
         {
             $openpay = Openpay::getInstance(env('OPENPAY_SANDBOX_ID'), env('OPENPAY_SANDBOX_KEY'));
@@ -113,10 +114,11 @@ class InvoicesController extends Controller
 
     public function openPay_spei(Request $request, $invoice)
     {
-
         try {
-
-            $invoice = Invoice::find($invoice);
+            // TENANT LOCK — previene acceso cross-tenant
+            $invoice = Invoice::where('id', $invoice)
+                ->where('company_id', auth()->user()->company_id)
+                ->firstOrFail();
             $company = Company::find($invoice->company_id);
             $services = $services = $invoice->services;
             $openpay = Openpay::getInstance(env('OPENPAY_SANDBOX_ID'), env('OPENPAY_SANDBOX_KEY'));
@@ -152,7 +154,7 @@ class InvoicesController extends Controller
     } catch (Exception $e) {
         $error_code = $e->getErrorCode();
     }
-    $error_m = getErrorMessage($error_code);
+    $error_m = $this->getErrorMessage($error_code);
     if("Error desconocido.1006" == $error_m)
     {
         $openpay = Openpay::getInstance(env('OPENPAY_SANDBOX_ID'), env('OPENPAY_SANDBOX_KEY'));
@@ -245,21 +247,33 @@ class InvoicesController extends Controller
 
              if($charge)
              {
-                if($charge->status=="failed") //Regresar mensaje de error
+                if($charge->status == "failed")
                 {
-                    $error_message="Error en la trasacción: ".Invoice::error_code_openpay($charge->serializableData["error_code"]);
-
+                    $error_message = "Error en la trasacción: " . Invoice::error_code_openpay($charge->serializableData["error_code"]);
                     return redirect(url("home/invoices"))->with('error', $error_message);
                 }
 
-                /** Pago completado **/
-                $invoice = Invoice::find($charge->order_id);
+                // ANTI-FRAUDE: solo procesar si el cargo está completado Y la factura existe pendiente.
+                // Previene que un charge_id externo marque una factura ajena o ya pagada.
+                if ($charge->status !== 'completed') {
+                    return redirect(url("home/invoices"))->with('error', 'El pago no pudo confirmarse. Intenta de nuevo o contacta soporte.');
+                }
+
+                $invoice = Invoice::where('id', $charge->order_id)
+                    ->where('status', 2)   // solo facturas pendientes de pago
+                    ->first();
+
+                if (!$invoice) {
+                    return redirect(url("home/invoices"))->with('error', 'Factura no encontrada o ya procesada.');
+                }
+
+                $invoice->status    = 1;
+                $invoice->charge_id = $charge_id;
+                $invoice->save();
+
                 try {
                     Mail::to([$invoice->company->email])->send(new PaymentMail($invoice));
                 } catch (\Exception $e) { }
-                $invoice->status=1;
-                $invoice->charge_id=$charge_id;
-                $invoice->save();
 
                 return redirect(url("home/invoices"))->with('success', 'El pago ha sido procesado, gracias por continuar con nosotros');
              }
@@ -273,51 +287,50 @@ class InvoicesController extends Controller
     }
 
 
-}
-
-
-function  getErrorMessage($error_code){
-    $message = '';
-    switch ($error_code) {
-        case 3001:
-            $message = 'La tarjeta fue declinada.';
-            break;
-        case 3002:
-            $message = "La tarjeta ha expirado.";
-            break;
-        case 3003:
-            $message = "La tarjeta fue declinada.";
-            break;
-        case 3004:
-            $message = "La tarjeta fue declinada.";
-            break;
-        case 3005:
-            $message = "La tarjeta ha sido rechazada por el sistema antifraudes.";
-            break;
-        case 3006:
-            $message = "La operación no esta permitida para este cliente o esta transacción.";
-            break;
-        case 3007:
-            $message = "Deprecado. La tarjeta fue declinada.";
-            break;
-        case 3008:
-            $message = "La tarjeta no es soportada en transacciones en línea.";
-            break;
-        case 3009:
-            $message = "La tarjeta fue reportada como perdida.";
-            break;
-        case 3010:
-            $message = "El banco ha restringido la tarjeta.";
-            break;
-        case 3011:
-            $message = "El banco ha solicitado que la tarjeta sea retenida. Contacte al banco.";
-            break;
-        case 3012:
-            $message = "Se requiere solicitar al banco autorización para realizar este pago.";
-            break;
-        default:
-            $message = "Error desconocido.". $error_code;
-        break;
+    private function getErrorMessage($error_code)
+    {
+        $message = '';
+        switch ($error_code) {
+            case 3001:
+                $message = 'La tarjeta fue declinada.';
+                break;
+            case 3002:
+                $message = 'La tarjeta ha expirado.';
+                break;
+            case 3003:
+                $message = 'La tarjeta fue declinada.';
+                break;
+            case 3004:
+                $message = 'La tarjeta fue declinada.';
+                break;
+            case 3005:
+                $message = 'La tarjeta ha sido rechazada por el sistema antifraudes.';
+                break;
+            case 3006:
+                $message = 'La operación no está permitida para este cliente o esta transacción.';
+                break;
+            case 3007:
+                $message = 'Deprecado. La tarjeta fue declinada.';
+                break;
+            case 3008:
+                $message = 'La tarjeta no es soportada en transacciones en línea.';
+                break;
+            case 3009:
+                $message = 'La tarjeta fue reportada como perdida.';
+                break;
+            case 3010:
+                $message = 'El banco ha restringido la tarjeta.';
+                break;
+            case 3011:
+                $message = 'El banco ha solicitado que la tarjeta sea retenida. Contacte al banco.';
+                break;
+            case 3012:
+                $message = 'Se requiere solicitar al banco autorización para realizar este pago.';
+                break;
+            default:
+                $message = 'Error desconocido.' . $error_code;
+                break;
+        }
+        return $message;
     }
-    return $message;
 }
