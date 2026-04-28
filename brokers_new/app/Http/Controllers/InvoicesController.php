@@ -1,29 +1,31 @@
 <?php
 
 namespace App\Http\Controllers;
-use Carbon\Carbon;
-use Illuminate\Http\Request;
-use App\Mail\PaymentMail;
-use App\Invoice;
-use App\Service;
+
 use App\Company;
-use Openpay;
+use App\Invoice;
+use App\Mail\PaymentMail;
+use App\Service;
+use App\Services\OpenPayService;
+use Carbon\Carbon;
 use Exception;
-use OpenpayApiError;
+use Illuminate\Http\Request;
+use Mail;
 use OpenpayApiAuthError;
-use OpenpayApiRequestError;
 use OpenpayApiConnectionError;
+use OpenpayApiError;
+use OpenpayApiRequestError;
 use OpenpayApiTransactionError;
 use Redirect;
-use Illuminate\Http\JsonResponse;
-use Mail;
 
-
-
-//require '../vendor/autoload.php';
 class InvoicesController extends Controller
 {
-    //Controlador para la facturación
+    private $openPayService;
+
+    public function __construct(OpenPayService $openPayService)
+    {
+        $this->openPayService = $openPayService;
+    }
 
     public function invoices()
     {
@@ -57,59 +59,49 @@ class InvoicesController extends Controller
         $company = Company::find($invoice->company_id);
         $services = $services = $invoice->services;
         try {
-
-        $openpay = Openpay::getInstance(env('OPENPAY_SANDBOX_ID'), env('OPENPAY_SANDBOX_KEY'));
-
-
-            $customer = array(
-                'external_id' => $company->owner_user->id,
-                'name' => $company->owner_user->full_name,
-                'last_name' => $company->owner_user->last_name,
-                'phone_number' => $company->phone,
-                'email' => $company->email);
-                //dd( $request->deviceIdHiddenFieldName);
-            $chargeData = array(
-                'method' => 'store',
-                'amount' => (float)$invoice->m_total,
+            $owner      = $company->owner_user;
+            $chargeData = [
+                'method'      => 'store',
+                'amount'      => (float) $invoice->m_total,
                 'description' => 'Cargo a tienda',
-                'order_id' => $invoice->id,
+                'order_id'    => $invoice->id,
+                'customer'    => [
+                    'external_id' => $owner ? $owner->id : $company->id,
+                    'name'        => $owner ? $owner->full_name : $company->name,
+                    'last_name'   => $owner ? ($owner->last_name ?? '') : '',
+                    'phone_number'=> $company->phone,
+                    'email'       => $company->email,
+                ],
+            ];
 
-                'customer' => $customer);
-        $charge = $openpay->charges->create($chargeData);
+            $charge = $this->openPayService->createSandboxCharge($chargeData);
+            $url    = 'https://sandbox-dashboard.openpay.mx/paynet-pdf/' . env('OPENPAY_SANDBOX_ID') . '/' . $charge->payment_method->reference;
 
-        $url = "https://sandbox-dashboard.openpay.mx/paynet-pdf/".env('OPENPAY_SANDBOX_ID')."/".$charge->payment_method->reference;
-
-        return Redirect::intended($url);
-    } catch (OpenpayApiTransactionError $e) {
-        $error_code = $e->getErrorCode();
-    } catch (OpenpayApiRequestError $e) {
-        $error_code = $e->getErrorCode();
-    } catch (OpenpayApiConnectionError $e) {
-        $error_code = $e->getErrorCode();
-    } catch (OpenpayApiAuthError $e) {
-        $error_code = $e->getErrorCode();
-    } catch (OpenpayApiError $e) {
-        $error_code = $e->getErrorCode();
-    } catch (Exception $e) {
-        $error_code = $e->getErrorCode();
-    }
-
-    $error_m = $this->getErrorMessage($error_code);
-        if("Error desconocido.2003" == $error_m)
-        {
-            $openpay = Openpay::getInstance(env('OPENPAY_SANDBOX_ID'), env('OPENPAY_SANDBOX_KEY'));
-
-            $searchParams = array(
-                'order_id' => $invoice->id,
-                'limit' => 1
-            );
-            $charge = $openpay->charges->getList($searchParams);
-
-            //dd($charge[0]->payment_method->reference);
-            $url = "https://sandbox-dashboard.openpay.mx/paynet-pdf/".env('OPENPAY_SANDBOX_ID')."/".$charge[0]->payment_method->reference;
             return Redirect::intended($url);
+
+        } catch (OpenpayApiTransactionError $e) {
+            $error_code = $e->getErrorCode();
+        } catch (OpenpayApiRequestError $e) {
+            $error_code = $e->getErrorCode();
+        } catch (OpenpayApiConnectionError $e) {
+            $error_code = $e->getErrorCode();
+        } catch (OpenpayApiAuthError $e) {
+            $error_code = $e->getErrorCode();
+        } catch (OpenpayApiError $e) {
+            $error_code = $e->getErrorCode();
+        } catch (Exception $e) {
+            $error_code = $e->getErrorCode();
         }
 
+        $error_m = $this->getErrorMessage($error_code);
+        if ('Error desconocido.2003' == $error_m) {
+            $charges = $this->openPayService->getSandboxChargeList([
+                'order_id' => $invoice->id,
+                'limit'    => 1,
+            ]);
+            $url = 'https://sandbox-dashboard.openpay.mx/paynet-pdf/' . env('OPENPAY_SANDBOX_ID') . '/' . $charges[0]->payment_method->reference;
+            return Redirect::intended($url);
+        }
     }
 
     public function openPay_spei(Request $request, $invoice)
@@ -121,115 +113,101 @@ class InvoicesController extends Controller
                 ->firstOrFail();
             $company = Company::find($invoice->company_id);
             $services = $services = $invoice->services;
-            $openpay = Openpay::getInstance(env('OPENPAY_SANDBOX_ID'), env('OPENPAY_SANDBOX_KEY'));
-            $customer = array(
+            $owner      = $company->owner_user;
+            $chargeData = [
+                'method'      => 'bank_account',
+                'amount'      => (float) $invoice->m_total,
+                'description' => 'Cargo con banco',
+                'order_id'    => $invoice->id,
+                'customer'    => [
+                    'name'        => $owner ? $owner->full_name : $company->name,
+                    'last_name'   => $owner ? ($owner->last_name ?? '') : '',
+                    'phone_number'=> $company->phone,
+                    'email'       => $company->email,
+                ],
+            ];
 
-                'name' => $company->owner_user->full_name,
-                'last_name' => $company->owner_user->last_name,
-                'phone_number' => $company->phone,
-                'email' => $company->email);
+            $charge = $this->openPayService->createSandboxCharge($chargeData);
+            $url    = 'https://sandbox-dashboard.openpay.mx/spei-pdf/' . env('OPENPAY_SANDBOX_ID') . '/' . $charge->id;
 
-            $chargeData = array(
-            'method' => 'bank_account',
-            'amount' => (float)$invoice->m_total,
-            'description' => 'Cargo con banco',
-            'order_id' =>  $invoice->id,
-            'customer' => $customer);
+            return Redirect::intended($url);
 
-      $charge = $openpay->charges->create($chargeData);
-      //dd($charge);
-      $url = "https://sandbox-dashboard.openpay.mx/spei-pdf/".env('OPENPAY_SANDBOX_ID')."/".$charge->id;
+        } catch (OpenpayApiTransactionError $e) {
+            $error_code = $e->getErrorCode();
+        } catch (OpenpayApiRequestError $e) {
+            $error_code = $e->getErrorCode();
+        } catch (OpenpayApiConnectionError $e) {
+            $error_code = $e->getErrorCode();
+        } catch (OpenpayApiAuthError $e) {
+            $error_code = $e->getErrorCode();
+        } catch (OpenpayApiError $e) {
+            $error_code = $e->getErrorCode();
+        } catch (Exception $e) {
+            $error_code = $e->getErrorCode();
+        }
 
-      return Redirect::intended($url);
-    } catch (OpenpayApiTransactionError $e) {
-        $error_code = $e->getErrorCode();
-    } catch (OpenpayApiRequestError $e) {
-        $error_code = $e->getErrorCode();
-    } catch (OpenpayApiConnectionError $e) {
-        $error_code = $e->getErrorCode();
-    } catch (OpenpayApiAuthError $e) {
-        $error_code = $e->getErrorCode();
-    } catch (OpenpayApiError $e) {
-        $error_code = $e->getErrorCode();
-    } catch (Exception $e) {
-        $error_code = $e->getErrorCode();
-    }
-    $error_m = $this->getErrorMessage($error_code);
-    if("Error desconocido.1006" == $error_m)
-    {
-        $openpay = Openpay::getInstance(env('OPENPAY_SANDBOX_ID'), env('OPENPAY_SANDBOX_KEY'));
-
-        $searchParams = array(
-            'order_id' => $invoice->id,
-            'limit' => 1
-        );
-        $list = $openpay->charges->getList($searchParams);
-
-       //dd($list);
-        $url = "https://sandbox-dashboard.openpay.mx/spei-pdf/".env('OPENPAY_SANDBOX_ID')."/".$list[0]->id;
-        return Redirect::intended($url);
-    }
+        $error_m = $this->getErrorMessage($error_code);
+        if ('Error desconocido.1006' == $error_m) {
+            $list = $this->openPayService->getSandboxChargeList([
+                'order_id' => $invoice->id,
+                'limit'    => 1,
+            ]);
+            $url = 'https://sandbox-dashboard.openpay.mx/spei-pdf/' . env('OPENPAY_SANDBOX_ID') . '/' . $list[0]->id;
+            return Redirect::intended($url);
+        }
 
     return redirect(route('invoices.view', ['invoice'=>$invoice->id]))->with(compact('invoice','company','services','error_code','error_m'));
     }
 
     public function openPay_payment(Request $request, $invoice)
     {
-   
-            $openpay = Openpay::getInstance(env('OPENPAY_ID'), env('OPENPAY_KEY_SECRET'));
-            Openpay::setProductionMode(env('OPENPAY_PRODUCTION'));
+        $company = auth()->user()->company;
+        $package = $company->service;
+        $num_users = $company->users()->count() - $package->users_included;
 
-            $company = auth()->user()->company;
-            //Plan contratado
-            $package = $company->service;
-            //Contar usurios no incluidos en el plan
-            $num_users = $company->users()->count() - $package->users_included;
+        $invoice = new Invoice;
+        $invoice->name        = 'Mensualidad -' . $package->service;
+        $invoice->cost_package = $package->price;
+        $invoice->cost_user   = $package->user_price;
+        $invoice->users       = $num_users;
+        $invoice->company_id  = $company->id;
 
-            $invoice = new Invoice;
-            $invoice->name = 'Mensualidad -'.$package->service;
-            $invoice->cost_package = $package->price;
-            $invoice->cost_user = $package->user_price;
-            $invoice->users = $num_users;
-            $invoice->company_id = $company->id;
+        if ($company->is_active) {
+            $last_invoice    = $company->invoices()->latest()->first();
+            $invoice->due_date = $last_invoice->due_date->addMonth();
+        } else {
+            $invoice->due_date = Carbon::now()->addMonth();
+        }
 
-            if ($company->is_active) {
-                $last_invoice = $company->invoices()->latest()->first();
-                $invoice->due_date = $last_invoice->due_date->addMonth();
-            } else {
-                $invoice->due_date = Carbon::now()->addMonth();
-            }
+        $invoice->status = 2;
+        $invoice->payday = Carbon::now();
+        $invoice->save();
 
-            $invoice->status = 2;
-            $invoice->payday = Carbon::now();
-            $invoice->save();
-            try {
+        try {
+            // Obtiene (o crea y persiste) el customer de OpenPay vinculado a este tenant
+            $openPayCustomer = $this->openPayService->getOrCreateCustomer($company);
 
-                $customer = array(
-                    'name' => $company->owner_user->full_name,
-                    'last_name' => $company->owner_user->last_name,
-                    'phone_number' => $company->phone,
-                    'email' => $company->email);
+            $chargeData = [
+                'method'           => 'card',
+                'use_3d_secure'    => true,
+                'source_id'        => $request->token_id,
+                'currency'         => 'MXN',
+                'redirect_url'     => request()->getHttpHost() . '/payment',
+                'amount'           => strval($invoice->total),
+                'description'      => 'Mensualidad -' . $package->service,
+                'order_id'         => $invoice->id,
+                'device_session_id'=> $request->deviceIdHiddenFieldName,
+            ];
 
-                $chargeData = array(
-                    'method' => 'card',
-                    'use_3d_secure'     =>  true,
-                    'source_id' => $request->token_id,
-                    'currency' => 'MXN',
-                    "redirect_url"      =>  request()->getHttpHost()."/payment",
-                    'amount' => strval($invoice->total),
-                    'description' => 'Mensualidad -'.$package->service,
-                    'order_id'          => $invoice->id,
-                    'device_session_id' => $request->deviceIdHiddenFieldName,
-                    'customer' => $customer
-                );
+            // Cargo asociado al customer (no anónimo)
+            $charge = $openPayCustomer->charges->create($chargeData);
 
-                $charge = $openpay->charges->create($chargeData);
-            } catch (\Exception $e) {
-                $invoice->delete();
-                return back()->with('error', "Error Inesperado, Favor de intentar de nuevo");
-            }
+        } catch (\Exception $e) {
+            $invoice->delete();
+            return back()->with('error', 'Error Inesperado, Favor de intentar de nuevo');
+        }
 
-            return redirect($charge->payment_method->url);
+        return redirect($charge->payment_method->url);
     }
 
     public function payment(Request $request)
@@ -238,12 +216,8 @@ class InvoicesController extends Controller
          if($request->id)
          {
 
-             $charge_id=$request->id;
-
-            $openpay = Openpay::getInstance(env('OPENPAY_ID'), env('OPENPAY_KEY_SECRET'));
-            Openpay::setProductionMode(env('OPENPAY_PRODUCTION'));
-
-             $charge = $openpay->charges->get($charge_id);
+             $charge_id = $request->id;
+             $charge    = $this->openPayService->getCharge($charge_id);
 
              if($charge)
              {
