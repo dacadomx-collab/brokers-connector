@@ -1,54 +1,52 @@
-@extends('layouts.app')
+<?php $__env->startSection('title', 'Suscripción — Brokers Connector'); ?>
 
-@section('title', 'Suscripción — Brokers Connector')
+<?php $__env->startPush('styles'); ?>
+<link rel="stylesheet" href="<?php echo e(asset('admin/css/notifications/Lobibox.min.css')); ?>">
+<link rel="stylesheet" href="<?php echo e(asset('admin/css/notifications/notifications.css')); ?>">
+<?php $__env->stopPush(); ?>
 
-@push('styles')
-<link rel="stylesheet" href="{{ asset('admin/css/notifications/Lobibox.min.css') }}">
-<link rel="stylesheet" href="{{ asset('admin/css/notifications/notifications.css') }}">
-@endpush
-
-@section('breadcome')
-<li><a href="{{ url('home') }}">Inicio</a> <span class="bread-slash">/</span></li>
+<?php $__env->startSection('breadcome'); ?>
+<li><a href="<?php echo e(url('home')); ?>">Inicio</a> <span class="bread-slash">/</span></li>
 <li><span class="bread-blod">Suscripción</span></li>
-@endsection
+<?php $__env->stopSection(); ?>
 
-@section('content')
+<?php $__env->startSection('content'); ?>
 
 <div class="single-pro-review-area mt-t-30 mg-b-15">
     <div class="container-fluid">
 
-        {{-- ── Cabecera ── --}}
+        
         <div class="row">
             <div class="col-xs-12">
                 <h2 class="checkout-section-title">Elige tu plan</h2>
                 <p class="checkout-section-subtitle">
-                    Plan actual: <strong>{{ $company->m_package->service ?? '—' }}</strong>
+                    Plan actual: <strong><?php echo e($company->m_package->service ?? '—'); ?></strong>
                 </p>
             </div>
         </div>
 
-        {{-- ── Layout principal: planes izquierda · formulario derecha ── --}}
+        
         <div class="row">
 
-            {{-- Columna de planes — col-md-7, apila en móvil --}}
+            
             <div class="col-md-7 col-sm-12 col-xs-12">
 
-                @foreach ($services as $service)
+                <?php $__currentLoopData = $services; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $service): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                 <label class="plan-card-label">
 
                     <input type="radio"
                            name="selected_plan"
-                           value="{{ $service->id }}"
+                           value="<?php echo e($service->id); ?>"
                            class="plan-radio"
-                           {{ $company->package == $service->id ? 'checked' : '' }}>
+                           <?php echo e($company->package == $service->id ? 'checked' : ''); ?>>
 
-                    <div class="plan-card {{ $company->package == $service->id ? 'plan-card-active' : '' }}">
+                    <div class="plan-card <?php echo e($company->package == $service->id ? 'plan-card-active' : ''); ?>">
 
                         <div class="panel-heading">
-                            <span>{{ $service->service }}</span>
-                            @if ($company->package == $service->id)
+                            <span><?php echo e($service->service); ?></span>
+                            <?php if($company->package == $service->id): ?>
                                 <span class="pull-right label label-primary">Plan actual</span>
-                            @endif
+                            <?php endif; ?>
                         </div>
 
                         <div class="panel-body">
@@ -56,7 +54,8 @@
 
                                 <div class="col-xs-5 text-center">
                                     <p class="plan-price">
-                                        ${{ number_format($service->price, 0) }}
+                                        $<?php echo e(number_format($service->price, 0)); ?>
+
                                         <small>MXN<br>/ mes</small>
                                     </p>
                                 </div>
@@ -65,20 +64,20 @@
                                     <ul class="plan-features list-unstyled">
                                         <li>
                                             <i class="fa fa-users text-primary" aria-hidden="true"></i>
-                                            {{ $service->users_included }} usuario(s) incluido(s)
+                                            <?php echo e($service->users_included); ?> usuario(s) incluido(s)
                                         </li>
-                                        @if ($service->user_price > 0)
+                                        <?php if($service->user_price > 0): ?>
                                         <li>
                                             <i class="fa fa-plus-circle text-info" aria-hidden="true"></i>
-                                            ${{ number_format($service->user_price, 0) }} por usuario extra
+                                            $<?php echo e(number_format($service->user_price, 0)); ?> por usuario extra
                                         </li>
-                                        @endif
-                                        @if ($service->days_trial > 0)
+                                        <?php endif; ?>
+                                        <?php if($service->days_trial > 0): ?>
                                         <li>
                                             <i class="fa fa-gift text-warning" aria-hidden="true"></i>
-                                            {{ $service->days_trial }} días de prueba gratis
+                                            <?php echo e($service->days_trial); ?> días de prueba gratis
                                         </li>
-                                        @endif
+                                        <?php endif; ?>
                                         <li>
                                             <i class="fa fa-home text-success" aria-hidden="true"></i>
                                             Propiedades ilimitadas
@@ -95,11 +94,11 @@
 
                     </div>
                 </label>
-                @endforeach
+                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
 
-            </div>{{-- /col planes --}}
+            </div>
 
-            {{-- Columna del formulario — col-md-5, sticky en desktop --}}
+            
             <div class="col-md-5 col-sm-12 col-xs-12">
                 <div class="checkout-sticky">
                     <div class="checkout-panel">
@@ -109,17 +108,17 @@
                             Pago seguro con OpenPay
                         </p>
 
-                        <form action="{{ route('subscription.process') }}"
+                        <form action="<?php echo e(route('subscription.process')); ?>"
                               method="POST"
                               id="subscription-form">
-                            @csrf
+                            <?php echo csrf_field(); ?>
 
-                            {{-- Campos ocultos — únicos que viajan al servidor --}}
+                            
                             <input type="hidden" name="token_id"                id="token_id">
                             <input type="hidden" name="selected_plan_id"        id="selected_plan_id">
                             <input type="hidden" name="deviceIdHiddenFieldName" id="deviceIdHiddenFieldName">
 
-                            {{-- Nombre del titular --}}
+                            
                             <div class="form-group">
                                 <label class="payment-label" for="sub-holder">Nombre del titular</label>
                                 <input id="sub-holder"
@@ -129,20 +128,12 @@
                                        maxlength="75"
                                        autocomplete="off"
                                        data-openpay-card="holder_name">
-                                {{-- SIN name="" — nunca viaja al servidor (PCI DSS) --}}
+                                
                             </div>
 
-                            {{-- Número de tarjeta --}}
+                            
                             <div class="form-group">
-                                <label class="payment-label" for="sub-cardnumber">
-                                    Número de tarjeta
-                                    <span class="pull-right">
-                                        {{-- Estilo inline autorizado: colores de marca oficiales Visa / MC / Amex --}}
-                                        <i class="fa fa-cc-visa" style="color: #1a1f71; font-size: 24px; margin-right: 5px;" aria-label="Visa"></i>
-                                        <i class="fa fa-cc-mastercard" style="color: #eb001b; font-size: 24px; margin-right: 5px;" aria-label="Mastercard"></i>
-                                        <i class="fa fa-cc-amex" style="color: #2e77bc; font-size: 24px;" aria-label="American Express"></i>
-                                    </span>
-                                </label>
+                                <label class="payment-label" for="sub-cardnumber">Número de tarjeta</label>
                                 <input id="sub-cardnumber"
                                        type="text"
                                        class="payment-input"
@@ -151,7 +142,7 @@
                                        data-openpay-card="card_number">
                             </div>
 
-                            {{-- Vencimiento + CVV en la misma fila --}}
+                            
                             <div class="payment-row">
                                 <div class="payment-field">
                                     <label class="payment-label">Mes</label>
@@ -188,30 +179,24 @@
 
                         </form>
 
-                        <div class="text-center" style="margin-top: 15px;">
-                            <img src="https://img.openpay.mx/assets/paynet_logo.png"
-                                 alt="OpenPay"
-                                 height="30"
-                                 style="opacity: 0.8;">
-                            <p style="font-size: 11px; color: #777; margin-top: 5px;">
-                                <i class="fa fa-lock text-success"></i>
-                                Sus datos están encriptados y se transmiten de forma segura.
-                                No almacenamos los números de su tarjeta.
-                            </p>
+                        <div class="checkout-trust-badge">
+                            <i class="fa fa-shield" aria-hidden="true"></i>
+                            Transacción cifrada por OpenPay.
+                            Tus datos de tarjeta <strong>nunca</strong> pasan por nuestros servidores.
                         </div>
 
                     </div>
                 </div>
-            </div>{{-- /col formulario --}}
+            </div>
 
-        </div>{{-- /row principal --}}
+        </div>
     </div>
 </div>
 
-@endsection
+<?php $__env->stopSection(); ?>
 
-@push('scripts')
-<script src="{{ asset('admin/js/notifications/Lobibox.js') }}"></script>
+<?php $__env->startPush('scripts'); ?>
+<script src="<?php echo e(asset('admin/js/notifications/Lobibox.js')); ?>"></script>
 <script type="text/javascript" src="https://openpay.s3.amazonaws.com/openpay.v1.min.js"></script>
 <script type="text/javascript" src="https://openpay.s3.amazonaws.com/openpay-data.v1.min.js"></script>
 
@@ -219,9 +204,9 @@
 $(document).ready(function () {
 
     /* ── OpenPay init ─────────────────────────────── */
-    OpenPay.setId("{{ env('OPENPAY_ID') }}");
-    OpenPay.setApiKey("{{ env('OPENPAY_KEY_PUBLIC') }}");
-    OpenPay.setSandboxMode({{ env('OPENPAY_PRODUCTION', false) ? 'false' : 'true' }});
+    OpenPay.setId("<?php echo e(env('OPENPAY_ID')); ?>");
+    OpenPay.setApiKey("<?php echo e(env('OPENPAY_KEY_PUBLIC')); ?>");
+    OpenPay.setSandboxMode(<?php echo e(env('OPENPAY_PRODUCTION', false) ? 'false' : 'true'); ?>);
     OpenPay.deviceData.setup('subscription-form', 'deviceIdHiddenFieldName');
 
     /* ── Selector de plan — sincroniza hidden + estado visual ─── */
@@ -285,7 +270,7 @@ $(document).ready(function () {
 });
 </script>
 
-@if (Session::has('error'))
+<?php if(Session::has('error')): ?>
 <script>
     Lobibox.notify('error', {
         title: 'Error',
@@ -294,20 +279,22 @@ $(document).ready(function () {
         height: 'auto',
         showClass: 'fadeInDown',
         hideClass: 'fadeUpDown',
-        msg: "{{ session('error') }}"
+        msg: "<?php echo e(session('error')); ?>"
     });
 </script>
-@endif
+<?php endif; ?>
 
-@if (Session::has('success'))
+<?php if(Session::has('success')): ?>
 <script>
     Lobibox.notify('success', {
         title: '¡Éxito!',
         position: 'top right',
         showClass: 'fadeInDown',
         hideClass: 'fadeUpDown',
-        msg: "{{ session('success') }}"
+        msg: "<?php echo e(session('success')); ?>"
     });
 </script>
-@endif
-@endpush
+<?php endif; ?>
+<?php $__env->stopPush(); ?>
+
+<?php echo $__env->make('layouts.app', \Illuminate\Support\Arr::except(get_defined_vars(), ['__data', '__path']))->render(); ?><?php /**PATH C:\xampp\htdocs\brokersconnect_dev\brokers_new\resources\views/companies/subscription.blade.php ENDPATH**/ ?>
