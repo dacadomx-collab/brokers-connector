@@ -215,6 +215,9 @@ Route::middleware(['auth', 'company','companyPayment'])->group(function () {
      //Plans
      Route::get('/home/plans', 'CompanyController@plans')->name('view.plans');
      Route::post('/home/plans/edit', 'CompanyController@editPlan')->name('edit.plans');
+
+     // IA / Widget de chat del panel (sesión web + CSRF — no requiere Bearer Token)
+     Route::post('/home/ai/chat', 'AiChatController@sendMessage')->name('ai.chat');
 });
 
 

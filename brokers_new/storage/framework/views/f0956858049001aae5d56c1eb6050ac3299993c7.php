@@ -153,6 +153,9 @@
 
     <!-- Stack: scripts por vista (después de jQuery) -->
     <?php echo $__env->yieldPushContent('scripts'); ?>
+
+    
+    <?php echo $__env->make('components.ai-chat', \Illuminate\Support\Arr::except(get_defined_vars(), ['__data', '__path']))->render(); ?>
 </body>
 
 </html>

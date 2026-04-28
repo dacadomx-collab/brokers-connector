@@ -165,6 +165,9 @@
 
     <!-- Stack: scripts por vista (después de jQuery) -->
     @stack('scripts')
+
+    {{-- Widget de Chat IA (panel de agentes) --}}
+    @include('components.ai-chat')
 </body>
 
 </html>
