@@ -62,5 +62,5 @@
 
 </div>
 
-<script src="<?php echo e(asset('js/aiChat.js')); ?>"></script>
+<script src="<?php echo e(asset('newbrokers/js/aiChat.js')); ?>"></script>
 <?php /**PATH C:\xampp\htdocs\brokersconnect_dev\brokers_new\resources\views/components/ai-chat.blade.php ENDPATH**/ ?>

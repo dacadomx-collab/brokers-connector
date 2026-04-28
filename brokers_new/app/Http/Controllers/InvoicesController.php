@@ -36,9 +36,9 @@ class InvoicesController extends Controller
     }
 
 
-    public function invoice($invoice_id)
+    public function invoice($invoice)
     {
-        $invoice = Invoice::findOrFail($invoice_id);
+        $invoice = Invoice::findOrFail($invoice);
         $company = auth()->user()->company;
         if($invoice->company_id != $company->id)
         {
@@ -49,6 +49,19 @@ class InvoicesController extends Controller
         return view("invoices.view")->with(compact('invoice','company','services','name_services'));
     }
 
+
+    public function subscription()
+    {
+        $company  = auth()->user()->company;
+        $services = Service::where('id', '!=', 4)->get(); // excluye "usuario extra"
+        return view('companies.subscription', compact('company', 'services'));
+    }
+
+    public function openPay_pay($invoice)
+    {
+        // Redirige a la vista de detalle de factura donde se muestra el modal de pago.
+        return redirect()->route('invoices.view', ['invoice' => $invoice]);
+    }
 
     public function openPay_paynet($invoice)
     {

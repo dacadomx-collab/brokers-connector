@@ -48,7 +48,7 @@
     <link rel="stylesheet" href="<?php echo e(asset('admin/css/meanmenu.min.css')); ?>">
 
     <!-- Main CSS (ARF-Grid centralizado) -->
-    <link rel="stylesheet" href="<?php echo e(asset('css/main.css')); ?>">
+    <link rel="stylesheet" href="<?php echo e(asset('newbrokers/css/main.css')); ?>">
 
     <!-- Educate Icon CSS -->
     <link rel="stylesheet" href="<?php echo e(asset('admin/css/educate-custon-icon.css')); ?>">

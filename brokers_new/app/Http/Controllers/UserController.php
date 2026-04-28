@@ -121,7 +121,7 @@ class UserController extends Controller
         
         $request['company_id']=auth()->user()->company_id;
 
-        $request_all;
+        $request_all = [];
         if($request->filled('password'))
         {
             $request->validate(

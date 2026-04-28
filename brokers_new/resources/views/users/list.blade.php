@@ -161,7 +161,7 @@
                 });
                     $.ajax(
                     {   type:"post",
-                        url: "/home/users/delete", 
+                        url: "{{ url('home/users/delete') }}",
                         data: {user_id: id},
                         success: function(result){
                             $("#row-"+id).html("");

@@ -221,6 +221,9 @@ Route::middleware(['auth', 'company','companyPayment'])->group(function () {
 
      // IA / Generador de copywriting inmobiliario
      Route::post('/home/ai/generate-copy', 'AiChatController@generateCopy')->name('ai.generate-copy');
+
+     // Suscripciones recurrentes
+     Route::get('/home/subscription', 'InvoicesController@subscription')->name('subscription');
 });
 
 
