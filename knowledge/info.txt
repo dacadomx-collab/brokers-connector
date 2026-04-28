@@ -5,7 +5,7 @@ acadep01
 
 **************************************************************************	**********	SITE NEW WEB	******************************************
 **************************************************************************	
-https://new.brokersconnector.com/
+https://newbrokers.tourfindy.com/
 http://localhost/brokersconnect_dev/public_html/
 
 **************************************************************************	**********	Data Bases	******************************************
@@ -35,3 +35,11 @@ https://newbrokers.tourfindy.com/
 User
 leolage@acadep.com
 acadep01
+
+**************************************************************************	(Sandbox) de OpenPay ***********************
+************************************************************
+Tarjeta de Prueba Oficial de OpenPay:
+Titular: Juan Pérez (o tu nombre)
+Número de Tarjeta: 4111 1111 1111 1111 (Aprobada siempre)
+Mes/Año: Cualquier fecha futura (ej. 12 / 28)
+CVV: 123

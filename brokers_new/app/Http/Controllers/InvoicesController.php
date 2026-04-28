@@ -57,6 +57,86 @@ class InvoicesController extends Controller
         return view('companies.subscription', compact('company', 'services'));
     }
 
+    public function processSubscription(Request $request)
+    {
+        $request->validate([
+            'token_id'                 => 'required|string',
+            'selected_plan_id'         => 'required|integer',
+            'deviceIdHiddenFieldName'  => 'required|string',
+        ]);
+
+        // ── Mapeo de IDs internos → IDs de Plan en OpenPay ──────────────────
+        // EL HUMANO DEBE CREAR ESTOS IDS DE PLANES EN SU DASHBOARD DE OPENPAY
+        // (Dashboard → Suscripciones → Planes → Crear plan → copiar ID)
+        $planMap = [
+            1 => 'plan_basico_mensual',    // Service ID 1 → plan creado en OpenPay
+            2 => 'plan_profesional_mensual',
+            3 => 'plan_enterprise_mensual',
+        ];
+
+        $selectedPlanId = (int) $request->selected_plan_id;
+
+        if (!array_key_exists($selectedPlanId, $planMap)) {
+            return back()->with('error', 'El plan seleccionado no es válido. Por favor elige una opción.');
+        }
+
+        $openpayPlanId = $planMap[$selectedPlanId];
+        $company       = auth()->user()->company;
+
+        try {
+            $subscription = $this->openPayService->createSubscription(
+                $company,
+                $openpayPlanId,
+                $request->token_id,
+                $request->deviceIdHiddenFieldName
+            );
+
+            // Persistir el ID de suscripción y actualizar el plan contratado
+            $company->openpay_subscription_id = $subscription->id;
+            $company->package                 = $selectedPlanId;
+            $company->save();
+
+            return redirect()->route('invoices')
+                ->with('success', '¡Suscripción activada con éxito! Tu plan ' . ($subscription->plan_id ?? '') . ' ya está activo.');
+
+        } catch (OpenpayApiTransactionError $e) {
+            return back()->with('error', $this->friendlyCardError($e->getErrorCode()));
+
+        } catch (OpenpayApiRequestError $e) {
+            return back()->with('error', 'Datos de tarjeta incorrectos. Verifica e intenta de nuevo. (' . $e->getErrorCode() . ')');
+
+        } catch (OpenpayApiAuthError $e) {
+            return back()->with('error', 'Error de configuración del procesador de pagos. Contacta soporte.');
+
+        } catch (OpenpayApiConnectionError $e) {
+            return back()->with('error', 'No se pudo conectar con el procesador de pagos. Intenta en unos minutos.');
+
+        } catch (OpenpayApiError $e) {
+            return back()->with('error', 'Error del procesador de pagos: ' . $e->getMessage());
+
+        } catch (\Exception $e) {
+            return back()->with('error', 'Ocurrió un error inesperado. Por favor intenta de nuevo.');
+        }
+    }
+
+    private function friendlyCardError(int $code): string
+    {
+        $messages = [
+            3001 => 'La tarjeta fue declinada. Comunícate con tu banco.',
+            3002 => 'La tarjeta ha expirado.',
+            3003 => 'La tarjeta fue declinada por fondos insuficientes.',
+            3004 => 'La tarjeta fue identificada como robada.',
+            3005 => 'La tarjeta fue rechazada por el sistema antifraudes.',
+            3006 => 'Operación no permitida para esta tarjeta.',
+            3009 => 'La tarjeta fue reportada como perdida.',
+            3010 => 'Tu banco ha restringido la tarjeta para pagos en línea.',
+            3011 => 'Tu banco solicitó retener la tarjeta. Contacta a tu banco.',
+            3012 => 'Se requiere autorización del banco para este pago.',
+        ];
+
+        return $messages[$code] ?? 'Tu tarjeta fue declinada (código ' . $code . '). Intenta con otra.';
+    }
+
     public function openPay_pay($invoice)
     {
         // Redirige a la vista de detalle de factura donde se muestra el modal de pago.

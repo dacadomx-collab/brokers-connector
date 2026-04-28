@@ -24,6 +24,7 @@
 | Rol de mensaje IA | `role` | ENUM('user','assistant','system') | En `ai_messages`; define el emisor |
 | Tokens consumidos | `tokens_used` | INT DEFAULT 0 | En `ai_messages`; para auditoría de costos |
 | Cliente OpenPay | `openpay_customer_id` | VARCHAR(64) NULL | En `companies`; vincula el tenant con su perfil en OpenPay |
+| Suscripción OpenPay | `openpay_subscription_id` | VARCHAR(64) NULL | En `companies`; referencia la suscripción recurrente activa |
 
 > **NOTA DE FUNDACIÓN:** Todas las conexiones a BD deben realizarse a través de la clase centralizada, leyendo variables del archivo `.env`.
 
@@ -59,6 +60,7 @@
 | `owner` | BIGINT UNSIGNED | ID del usuario propietario (FK implícita a `users`) |
 | `active` | INT UNSIGNED | 1 = activa, 0 = inactiva |
 | `openpay_customer_id` | VARCHAR(64) NULL | ID del cliente en OpenPay. Permite trazabilidad, tarjetas guardadas y cargos recurrentes. Se asigna al primer cobro. |
+| `openpay_subscription_id` | VARCHAR(64) NULL | ID de la suscripción activa en OpenPay. Permite gestión del ciclo de facturación recurrente y cancelación. |
 | `created_at` / `updated_at` | TIMESTAMP NULL | Timestamps Laravel |
 
 ---

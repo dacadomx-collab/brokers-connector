@@ -232,6 +232,61 @@ api_key (required), id (required|numeric), description, ubication, comission, si
 
 ---
 
+### `GET /home/subscription`
+**Vista de suscripción recurrente. Muestra selector de planes y formulario de tarjeta.**
+
+- **Middleware:** `web, auth, company, companyPayment`
+- **Controlador:** `InvoicesController@subscription`
+- **Datos pasados a la vista:** `$company` (tenant activo), `$services` (planes disponibles — excluye ID 4 "usuario extra")
+- **Respuesta:** Blade `companies/subscription.blade.php`
+
+---
+
+### `POST /home/subscription`
+**Procesamiento de suscripción recurrente con tokenización OpenPay.**
+
+- **Middleware:** `web, auth, company, companyPayment`
+- **Controlador:** `InvoicesController@processSubscription`
+- **Payload (form POST con CSRF):**
+```json
+{
+  "token_id":                "string|required — token generado por OpenPay.js (nunca datos de tarjeta)",
+  "selected_plan_id":        "integer|required — ID de plan de la tabla services (1, 2, 3)",
+  "deviceIdHiddenFieldName": "string|required — device session ID generado por openpay-data.js"
+}
+```
+- **Mapeo interno → OpenPay (debe coincidir con planes creados en el dashboard):**
+
+| `selected_plan_id` (DB) | `plan_id` en OpenPay |
+|---|---|
+| 1 | `plan_basico_mensual` |
+| 2 | `plan_profesional_mensual` |
+| 3 | `plan_enterprise_mensual` |
+
+> ⚠️ **EL HUMANO DEBE CREAR ESTOS PLANES EN EL DASHBOARD DE OPENPAY** antes de activar esta ruta en producción. Los IDs del array `$planMap` en el controlador deben coincidir exactamente con los creados en el panel.
+
+- **Response éxito:** `redirect → /home/invoices` con flash `success`
+- **Responses de error (todos retornan `back()` con flash `error`):**
+
+| Excepción OpenPay | Mensaje mostrado al usuario |
+|---|---|
+| `OpenpayApiTransactionError` (3001) | "La tarjeta fue declinada. Comunícate con tu banco." |
+| `OpenpayApiTransactionError` (3002) | "La tarjeta ha expirado." |
+| `OpenpayApiTransactionError` (3003) | "Fondos insuficientes." |
+| `OpenpayApiTransactionError` (3005) | "Rechazada por antifraudes." |
+| `OpenpayApiRequestError` | "Datos de tarjeta incorrectos." |
+| `OpenpayApiAuthError` | "Error de configuración. Contacta soporte." |
+| `OpenpayApiConnectionError` | "No se pudo conectar. Intenta en minutos." |
+| `OpenpayApiError` | Mensaje crudo del SDK |
+| `\Exception` | "Error inesperado. Intenta de nuevo." |
+
+- **Persistencia en caso de éxito:**
+  - `companies.openpay_subscription_id` ← `$subscription->id`
+  - `companies.package` ← `$request->selected_plan_id`
+- **Regla de Piedra:** Si OpenPay rechaza la tarjeta, **ningún dato del usuario se modifica** — la transacción falla limpiamente en el catch y el usuario recibe un mensaje accionable en español.
+
+---
+
 ### `POST /home/ai/chat`
 **Chat IA del panel de agentes. Crea o continúa un hilo de conversación por tenant.**
 

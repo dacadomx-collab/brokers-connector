@@ -5,7 +5,6 @@
 @push('styles')
 <link rel="stylesheet" href="{{ asset('admin/css/notifications/Lobibox.min.css') }}">
 <link rel="stylesheet" href="{{ asset('admin/css/notifications/notifications.css') }}">
-<link rel="stylesheet" href="{{ asset('admin/css/form/all-type-forms.css') }}">
 @endpush
 
 @section('breadcome')
@@ -17,153 +16,181 @@
 
 <div class="single-pro-review-area mt-t-30 mg-b-15">
     <div class="container-fluid">
+
+        {{-- ── Cabecera ── --}}
+        <div class="row">
+            <div class="col-xs-12">
+                <h2 class="checkout-section-title">Elige tu plan</h2>
+                <p class="checkout-section-subtitle">
+                    Plan actual: <strong>{{ $company->m_package->service ?? '—' }}</strong>
+                </p>
+            </div>
+        </div>
+
+        {{-- ── Layout principal: planes izquierda · formulario derecha ── --}}
         <div class="row">
 
-            {{-- ── Selector de Plan ── --}}
-            <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
-                <div class="product-payment-inner-st">
-                    <h2 class="text-center">Elige tu plan</h2>
-                    <p class="text-center text-muted">Plan actual: <strong>{{ $company->m_package->service ?? '—' }}</strong></p>
-                </div>
-            </div>
+            {{-- Columna de planes — col-md-7, apila en móvil --}}
+            <div class="col-md-7 col-sm-12 col-xs-12">
 
-            {{-- ── Cards de plan ── --}}
-            <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
-                <div class="row">
-                    @foreach ($services as $service)
-                    <div class="col-lg-4 col-md-6 col-sm-12 col-xs-12">
-                        <label class="plan-card-label">
-                            <input
-                                type="radio"
-                                name="selected_plan"
-                                value="{{ $service->id }}"
-                                class="plan-radio"
-                                {{ $company->package == $service->id ? 'checked' : '' }}
-                            >
-                            <div class="panel panel-default plan-card {{ $company->package == $service->id ? 'plan-card-active' : '' }}">
-                                <div class="panel-heading text-center">
-                                    <strong>{{ $service->service }}</strong>
+                @foreach ($services as $service)
+                <label class="plan-card-label">
+
+                    <input type="radio"
+                           name="selected_plan"
+                           value="{{ $service->id }}"
+                           class="plan-radio"
+                           {{ $company->package == $service->id ? 'checked' : '' }}>
+
+                    <div class="plan-card {{ $company->package == $service->id ? 'plan-card-active' : '' }}">
+
+                        <div class="panel-heading">
+                            <span>{{ $service->service }}</span>
+                            @if ($company->package == $service->id)
+                                <span class="pull-right label label-primary">Plan actual</span>
+                            @endif
+                        </div>
+
+                        <div class="panel-body">
+                            <div class="row">
+
+                                <div class="col-xs-5 text-center">
+                                    <p class="plan-price">
+                                        ${{ number_format($service->price, 0) }}
+                                        <small>MXN<br>/ mes</small>
+                                    </p>
                                 </div>
-                                <div class="panel-body text-center">
-                                    <h3 class="plan-price">${{ number_format($service->price, 0) }} <small>MXN / mes</small></h3>
-                                    <ul class="list-unstyled plan-features">
-                                        <li><i class="fa fa-check text-success"></i> {{ $service->users_included }} usuario(s) incluido(s)</li>
+
+                                <div class="col-xs-7">
+                                    <ul class="plan-features list-unstyled">
+                                        <li>
+                                            <i class="fa fa-users text-primary" aria-hidden="true"></i>
+                                            {{ $service->users_included }} usuario(s) incluido(s)
+                                        </li>
                                         @if ($service->user_price > 0)
-                                        <li><i class="fa fa-plus-circle text-info"></i> ${{ number_format($service->user_price, 0) }} por usuario extra</li>
+                                        <li>
+                                            <i class="fa fa-plus-circle text-info" aria-hidden="true"></i>
+                                            ${{ number_format($service->user_price, 0) }} por usuario extra
+                                        </li>
                                         @endif
                                         @if ($service->days_trial > 0)
-                                        <li><i class="fa fa-clock-o text-warning"></i> {{ $service->days_trial }} días de prueba</li>
+                                        <li>
+                                            <i class="fa fa-gift text-warning" aria-hidden="true"></i>
+                                            {{ $service->days_trial }} días de prueba gratis
+                                        </li>
                                         @endif
-                                        <li><i class="fa fa-check text-success"></i> Propiedades ilimitadas</li>
-                                        <li><i class="fa fa-check text-success"></i> Soporte Lun–Dom 8:00–20:00</li>
+                                        <li>
+                                            <i class="fa fa-home text-success" aria-hidden="true"></i>
+                                            Propiedades ilimitadas
+                                        </li>
+                                        <li>
+                                            <i class="fa fa-headphones text-success" aria-hidden="true"></i>
+                                            Soporte Lun–Dom 8:00–20:00
+                                        </li>
                                     </ul>
                                 </div>
+
                             </div>
-                        </label>
-                    </div>
-                    @endforeach
-                </div>
-            </div>
+                        </div>
 
-            {{-- ── Formulario de Tarjeta (PCI Compliant) ── --}}
-            <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1 col-sm-12 col-xs-12">
-                <div class="panel panel-default">
-                    <div class="panel-heading">
-                        <h3 class="panel-title">
-                            <i class="fa fa-lock"></i> Datos de Pago — Seguro con OpenPay
-                        </h3>
                     </div>
-                    <div class="panel-body">
+                </label>
+                @endforeach
 
-                        <form action="{{ route('invoices.payment', ['invoice' => 0]) }}"
+            </div>{{-- /col planes --}}
+
+            {{-- Columna del formulario — col-md-5, sticky en desktop --}}
+            <div class="col-md-5 col-sm-12 col-xs-12">
+                <div class="checkout-sticky">
+                    <div class="checkout-panel">
+
+                        <p class="checkout-panel-title">
+                            <i class="fa fa-lock" aria-hidden="true"></i>
+                            Pago seguro con OpenPay
+                        </p>
+
+                        <form action="{{ route('subscription.process') }}"
                               method="POST"
                               id="subscription-form">
                             @csrf
-                            {{-- Token generado por OpenPay.js — único campo que llega al servidor --}}
+
+                            {{-- Campos ocultos — únicos que viajan al servidor --}}
                             <input type="hidden" name="token_id"                id="token_id">
                             <input type="hidden" name="selected_plan_id"        id="selected_plan_id">
                             <input type="hidden" name="deviceIdHiddenFieldName" id="deviceIdHiddenFieldName">
 
-                            <div class="row">
-                                {{-- Nombre del titular --}}
-                                <div class="col-sm-12 form-group">
-                                    <label for="sub-holder">Nombre del titular</label>
-                                    <input id="sub-holder"
-                                           type="text"
-                                           class="form-control"
-                                           placeholder="Como aparece en la tarjeta"
-                                           maxlength="75"
-                                           autocomplete="off"
-                                           data-openpay-card="holder_name">
-                                    {{-- SIN name="" — nunca viaja al servidor (PCI DSS) --}}
-                                </div>
+                            {{-- Nombre del titular --}}
+                            <div class="form-group">
+                                <label class="payment-label" for="sub-holder">Nombre del titular</label>
+                                <input id="sub-holder"
+                                       type="text"
+                                       class="payment-input"
+                                       placeholder="Como aparece en la tarjeta"
+                                       maxlength="75"
+                                       autocomplete="off"
+                                       data-openpay-card="holder_name">
+                                {{-- SIN name="" — nunca viaja al servidor (PCI DSS) --}}
+                            </div>
 
-                                {{-- Número de tarjeta --}}
-                                <div class="col-sm-12 form-group">
-                                    <label for="sub-cardnumber">Número de tarjeta</label>
-                                    <input id="sub-cardnumber"
-                                           type="text"
-                                           class="form-control"
-                                           placeholder="0000 0000 0000 0000"
-                                           autocomplete="off"
-                                           data-openpay-card="card_number">
-                                </div>
+                            {{-- Número de tarjeta --}}
+                            <div class="form-group">
+                                <label class="payment-label" for="sub-cardnumber">Número de tarjeta</label>
+                                <input id="sub-cardnumber"
+                                       type="text"
+                                       class="payment-input"
+                                       placeholder="0000  0000  0000  0000"
+                                       autocomplete="off"
+                                       data-openpay-card="card_number">
+                            </div>
 
-                                {{-- Vencimiento --}}
-                                <div class="col-sm-4 form-group">
-                                    <label>Mes de vencimiento</label>
+                            {{-- Vencimiento + CVV en la misma fila --}}
+                            <div class="payment-row">
+                                <div class="payment-field">
+                                    <label class="payment-label">Mes</label>
                                     <input type="text"
-                                           class="form-control"
+                                           class="payment-input"
                                            placeholder="MM"
                                            maxlength="2"
                                            data-openpay-card="expiration_month">
                                 </div>
-                                <div class="col-sm-4 form-group">
-                                    <label>Año de vencimiento</label>
+                                <div class="payment-field">
+                                    <label class="payment-label">Año</label>
                                     <input type="text"
-                                           class="form-control"
+                                           class="payment-input"
                                            placeholder="AA"
                                            maxlength="2"
                                            data-openpay-card="expiration_year">
                                 </div>
-
-                                {{-- CVV --}}
-                                <div class="col-sm-4 form-group">
-                                    <label for="sub-cvv">Código de seguridad</label>
+                                <div class="payment-field">
+                                    <label class="payment-label" for="sub-cvv">CVV</label>
                                     <input id="sub-cvv"
                                            type="text"
-                                           class="form-control"
-                                           placeholder="3 dígitos"
+                                           class="payment-input"
+                                           placeholder="···"
                                            maxlength="4"
                                            autocomplete="off"
                                            data-openpay-card="cvv2">
                                 </div>
                             </div>
 
-                            <div class="row">
-                                <div class="col-sm-12 text-center">
-                                    <button type="button" id="btn-subscribe" class="btn btn-primary btn-lg">
-                                        <i class="fa fa-lock"></i> Suscribirse de forma segura
-                                    </button>
-                                </div>
-                            </div>
-
-                            <div class="row">
-                                <div class="col-sm-12 text-center">
-                                    <small class="text-muted">
-                                        <i class="fa fa-shield"></i>
-                                        Transacción procesada por OpenPay.
-                                        Tus datos de tarjeta nunca pasan por nuestros servidores.
-                                    </small>
-                                </div>
-                            </div>
+                            <button type="button" id="btn-subscribe" class="btn-secure-pay">
+                                <i class="fa fa-lock" aria-hidden="true"></i>
+                                Suscribirse de forma segura
+                            </button>
 
                         </form>
+
+                        <div class="checkout-trust-badge">
+                            <i class="fa fa-shield" aria-hidden="true"></i>
+                            Transacción cifrada por OpenPay.
+                            Tus datos de tarjeta <strong>nunca</strong> pasan por nuestros servidores.
+                        </div>
+
                     </div>
                 </div>
-            </div>
+            </div>{{-- /col formulario --}}
 
-        </div>
+        </div>{{-- /row principal --}}
     </div>
 </div>
 
@@ -177,19 +204,22 @@
 <script>
 $(document).ready(function () {
 
+    /* ── OpenPay init ─────────────────────────────── */
     OpenPay.setId("{{ env('OPENPAY_ID') }}");
     OpenPay.setApiKey("{{ env('OPENPAY_KEY_PUBLIC') }}");
     OpenPay.setSandboxMode({{ env('OPENPAY_PRODUCTION', false) ? 'false' : 'true' }});
+    OpenPay.deviceData.setup('subscription-form', 'deviceIdHiddenFieldName');
 
-    var deviceSessionId = OpenPay.deviceData.setup('subscription-form', 'deviceIdHiddenFieldName');
-
-    // Sincroniza el plan seleccionado al hidden input antes de enviar
+    /* ── Selector de plan — sincroniza hidden + estado visual ─── */
     $('input[name="selected_plan"]').on('change', function () {
         $('#selected_plan_id').val($(this).val());
+        // Actualiza la clase activa sin recargar página
+        $('.plan-card').removeClass('plan-card-active');
+        $(this).closest('.plan-card-label').find('.plan-card').addClass('plan-card-active');
     }).filter(':checked').trigger('change');
 
-    $('#btn-subscribe').on('click', function (e) {
-        e.preventDefault();
+    /* ── Submit ──────────────────────────────────────────────── */
+    $('#btn-subscribe').on('click', function () {
 
         if (!$('input[name="selected_plan"]:checked').length) {
             Lobibox.notify('warning', {
@@ -197,24 +227,23 @@ $(document).ready(function () {
                 position: 'top right',
                 showClass: 'fadeInDown',
                 hideClass: 'fadeUpDown',
-                msg: 'Por favor selecciona un plan antes de continuar.'
+                msg: 'Selecciona un plan antes de continuar.'
             });
             return;
         }
 
-        $('#btn-subscribe').prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Procesando...');
-        OpenPay.token.extractFormAndCreate('subscription-form', onTokenSuccess, onTokenError);
+        $(this).prop('disabled', true)
+               .html('<i class="fa fa-spinner fa-spin"></i>  Procesando...');
+
+        OpenPay.token.extractFormAndCreate('subscription-form', onSuccess, onError);
     });
 
-    function onTokenSuccess(response) {
+    function onSuccess(response) {
         $('#token_id').val(response.data.id);
         $('#subscription-form').submit();
     }
 
-    function onTokenError(response) {
-        var desc  = response.data ? (response.data.description || response.message) : response.message;
-        var error = 'Error al procesar la tarjeta.';
-
+    function onError(response) {
         var codes = {
             1001: 'Todos los campos de la tarjeta son requeridos.',
             2004: 'El número de tarjeta no es correcto.',
@@ -222,11 +251,9 @@ $(document).ready(function () {
             2006: 'El código de seguridad es requerido.'
         };
 
-        if (response.data && codes[response.data.error_code]) {
-            error = codes[response.data.error_code];
-        } else if (desc) {
-            error = desc;
-        }
+        var code  = response.data ? response.data.error_code : null;
+        var desc  = response.data ? response.data.description : response.message;
+        var error = codes[code] || desc || 'Error al procesar la tarjeta.';
 
         Lobibox.notify('error', {
             title: 'Error en la tarjeta',
@@ -238,9 +265,9 @@ $(document).ready(function () {
             msg: error
         });
 
-        $('#btn-subscribe').prop('disabled', false).html('<i class="fa fa-lock"></i> Suscribirse de forma segura');
+        $('#btn-subscribe').prop('disabled', false)
+                          .html('<i class="fa fa-lock"></i>  Suscribirse de forma segura');
     }
-
 });
 </script>
 

@@ -552,3 +552,226 @@ body {
     opacity: 0.55;
     cursor: not-allowed;
 }
+
+/* =============================================================
+   12. CHECKOUT & SUSCRIPCIONES
+   Mobile-First. Cero !important. Variables del sistema ARF.
+   ============================================================= */
+
+/* ── Label envolvente: hace toda la card clicable ─────────────── */
+.plan-card-label {
+    display: block;
+    cursor: pointer;
+    margin-bottom: 1rem;
+}
+
+/* Radio nativo oculto — accesibilidad preservada con :focus-visible */
+.plan-radio {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+/* ── Tarjeta de plan ───────────────────────────────────────────── */
+.plan-card {
+    border: 2px solid var(--color-border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+    margin-bottom: 0;
+    background-color: var(--color-bg);
+}
+
+.plan-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+    border-color: var(--color-primary);
+}
+
+/* Plan activo/seleccionado */
+.plan-card.plan-card-active {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(48, 119, 183, 0.18);
+}
+
+/* Cabecera de la card */
+.plan-card .panel-heading {
+    background-color: var(--color-surface);
+    border-bottom: 1px solid var(--color-border);
+    border-radius: var(--radius) var(--radius) 0 0;
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--color-text);
+}
+
+/* Precio destacado */
+.plan-price {
+    font-size: 2.25rem;
+    font-weight: 700;
+    color: var(--color-primary);
+    margin: 0.75rem 0 1rem;
+    line-height: 1;
+}
+
+.plan-price small {
+    font-size: 0.875rem;
+    color: var(--color-text-muted);
+    font-weight: 400;
+}
+
+/* Lista de características */
+.plan-features {
+    text-align: left;
+    font-size: 14px;
+    color: var(--color-text);
+    margin: 0;
+    padding: 0;
+}
+
+.plan-features li {
+    padding: 5px 0;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.plan-features li:last-child {
+    border-bottom: none;
+}
+
+/* ── Panel del formulario de pago ─────────────────────────────── */
+.checkout-panel {
+    background-color: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 1.5rem;
+}
+
+.checkout-panel-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--color-text);
+    margin: 0 0 1.25rem;
+    padding-bottom: 0.875rem;
+    border-bottom: 1px solid var(--color-border);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.checkout-panel-title i {
+    color: var(--color-success);
+}
+
+/* ── Inputs estilo Stripe ─────────────────────────────────────── */
+.payment-label {
+    display: block;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 6px;
+}
+
+.payment-input {
+    display: block;
+    width: 100%;
+    height: 45px;
+    padding: 0 0.875rem;
+    font-size: 14px;
+    font-family: var(--font-base);
+    color: var(--color-text);
+    background-color: var(--color-bg);
+    border: 1.5px solid var(--color-border);
+    border-radius: var(--radius);
+    transition: border-color 0.18s, box-shadow 0.18s;
+    box-sizing: border-box;
+}
+
+.payment-input::placeholder {
+    color: var(--color-text-muted);
+}
+
+.payment-input:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(48, 119, 183, 0.15);
+}
+
+/* Grupo de vencimiento y CVV en línea */
+.payment-row {
+    display: flex;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.payment-row .payment-field {
+    flex: 1;
+}
+
+/* ── Botón principal de suscripción ───────────────────────────── */
+.btn-secure-pay {
+    display: block;
+    width: 100%;
+    padding: 14px 1rem;
+    font-size: 16px;
+    font-weight: 700;
+    font-family: var(--font-base);
+    color: var(--color-bg);
+    background-color: var(--color-primary);
+    border: none;
+    border-radius: var(--radius);
+    cursor: pointer;
+    letter-spacing: 0.02em;
+    transition: background-color 0.2s, transform 0.15s;
+    margin-top: 1.25rem;
+}
+
+.btn-secure-pay:hover {
+    background-color: var(--color-primary-dark);
+    transform: translateY(-1px);
+}
+
+.btn-secure-pay:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* ── Insignia de seguridad ────────────────────────────────────── */
+.checkout-trust-badge {
+    text-align: center;
+    margin-top: 1rem;
+    font-size: 12px;
+    color: var(--color-text-muted);
+    line-height: 1.6;
+}
+
+.checkout-trust-badge i {
+    color: var(--color-success);
+    margin-right: 4px;
+}
+
+/* Separador de sección */
+.checkout-section-title {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: var(--color-text);
+    margin: 0 0 1.25rem;
+}
+
+.checkout-section-subtitle {
+    font-size: 14px;
+    color: var(--color-text-muted);
+    margin-bottom: 1.5rem;
+}
+
+/* ── Sticky del panel en desktop ─────────────────────────────── */
+@media (min-width: 48rem) {
+    .checkout-sticky {
+        position: sticky;
+        top: 1.5rem;
+    }
+}

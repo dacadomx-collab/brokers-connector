@@ -223,7 +223,8 @@ Route::middleware(['auth', 'company','companyPayment'])->group(function () {
      Route::post('/home/ai/generate-copy', 'AiChatController@generateCopy')->name('ai.generate-copy');
 
      // Suscripciones recurrentes
-     Route::get('/home/subscription', 'InvoicesController@subscription')->name('subscription');
+     Route::get('/home/subscription',  'InvoicesController@subscription')->name('subscription');
+     Route::post('/home/subscription', 'InvoicesController@processSubscription')->name('subscription.process');
 });
 
 
