@@ -54,8 +54,13 @@
                 </select>
             </div>
             <div class="form-group res-mg-t-15 col-lg-12 col-md-12 col-sm-12 col-xs-12">
-                <label for="">Descripción<span style="color:red;">*</span></label> 
-                <textarea required name="description" placeholder="Ingresa una descripción breve" maxlength="1000">{{old('description', $data->description)}}</textarea>
+                <div class="clearfix">
+                    <label for="description" class="pull-left">Descripción<span style="color:red;">*</span></label>
+                    <button type="button" id="btn-ai-copy" class="btn btn-sm btn-info pull-right">
+                        ✨ Autocompletar con IA
+                    </button>
+                </div>
+                <textarea required name="description" id="description" placeholder="Ingresa una descripción breve" maxlength="1000">{{old('description', $data->description)}}</textarea>
             </div>
 
             {{-- Descripción en ingles --}}

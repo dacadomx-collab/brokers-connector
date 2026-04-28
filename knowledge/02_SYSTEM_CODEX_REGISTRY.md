@@ -516,8 +516,15 @@ ai_conversations ──< ai_messages   (conversation_id, CASCADE DELETE)
 ---
 
 ## 🧩 REGISTRO DE COMPONENTES FRONTEND
-> *(Por completar conforme se desarrollen los módulos)*
 
-| Componente | Ruta | Tipo | Estado | Descripción |
+> **Ruta canónica de assets:** `public_html/newbrokers/` (alineada con servidor de pruebas)
+
+| Componente | Ruta física | Tipo | Estado | Descripción |
 | :--- | :--- | :--- | :--- | :--- |
-| *(pendiente)* | — | — | 🔲 | — |
+| `ai-chat.blade.php` | `brokers_new/resources/views/components/ai-chat.blade.php` | Blade Component | ✅ Producción | Widget flotante de chat IA. Inyectado en `layouts/app.blade.php` vía `@include`. Incluye botón flotante, ventana con header/messages/footer, y el `<script>` de `aiChat.js`. |
+| `aiChat.js` | `public_html/newbrokers/js/aiChat.js` | JavaScript (vanilla) | ✅ Producción | Cerebro del widget de chat. Toggle UI, `fetch` POST a `/home/ai/chat` con `X-CSRF-TOKEN`, renderizado de burbujas, indicador "escribiendo...", persistencia del `conversation_id` en el hilo. |
+| `aiCopywriter.js` | `public_html/newbrokers/js/aiCopywriter.js` | JavaScript (vanilla) | ✅ Producción | Generador de copywriting inmobiliario. Recolecta campos del formulario de propiedad (title, prop_type, prop_status, bedrooms, baths, price, currency), llama a `POST /home/ai/generate-copy` e inyecta la descripción generada en `#description`. |
+| `main.css — sección 11` | `public_html/newbrokers/css/main.css` | CSS (ARF-Grid) | ✅ Producción | Estilos del Widget de Chat IA. Clases: `.ai-chat-btn`, `.ai-chat-window`, `.ai-chat-open`, `.ai-chat-header`, `.ai-chat-messages`, `.ai-message-user`, `.ai-message-assistant`, `.ai-message-typing`, `.ai-chat-footer`, `.ai-chat-input`, `.ai-chat-send`. Mobile-First: 100% en móvil, `22rem` en desktop (`min-width: 48rem`). |
+| `AiConversation.php` | `brokers_new/app/AiConversation.php` | Eloquent Model | ✅ Producción | Modelo de hilo de chat. Relaciones: `belongsTo(Company)`, `belongsTo(User)`, `hasMany(AiMessage, 'conversation_id')`. Fillable: `company_id`, `user_id`, `title`, `status`. |
+| `AiMessage.php` | `brokers_new/app/AiMessage.php` | Eloquent Model | ✅ Producción | Modelo de mensaje IA. Relación: `belongsTo(AiConversation, 'conversation_id')`. Fillable: `conversation_id`, `role`, `content`, `tokens_used`. |
+| `AiChatController.php` | `brokers_new/app/Http/Controllers/AiChatController.php` | Controller | ✅ Producción | Controlador IA. Métodos: `sendMessage()` (chat + persistencia) y `generateCopy()` (copywriting one-shot). Usa Guzzle 6 para llamadas a OpenAI. |

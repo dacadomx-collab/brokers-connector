@@ -232,6 +232,76 @@ api_key (required), id (required|numeric), description, ubication, comission, si
 
 ---
 
+### `POST /home/ai/chat`
+**Chat IA del panel de agentes. Crea o continúa un hilo de conversación por tenant.**
+
+- **Middleware:** `web, auth, company, companyPayment` (sesión + CSRF)
+- **Controlador:** `AiChatController@sendMessage`
+- **Autenticación frontend:** `X-CSRF-TOKEN` desde `<meta name="csrf-token">` — **no requiere Bearer Token**
+- **Payload (JSON):**
+```json
+{
+  "message":         "string|required — texto del mensaje del usuario",
+  "conversation_id": "integer|nullable — omitir para iniciar un nuevo hilo"
+}
+```
+- **Persistencia:** Cada llamada guarda 1 `AiMessage` con `role='user'` y, si OpenAI responde, otro con `role='assistant'` incluyendo `tokens_used`. Si no hay `conversation_id`, crea una nueva `AiConversation` con `title` = primeros 80 chars del mensaje.
+- **Contexto enviado a OpenAI:** Últimos 5 mensajes del hilo (`CONTEXT_WINDOW=5`) en orden cronológico + System Prompt de asistente inmobiliario.
+- **Response 200:**
+```json
+{
+  "conversation_id": 12,
+  "message_id":      49,
+  "status":          "ok",
+  "ai_response":     "Texto generado por la IA...",
+  "tokens_used":     187
+}
+```
+- **Response 403:** `company_id` nulo o `conversation_id` pertenece a otro tenant.
+- **Response 500:** Error de red/API de OpenAI (`RequestException` o `\Exception`).
+- **Reglas de Piedra:**
+  1. `company_id` siempre del servidor (`auth()->user()->company_id`), nunca del payload.
+  2. Si viene `conversation_id`, se valida `WHERE company_id = $company_id` antes de continuar (anti cross-tenant).
+  3. El mensaje del usuario se persiste ANTES de llamar a OpenAI para garantizar trazabilidad.
+
+---
+
+### `POST /home/ai/generate-copy`
+**Generador de copywriting inmobiliario one-shot. No persiste en DB.**
+
+- **Middleware:** `web, auth, company, companyPayment` (sesión + CSRF)
+- **Controlador:** `AiChatController@generateCopy`
+- **Autenticación frontend:** `X-CSRF-TOKEN` desde `<meta name="csrf-token">`
+- **Origen:** Botón `#btn-ai-copy` en `properties/create.blade.php` y `properties/edit.blade.php` (vía `aiCopywriter.js`)
+- **Payload (JSON):** todos los campos son `nullable`
+```json
+{
+  "title":       "string — título de la propiedad",
+  "prop_type":   "string — texto del tipo (ej. 'Casa', 'Departamento')",
+  "prop_status": "string — texto de la operación (ej. 'Venta', 'Renta')",
+  "bedrooms":    "integer — número de recámaras",
+  "baths":       "integer — número de baños",
+  "price":       "numeric — precio numérico (del input hidden)",
+  "currency":    "string — texto de la moneda (ej. 'MXN', 'USD')"
+}
+```
+- **Response 200 — Éxito:**
+```json
+{ "copy": "✨ Descripción generada por la IA con viñetas y call-to-action..." }
+```
+- **Response 200 — API Key no configurada o cualquier fallo:** *(siempre 200, nunca 500)*
+```json
+{ "copy": "⚠️ La Inteligencia Artificial está lista, pero falta configurar la API Key de OpenAI en el servidor para generar el texto." }
+```
+- **Reglas de Piedra:**
+  1. **Sin persistencia en DB** — es una llamada one-shot, no guarda en `ai_messages`.
+  2. **Early exit** si `env('OPENAI_API_KEY')` está vacío — retorna 200 con mensaje amigable sin hacer llamada HTTP.
+  3. **Catch universal** (`\Exception`) — cualquier fallo de red, timeout o rechazo de OpenAI retorna 200 con mensaje amigable. La UI nunca recibe un error 500.
+  4. System Prompt construido dinámicamente con los campos disponibles — funciona aunque lleguen campos vacíos (`array_filter` elimina nulls).
+  5. `prop_type` y `prop_status` llegan como **texto legible** (no como ID numérico) — el JS envía el `text` de la `<option>` seleccionada, no su `value`.
+
+---
+
 ### `POST /properties/store`
 **Crear nueva propiedad.**
 

@@ -218,6 +218,9 @@ Route::middleware(['auth', 'company','companyPayment'])->group(function () {
 
      // IA / Widget de chat del panel (sesión web + CSRF — no requiere Bearer Token)
      Route::post('/home/ai/chat', 'AiChatController@sendMessage')->name('ai.chat');
+
+     // IA / Generador de copywriting inmobiliario
+     Route::post('/home/ai/generate-copy', 'AiChatController@generateCopy')->name('ai.generate-copy');
 });
 
 
