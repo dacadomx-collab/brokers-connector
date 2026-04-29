@@ -15,7 +15,7 @@ Este documento rige sobre cualquier sugerencia de la IA. La IA es una ejecutora 
 9. **Inmutabilidad del Sistema:** La IA NO puede crear tablas o alterar esquemas de DB sin autorización humana explícita.
 10. **Sinónimos Prohibidos:** Solo existe UN nombre válido por concepto. Cero tolerancia a traducciones libres.
 11. **Arranque Blindado (Fundación del Proyecto):** NINGÚN proyecto puede iniciar su desarrollo visual o lógico sin antes haber establecido la "Fundación de Seguridad". Esto exige que los primeros 4 archivos en crearse sean: `.env` (credenciales locales/servidor), `.env.example` (plantilla pública), `.htaccess` (blindaje Apache Nivel Militar) y `api/conexion.php` (Conexión PDO centralizada y segura).
-
+12. **Autonomía Analítica de la IA:** Al interactuar con los Agentes IA (Claude/Gemini), el Arquitecto o Humano solo proporcionará el "Qué" (Objetivo), el "Por qué" (Contexto) y las "Reglas Inmutables". El "Cómo" (ejecución, estructuración y lógica) se delega completamente a la capacidad analítica de la IA para maximizar velocidad y evitar micro-management.
 ---
 
 ## 🔐 REGLAS TÉCNICAS DEL CÓDIGO FUENTE (HALLAZGOS DE AUDITORÍA)

@@ -20,13 +20,6 @@ use Illuminate\Support\Str;
  */
 class V2BridgeController extends Controller
 {
-    private $openPayService;
-
-    public function __construct(OpenPayService $openPayService)
-    {
-        $this->openPayService = $openPayService;
-    }
-
     /**
      * GET /api/v2/bridge/validate?token={TOKEN}
      *
@@ -94,7 +87,7 @@ class V2BridgeController extends Controller
      * Procesa la suscripción recurrente con OpenPay.
      * Quema el session_token tras el éxito para evitar doble cobro.
      */
-    public function subscribe(Request $request)
+    public function subscribe(Request $request, OpenPayService $openPayService)
     {
         $sessionToken = $this->extractBearerToken($request);
 
@@ -133,7 +126,7 @@ class V2BridgeController extends Controller
         }
 
         try {
-            $subscription = $this->openPayService->createSubscription(
+            $subscription = $openPayService->createSubscription(
                 $company,
                 $planMap[$planId],
                 $tokenId,
