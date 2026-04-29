@@ -60,6 +60,18 @@
                         </li>
                        
                          @role('Admin')
+                        {{-- Acceso al módulo V2 de Suscripciones — Strangler Fig Pattern --}}
+                        <li {{ request()->is('home/v2*') ? 'class=active': '' }}>
+                            <a href="{{ route('v2.subscription.bridge') }}"
+                               title="Gestiona tu suscripción en el nuevo sistema">
+                                <i class="fa fa-star fa-icon" aria-hidden="true"></i>&nbsp;
+                                <span class="mini-click-non">
+                                    ✨ Suscripción y Facturación
+                                    <span class="label label-primary pull-right">Nuevo</span>
+                                </span>
+                            </a>
+                        </li>
+
                         <li {{ request()->is('home/settings*') ? 'class=active': '' }}>
                                 <a class="has-arrow" href="#" aria-expanded="false"> <i class="fa fa-cogs fa-icon"></i>&nbsp;<span class="mini-click-non">Configuración</span></a>
                                 <ul class="submenu-angle" aria-expanded="false">

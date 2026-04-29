@@ -93,6 +93,12 @@ Route::group(['prefix' => 'ai', 'middleware' => ['auth:api']], function () {
     Route::post('/chat', 'AiChatController@sendMessage');
 });
 
+// V2 Bridge — token de un solo uso como mecanismo de autenticación
+Route::prefix('v2')->group(function () {
+    Route::get('/bridge/validate',  'Api\V2BridgeController@validate');
+    Route::post('/subscriptions',   'Api\V2BridgeController@subscribe');
+});
+
 //API APP MOBILE
 
 Route::group(['prefix' => 'mobile'], function() {

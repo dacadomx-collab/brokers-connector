@@ -230,6 +230,13 @@ Route::middleware(['auth', 'company','companyPayment'])->group(function () {
 
 Route::middleware(['auth'])->group(function () {
     Route::get('/home', 'HomeController@index')->name('home')->middleware('companyPayment');
+
+    // ── Puente Legacy → V2 (Strangler Fig Pattern) ──────────────────────────
+    // Sin companyPayment: el bridge debe funcionar incluso con cuenta vencida
+    // para permitir que el usuario renueve su suscripción en V2.
+    Route::get('/home/v2/subscription-bridge', 'BridgeController@subscriptionBridge')
+        ->name('v2.subscription.bridge');
+
     //Cuenta
 
     Route::post('/update/company', 'CompanyController@update')->name('update.company');

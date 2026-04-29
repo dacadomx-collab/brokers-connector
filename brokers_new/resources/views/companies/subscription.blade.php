@@ -249,6 +249,12 @@ $(document).ready(function () {
         $(this).prop('disabled', true)
                .html('<i class="fa fa-spinner fa-spin"></i>  Procesando...');
 
+        // Eliminar espacios antes de enviar — OpenPay exige solo dígitos en card_number
+        var cardInput = document.querySelector('[data-openpay-card="card_number"]');
+        if (cardInput) {
+            cardInput.value = cardInput.value.replace(/\s+/g, '');
+        }
+
         OpenPay.token.extractFormAndCreate('subscription-form', onSuccess, onError);
     });
 

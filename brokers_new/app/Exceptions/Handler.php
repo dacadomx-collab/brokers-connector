@@ -3,6 +3,7 @@
 namespace App\Exceptions;
 
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Validation\ValidationException;
 use Exception;
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
 
@@ -55,11 +56,22 @@ class Handler extends ExceptionHandler
      */
     public function render($request, Exception $exception)
     {
-        if ($exception instanceof ModelNotFoundException) {
-            return response()->json([
-                'error' => '404 Resource not found'
-            ], 404);
+        // PHP 8 + Laravel 5.8: redirigir ValidationException con errores en lugar
+        // de lanzar una excepción no manejada que rompe la pantalla de login/formularios.
+        if ($exception instanceof ValidationException) {
+            return redirect()->back()
+                ->withErrors($exception->validator)
+                ->withInput($request->except($this->dontFlash));
         }
+
+        // ModelNotFoundException solo devuelve JSON en rutas API; en web → 404 estándar.
+        if ($exception instanceof ModelNotFoundException) {
+            if ($request->expectsJson()) {
+                return response()->json(['error' => '404 Resource not found'], 404);
+            }
+            return response()->view('errors.404', [], 404);
+        }
+
         return parent::render($request, $exception);
     }
 }

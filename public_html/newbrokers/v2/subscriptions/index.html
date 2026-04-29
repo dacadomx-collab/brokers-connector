@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Suscripción — Brokers Connector</title>
+  <link rel="stylesheet" href="../shared/v2.css">
+  <!-- Font Awesome 4.7 — solo para iconos de tarjetas y UI -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+  <!-- OpenPay JS (tokenización segura del lado del cliente) -->
+  <script src="https://openpay.s3.amazonaws.com/openpay.v1.min.js"></script>
+  <script src="https://openpay.s3.amazonaws.com/openpay-data.v1.min.js"></script>
+</head>
+<body class="v2-root">
+
+  <!-- ══ PANTALLA: CARGANDO ══════════════════════════════════════ -->
+  <div id="screen-loading" class="v2-screen">
+    <div class="v2-spinner"></div>
+    <p class="v2-loading-text">Verificando tu sesión&hellip;</p>
+  </div>
+
+  <!-- ══ PANTALLA: ERROR ═════════════════════════════════════════ -->
+  <div id="screen-error" class="v2-screen hidden">
+    <div class="v2-error-card">
+      <div class="v2-error-icon">🔒</div>
+      <h2>Enlace expirado</h2>
+      <p id="error-message">Este enlace ya no es válido. Regresa al panel e intenta de nuevo.</p>
+      <a href="/home" class="v2-btn v2-btn-primary">
+        <i class="fa fa-arrow-left"></i> Volver al panel
+      </a>
+    </div>
+  </div>
+
+  <!-- ══ PANTALLA: CHECKOUT ══════════════════════════════════════ -->
+  <div id="screen-checkout" class="v2-screen hidden" style="display:none; flex-direction:column; justify-content:flex-start; padding:0; min-height:100vh; align-items:stretch;">
+
+    <!-- Header -->
+    <header class="v2-header">
+      <span class="v2-header-logo">
+        <i class="fa fa-home"></i>
+        Brokers <span>Connector</span>
+      </span>
+      <span class="v2-secure-badge">
+        <i class="fa fa-lock"></i>
+        Pago 100% seguro
+      </span>
+    </header>
+
+    <!-- Layout principal -->
+    <main class="v2-checkout-main">
+
+      <!-- ── Columna izquierda: planes ── -->
+      <section class="v2-plans-section">
+        <h2>Elige tu plan</h2>
+        <p class="subtitle">
+          Plan actual: <strong id="current-plan-name" style="color: var(--v2-accent);">—</strong>
+        </p>
+
+        <!-- Los plan cards se inyectan aquí desde JS -->
+        <div class="v2-plan-grid" id="plan-grid"></div>
+      </section>
+
+      <!-- ── Columna derecha: formulario ── -->
+      <section class="v2-form-section">
+        <div class="v2-checkout-panel">
+
+          <p class="v2-panel-title">
+            <i class="fa fa-lock" style="color: var(--v2-success);"></i>
+            Datos de pago
+          </p>
+          <p class="v2-panel-subtitle">Tu información está encriptada y nunca se almacena.</p>
+
+          <!-- Plan seleccionado (indicador) -->
+          <div class="v2-selected-plan-display" id="selected-plan-display">
+            <span class="plan-label" id="selected-plan-label">Selecciona un plan</span>
+            <span class="plan-hint" id="selected-plan-price"></span>
+          </div>
+
+          <!-- Aviso si no hay plan seleccionado -->
+          <div class="v2-no-plan-hint" id="no-plan-hint">
+            <i class="fa fa-exclamation-triangle"></i>
+            Selecciona un plan a la izquierda antes de continuar.
+          </div>
+
+          <form id="checkout-form" novalidate>
+
+            <!-- Nombre del titular -->
+            <div class="v2-field">
+              <label for="f-holder">Nombre del titular</label>
+              <input id="f-holder"
+                     type="text"
+                     class="v2-input"
+                     placeholder="Como aparece en la tarjeta"
+                     maxlength="75"
+                     autocomplete="off"
+                     data-openpay-card="holder_name">
+            </div>
+
+            <!-- Número de tarjeta -->
+            <div class="v2-field">
+              <div class="v2-label-row">
+                <label for="f-card">Número de tarjeta</label>
+                <div class="v2-card-brands">
+                  <i class="fa fa-cc-visa"       style="color: #1a1f71; font-size: 26px;" aria-label="Visa"></i>
+                  <i class="fa fa-cc-mastercard"  style="color: #eb001b; font-size: 26px;" aria-label="Mastercard"></i>
+                  <i class="fa fa-cc-amex"        style="color: #2e77bc; font-size: 26px;" aria-label="Amex"></i>
+                </div>
+              </div>
+              <input id="f-card"
+                     type="text"
+                     class="v2-input"
+                     placeholder="0000  0000  0000  0000"
+                     autocomplete="off"
+                     inputmode="numeric"
+                     maxlength="19"
+                     data-openpay-card="card_number">
+            </div>
+
+            <!-- Vencimiento + CVV -->
+            <div class="v2-field">
+              <label>Vencimiento y código de seguridad</label>
+              <div class="v2-input-row">
+                <input type="text"
+                       class="v2-input"
+                       placeholder="MM"
+                       maxlength="2"
+                       inputmode="numeric"
+                       data-openpay-card="expiration_month">
+                <input type="text"
+                       class="v2-input"
+                       placeholder="AA"
+                       maxlength="2"
+                       inputmode="numeric"
+                       data-openpay-card="expiration_year">
+                <input id="f-cvv"
+                       type="text"
+                       class="v2-input"
+                       placeholder="CVV"
+                       maxlength="4"
+                       autocomplete="off"
+                       inputmode="numeric"
+                       data-openpay-card="cvv2">
+              </div>
+            </div>
+
+            <!-- Campo oculto de device data (OpenPay anti-fraude) -->
+            <input type="hidden" id="device-id-field">
+
+            <button type="button" id="btn-pay" class="v2-pay-btn">
+              <i class="fa fa-lock"></i>
+              Suscribirse de forma segura
+            </button>
+
+            <!-- Error inline -->
+            <div class="v2-inline-error" id="inline-error"></div>
+
+          </form>
+
+          <!-- Trust badges -->
+          <div class="v2-trust">
+            <img src="https://img.openpay.mx/assets/paynet_logo.png"
+                 alt="OpenPay — procesador de pagos seguro"
+                 height="28"
+                 style="opacity:.75;">
+            <p class="v2-trust-text">
+              <i class="fa fa-shield" style="color: var(--v2-success);"></i>
+              Sus datos se transmiten con encriptación SSL de 256 bits.
+              No almacenamos números de tarjeta.
+            </p>
+          </div>
+
+        </div>
+      </section>
+
+    </main>
+
+    <footer class="v2-footer">
+      Brokers Connector &mdash; &copy; <span id="footer-year"></span> &mdash;
+      <a href="/privacy-politics" style="color: var(--v2-text-subtle);">Aviso de privacidad</a>
+    </footer>
+
+  </div><!-- /screen-checkout -->
+
+  <!-- ══ PANTALLA: ÉXITO ═════════════════════════════════════════ -->
+  <div id="screen-success" class="v2-screen hidden">
+    <div class="v2-success-card">
+      <div class="v2-success-icon">🎉</div>
+      <h2>¡Suscripción activada!</h2>
+      <p>Tu cuenta <strong id="success-company-name"></strong> está lista.<br>
+         Bienvenido a Brokers Connector.</p>
+      <span class="v2-countdown" id="success-countdown">
+        Redirigiendo al panel en <strong>5</strong> segundos&hellip;
+      </span>
+    </div>
+  </div>
+
+  <script src="checkout.js"></script>
+</body>
+</html>

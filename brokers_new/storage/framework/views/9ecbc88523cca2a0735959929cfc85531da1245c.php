@@ -133,7 +133,15 @@
 
                             
                             <div class="form-group">
-                                <label class="payment-label" for="sub-cardnumber">Número de tarjeta</label>
+                                <label class="payment-label" for="sub-cardnumber">
+                                    Número de tarjeta
+                                    <span class="pull-right">
+                                        
+                                        <i class="fa fa-cc-visa" style="color: #1a1f71; font-size: 24px; margin-right: 5px;" aria-label="Visa"></i>
+                                        <i class="fa fa-cc-mastercard" style="color: #eb001b; font-size: 24px; margin-right: 5px;" aria-label="Mastercard"></i>
+                                        <i class="fa fa-cc-amex" style="color: #2e77bc; font-size: 24px;" aria-label="American Express"></i>
+                                    </span>
+                                </label>
                                 <input id="sub-cardnumber"
                                        type="text"
                                        class="payment-input"
@@ -179,10 +187,16 @@
 
                         </form>
 
-                        <div class="checkout-trust-badge">
-                            <i class="fa fa-shield" aria-hidden="true"></i>
-                            Transacción cifrada por OpenPay.
-                            Tus datos de tarjeta <strong>nunca</strong> pasan por nuestros servidores.
+                        <div class="text-center" style="margin-top: 15px;">
+                            <img src="https://img.openpay.mx/assets/paynet_logo.png"
+                                 alt="OpenPay"
+                                 height="30"
+                                 style="opacity: 0.8;">
+                            <p style="font-size: 11px; color: #777; margin-top: 5px;">
+                                <i class="fa fa-lock text-success"></i>
+                                Sus datos están encriptados y se transmiten de forma segura.
+                                No almacenamos los números de su tarjeta.
+                            </p>
                         </div>
 
                     </div>
@@ -233,6 +247,12 @@ $(document).ready(function () {
 
         $(this).prop('disabled', true)
                .html('<i class="fa fa-spinner fa-spin"></i>  Procesando...');
+
+        // Eliminar espacios antes de enviar — OpenPay exige solo dígitos en card_number
+        var cardInput = document.querySelector('[data-openpay-card="card_number"]');
+        if (cardInput) {
+            cardInput.value = cardInput.value.replace(/\s+/g, '');
+        }
 
         OpenPay.token.extractFormAndCreate('subscription-form', onSuccess, onError);
     });

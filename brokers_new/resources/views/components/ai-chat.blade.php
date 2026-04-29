@@ -1,6 +1,6 @@
 {{-- Widget de Chat IA — Panel de agentes Brokers Connector
-     Estilos en: public_html/newbrokers/css/main.css (sección 11)
-     Lógica en:  public_html/newbrokers/js/aiChat.js
+     Estilos en: newbrokers/css/main.css (sección 11)
+     Lógica en:  newbrokers/js/aiChat.js
      Ruta:       POST /home/ai/chat (web — CSRF + sesión)
 --}}
 
@@ -66,4 +66,4 @@
 
 </div>
 
-<script src="{{ asset('newbrokers/js/aiChat.js') }}"></script>
+<script src="{{ asset('js/aiChat.js') }}"></script>

@@ -48,7 +48,7 @@
     <link rel="stylesheet" href="{{ asset('admin/css/meanmenu.min.css') }}">
 
     <!-- Main CSS (ARF-Grid centralizado) -->
-    <link rel="stylesheet" href="{{ asset('newbrokers/css/main.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/main.css') }}">
 
     <!-- Educate Icon CSS -->
     <link rel="stylesheet" href="{{ asset('admin/css/educate-custon-icon.css') }}">

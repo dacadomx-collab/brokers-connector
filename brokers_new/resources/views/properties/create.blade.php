@@ -99,7 +99,7 @@
     <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCd-nS2-__7zMOypXiB_EJC53l-8s1cg84&callback=initMap"
         async defer></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap-select@1.13.9/dist/js/bootstrap-select.min.js"></script>
-    <script src="{{ asset('newbrokers/js/aiCopywriter.js') }}"></script>
+    <script src="{{ asset('js/aiCopywriter.js') }}"></script>
 
     <script>
         $(document).ready(function() {

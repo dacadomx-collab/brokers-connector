@@ -1,0 +1,534 @@
+/* ═══════════════════════════════════════════════════════════════
+   V2 DESIGN SYSTEM — Brokers Connector
+   Regla #1 Strangler Fig: este archivo NUNCA se carga en el Legacy.
+   Solo se enlaza desde módulos bajo /newbrokers/v2/
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Design Tokens ─────────────────────────────────────────── */
+:root {
+  /* Colores */
+  --v2-bg:              #0f172a;
+  --v2-surface:         #1e293b;
+  --v2-surface-alt:     #263348;
+  --v2-border:          #334155;
+  --v2-border-focus:    #6366f1;
+
+  --v2-accent:          #6366f1;
+  --v2-accent-hover:    #4f46e5;
+  --v2-accent-light:    rgba(99,102,241,.12);
+
+  --v2-text:            #f8fafc;
+  --v2-text-muted:      #94a3b8;
+  --v2-text-subtle:     #64748b;
+
+  --v2-success:         #10b981;
+  --v2-success-bg:      rgba(16,185,129,.10);
+  --v2-error:           #ef4444;
+  --v2-error-bg:        rgba(239,68,68,.10);
+  --v2-warning:         #f59e0b;
+
+  /* Tipografía */
+  --v2-font:            -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --v2-font-mono:       'SFMono-Regular', Consolas, monospace;
+
+  /* Espaciado */
+  --v2-radius:          12px;
+  --v2-radius-sm:       8px;
+  --v2-radius-lg:       16px;
+  --v2-shadow:          0 4px 24px rgba(0,0,0,.4);
+  --v2-shadow-lg:       0 8px 40px rgba(0,0,0,.5);
+}
+
+/* ── Reset base (solo afecta a nodos V2) ───────────────────── */
+.v2-root, .v2-root * {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+.v2-root {
+  font-family:      var(--v2-font);
+  font-size:        16px;
+  line-height:      1.5;
+  color:            var(--v2-text);
+  background-color: var(--v2-bg);
+  min-height:       100vh;
+}
+
+/* ── Screens (pantallas de estado) ─────────────────────────── */
+.v2-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 24px;
+  animation: v2FadeIn .3s ease;
+}
+.v2-screen.hidden {
+  display: none;
+}
+@keyframes v2FadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Spinner de carga ───────────────────────────────────────── */
+.v2-spinner {
+  width:  48px;
+  height: 48px;
+  border: 3px solid var(--v2-border);
+  border-top-color: var(--v2-accent);
+  border-radius: 50%;
+  animation: v2Spin .8s linear infinite;
+  margin-bottom: 16px;
+}
+@keyframes v2Spin {
+  to { transform: rotate(360deg); }
+}
+.v2-loading-text {
+  color: var(--v2-text-muted);
+  font-size: 15px;
+}
+
+/* ── Tarjeta de error ───────────────────────────────────────── */
+.v2-error-card {
+  background:    var(--v2-surface);
+  border:        1px solid var(--v2-error);
+  border-radius: var(--v2-radius-lg);
+  padding:       48px 40px;
+  text-align:    center;
+  max-width:     480px;
+  width:         100%;
+  box-shadow:    var(--v2-shadow-lg);
+}
+.v2-error-icon {
+  font-size:     48px;
+  margin-bottom: 16px;
+}
+.v2-error-card h2 {
+  font-size:     22px;
+  font-weight:   700;
+  margin-bottom: 12px;
+  color:         var(--v2-error);
+}
+.v2-error-card p {
+  color:         var(--v2-text-muted);
+  margin-bottom: 28px;
+  font-size:     15px;
+}
+
+/* ── Success card ───────────────────────────────────────────── */
+.v2-success-card {
+  background:    var(--v2-surface);
+  border:        1px solid var(--v2-success);
+  border-radius: var(--v2-radius-lg);
+  padding:       48px 40px;
+  text-align:    center;
+  max-width:     480px;
+  width:         100%;
+  box-shadow:    var(--v2-shadow-lg);
+}
+.v2-success-icon {
+  font-size:     56px;
+  margin-bottom: 16px;
+}
+.v2-success-card h2 {
+  font-size:     22px;
+  font-weight:   700;
+  margin-bottom: 8px;
+  color:         var(--v2-success);
+}
+.v2-success-card p {
+  color:         var(--v2-text-muted);
+  font-size:     15px;
+}
+.v2-countdown {
+  display:       inline-block;
+  margin-top:    20px;
+  font-size:     13px;
+  color:         var(--v2-text-subtle);
+}
+
+/* ── Botón primario ─────────────────────────────────────────── */
+.v2-btn {
+  display:         inline-flex;
+  align-items:     center;
+  gap:             8px;
+  padding:         12px 24px;
+  border-radius:   var(--v2-radius-sm);
+  font-size:       15px;
+  font-weight:     600;
+  cursor:          pointer;
+  border:          none;
+  transition:      background .2s, transform .1s, opacity .2s;
+  text-decoration: none;
+}
+.v2-btn:active {
+  transform: scale(.98);
+}
+.v2-btn-primary {
+  background: var(--v2-accent);
+  color:      #fff;
+}
+.v2-btn-primary:hover {
+  background: var(--v2-accent-hover);
+}
+.v2-btn-primary:disabled {
+  opacity: .55;
+  cursor:  not-allowed;
+  transform: none;
+}
+.v2-btn-ghost {
+  background: transparent;
+  color:      var(--v2-text-muted);
+  border:     1px solid var(--v2-border);
+}
+.v2-btn-ghost:hover {
+  background: var(--v2-surface-alt);
+}
+
+/* ── Header V2 ──────────────────────────────────────────────── */
+.v2-header {
+  display:          flex;
+  align-items:      center;
+  justify-content:  space-between;
+  padding:          18px 32px;
+  border-bottom:    1px solid var(--v2-border);
+  background:       var(--v2-surface);
+  position:         sticky;
+  top:              0;
+  z-index:          100;
+}
+.v2-header-logo {
+  font-size:   18px;
+  font-weight: 700;
+  color:       var(--v2-text);
+  text-decoration: none;
+  display:     flex;
+  align-items: center;
+  gap:         10px;
+}
+.v2-header-logo span {
+  color: var(--v2-accent);
+}
+.v2-secure-badge {
+  display:     flex;
+  align-items: center;
+  gap:         6px;
+  font-size:   13px;
+  color:       var(--v2-success);
+}
+
+/* ── Layout principal del checkout ─────────────────────────── */
+.v2-checkout-main {
+  max-width:  1100px;
+  margin:     0 auto;
+  padding:    40px 24px 80px;
+  display:    grid;
+  grid-template-columns: 1fr 420px;
+  gap:        32px;
+  align-items: start;
+}
+@media (max-width: 840px) {
+  .v2-checkout-main {
+    grid-template-columns: 1fr;
+    padding: 24px 16px 60px;
+  }
+}
+
+/* ── Sección izquierda: planes ──────────────────────────────── */
+.v2-plans-section h2 {
+  font-size:     26px;
+  font-weight:   700;
+  margin-bottom: 6px;
+}
+.v2-plans-section p.subtitle {
+  color:         var(--v2-text-muted);
+  font-size:     15px;
+  margin-bottom: 28px;
+}
+.v2-plan-grid {
+  display:        flex;
+  flex-direction: column;
+  gap:            16px;
+}
+
+/* ── Plan card ──────────────────────────────────────────────── */
+.v2-plan-card {
+  background:    var(--v2-surface);
+  border:        2px solid var(--v2-border);
+  border-radius: var(--v2-radius);
+  padding:       24px;
+  cursor:        pointer;
+  transition:    border-color .2s, background .2s, box-shadow .2s;
+  position:      relative;
+}
+.v2-plan-card:hover {
+  border-color: var(--v2-border-focus);
+  background:   var(--v2-surface-alt);
+}
+.v2-plan-card.selected {
+  border-color: var(--v2-accent);
+  background:   var(--v2-accent-light);
+  box-shadow:   0 0 0 3px rgba(99,102,241,.2);
+}
+.v2-plan-card.current-plan::before {
+  content:       'Plan actual';
+  position:      absolute;
+  top:           14px;
+  right:         16px;
+  background:    var(--v2-accent);
+  color:         #fff;
+  font-size:     11px;
+  font-weight:   700;
+  padding:       3px 10px;
+  border-radius: 20px;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+}
+.v2-plan-header {
+  display:         flex;
+  align-items:     baseline;
+  justify-content: space-between;
+  margin-bottom:   16px;
+}
+.v2-plan-name {
+  font-size:   18px;
+  font-weight: 700;
+}
+.v2-plan-price {
+  text-align: right;
+}
+.v2-plan-price .amount {
+  font-size:   28px;
+  font-weight: 800;
+  color:       var(--v2-text);
+}
+.v2-plan-price .currency {
+  font-size: 14px;
+  color:     var(--v2-text-muted);
+}
+.v2-plan-price .period {
+  font-size:  12px;
+  color:      var(--v2-text-muted);
+  display:    block;
+}
+.v2-plan-features {
+  list-style: none;
+  display:    flex;
+  flex-direction: column;
+  gap:        8px;
+}
+.v2-plan-features li {
+  display:     flex;
+  align-items: center;
+  gap:         8px;
+  font-size:   14px;
+  color:       var(--v2-text-muted);
+}
+.v2-plan-features li .feat-icon {
+  width:            18px;
+  height:           18px;
+  border-radius:    50%;
+  background:       var(--v2-success-bg);
+  color:            var(--v2-success);
+  display:          flex;
+  align-items:      center;
+  justify-content:  center;
+  font-size:        11px;
+  flex-shrink:      0;
+}
+.v2-plan-features li .feat-icon.accent {
+  background: var(--v2-accent-light);
+  color:      var(--v2-accent);
+}
+
+/* ── Columna derecha: formulario sticky ─────────────────────── */
+.v2-form-section {
+  position: sticky;
+  top:      90px;
+}
+.v2-checkout-panel {
+  background:    var(--v2-surface);
+  border:        1px solid var(--v2-border);
+  border-radius: var(--v2-radius-lg);
+  padding:       28px;
+  box-shadow:    var(--v2-shadow);
+}
+.v2-panel-title {
+  font-size:     15px;
+  font-weight:   700;
+  margin-bottom: 4px;
+  display:       flex;
+  align-items:   center;
+  gap:           8px;
+}
+.v2-panel-subtitle {
+  font-size:     13px;
+  color:         var(--v2-text-muted);
+  margin-bottom: 24px;
+}
+.v2-selected-plan-display {
+  background:    var(--v2-accent-light);
+  border:        1px solid rgba(99,102,241,.3);
+  border-radius: var(--v2-radius-sm);
+  padding:       12px 16px;
+  margin-bottom: 20px;
+  font-size:     14px;
+  color:         var(--v2-text);
+  display:       flex;
+  justify-content: space-between;
+  align-items:   center;
+}
+.v2-selected-plan-display .plan-label {
+  font-weight: 600;
+}
+.v2-selected-plan-display .plan-hint {
+  font-size: 12px;
+  color:     var(--v2-text-muted);
+}
+
+/* ── Inputs de pago ─────────────────────────────────────────── */
+.v2-field {
+  margin-bottom: 16px;
+}
+.v2-field label {
+  display:       block;
+  font-size:     13px;
+  font-weight:   600;
+  color:         var(--v2-text-muted);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+}
+.v2-input {
+  width:         100%;
+  height:        48px;
+  background:    var(--v2-bg);
+  border:        1px solid var(--v2-border);
+  border-radius: var(--v2-radius-sm);
+  color:         var(--v2-text);
+  font-size:     16px;
+  padding:       0 14px;
+  outline:       none;
+  transition:    border-color .2s, box-shadow .2s;
+  font-family:   var(--v2-font);
+}
+.v2-input:focus {
+  border-color: var(--v2-border-focus);
+  box-shadow:   0 0 0 3px rgba(99,102,241,.15);
+}
+.v2-input::placeholder {
+  color: var(--v2-text-subtle);
+}
+.v2-input-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 10px;
+}
+
+/* ── Card brand icons row ───────────────────────────────────── */
+.v2-card-brands {
+  display:     flex;
+  align-items: center;
+  gap:         8px;
+}
+.v2-label-row {
+  display:         flex;
+  justify-content: space-between;
+  align-items:     center;
+  margin-bottom:   6px;
+}
+.v2-label-row label {
+  font-size:      13px;
+  font-weight:    600;
+  color:          var(--v2-text-muted);
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  margin:         0;
+}
+
+/* ── Botón de pago ──────────────────────────────────────────── */
+.v2-pay-btn {
+  width:         100%;
+  height:        52px;
+  background:    var(--v2-accent);
+  color:         #fff;
+  border:        none;
+  border-radius: var(--v2-radius-sm);
+  font-size:     16px;
+  font-weight:   700;
+  cursor:        pointer;
+  margin-top:    8px;
+  display:       flex;
+  align-items:   center;
+  justify-content: center;
+  gap:           8px;
+  transition:    background .2s, transform .1s, opacity .2s;
+  font-family:   var(--v2-font);
+}
+.v2-pay-btn:hover:not(:disabled) {
+  background: var(--v2-accent-hover);
+}
+.v2-pay-btn:active:not(:disabled) {
+  transform: scale(.99);
+}
+.v2-pay-btn:disabled {
+  opacity: .55;
+  cursor:  not-allowed;
+  transform: none;
+}
+
+/* ── Error inline ───────────────────────────────────────────── */
+.v2-inline-error {
+  background:    var(--v2-error-bg);
+  border:        1px solid rgba(239,68,68,.3);
+  border-radius: var(--v2-radius-sm);
+  color:         var(--v2-error);
+  font-size:     14px;
+  padding:       12px 14px;
+  margin-top:    12px;
+  display:       none;
+}
+.v2-inline-error.visible {
+  display: block;
+  animation: v2FadeIn .2s ease;
+}
+
+/* ── Trust badges ───────────────────────────────────────────── */
+.v2-trust {
+  margin-top:  20px;
+  text-align:  center;
+  padding-top: 16px;
+  border-top:  1px solid var(--v2-border);
+}
+.v2-trust-text {
+  font-size: 12px;
+  color:     var(--v2-text-subtle);
+  margin-top: 8px;
+}
+
+/* ── Footer ─────────────────────────────────────────────────── */
+.v2-footer {
+  text-align:    center;
+  padding:       24px;
+  color:         var(--v2-text-subtle);
+  font-size:     13px;
+  border-top:    1px solid var(--v2-border);
+  margin-top:    auto;
+}
+
+/* ── No-plan warning ────────────────────────────────────────── */
+.v2-no-plan-hint {
+  background:    rgba(245,158,11,.08);
+  border:        1px solid rgba(245,158,11,.3);
+  border-radius: var(--v2-radius-sm);
+  color:         var(--v2-warning);
+  font-size:     13px;
+  padding:       10px 14px;
+  margin-bottom: 16px;
+  display:       none;
+}
+.v2-no-plan-hint.visible {
+  display: block;
+}
