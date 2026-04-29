@@ -27,7 +27,7 @@ class BridgeController extends Controller
     {
         $token = $this->generateBridgeToken();
 
-        return redirect('/newbrokers/v2/subscriptions/index.html?token=' . $token);
+        return redirect('/v2/subscriptions/index.html?token=' . $token);
     }
 
     /**
