@@ -237,6 +237,12 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/home/v2/subscription-bridge', 'BridgeController@subscriptionBridge')
         ->name('v2.subscription.bridge');
 
+    // Logout para la SPA V2 (GET — evita necesidad de CSRF desde HTML estático)
+    Route::get('/home/v2/logout', function () {
+        Auth::logout();
+        return redirect('/');
+    })->name('v2.logout');
+
     //Cuenta
 
     Route::post('/update/company', 'CompanyController@update')->name('update.company');

@@ -19,6 +19,7 @@ const state = {
   plans:          [],
   openpay:        null,
   selectedPlanId: null,
+  apiBase:        '',   // prefijo para todos los fetch — '' = same-origin (producción)
 };
 
 // ── Utilidades de UI ──────────────────────────────────────────
@@ -164,6 +165,44 @@ function selectPlan(planId, planName, planPrice) {
   setInlineError('');
 }
 
+// ── Hamburguesa (menú móvil) ──────────────────────────────────
+
+function initHamburger() {
+  const btn  = document.getElementById('v2-hamburger');
+  const menu = document.getElementById('v2-mobile-menu');
+  if (!btn || !menu) return;
+
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const isOpen = menu.classList.toggle('open');
+    btn.classList.toggle('open', isOpen);
+    btn.setAttribute('aria-expanded', String(isOpen));
+    menu.setAttribute('aria-hidden', String(!isOpen));
+  });
+
+  // Cerrar al hacer clic fuera
+  document.addEventListener('click', () => {
+    if (menu.classList.contains('open')) {
+      menu.classList.remove('open');
+      btn.classList.remove('open');
+      btn.setAttribute('aria-expanded', 'false');
+      menu.setAttribute('aria-hidden', 'true');
+    }
+  });
+}
+
+// ── Logo OpenPay con fallback de texto ────────────────────────
+
+function initOpenPayLogo() {
+  const img      = document.getElementById('openpay-logo');
+  const fallback = document.getElementById('openpay-text-fallback');
+  if (!img) return;
+  img.addEventListener('error', () => {
+    img.style.display = 'none';
+    if (fallback) fallback.style.display = 'inline-block';
+  });
+}
+
 // ── Inicialización de OpenPay ─────────────────────────────────
 
 function initOpenPay() {
@@ -202,7 +241,7 @@ async function onOpenPaySuccess(response) {
   const deviceId = document.getElementById('device-id-field').value;
 
   try {
-    const res = await fetch('/api/v2/subscriptions', {
+    const res = await fetch(state.apiBase + '/api/v2/subscriptions', {
       method: 'POST',
       headers: {
         'Content-Type':  'application/json',
@@ -263,7 +302,7 @@ function startSuccessFlow() {
     if (countEl) countEl.textContent = seconds;
     if (seconds <= 0) {
       clearInterval(interval);
-      window.location.href = '/home';
+      window.location.href = state.apiBase + '/home';
     }
   }, 1000);
 }
@@ -280,13 +319,49 @@ async function boot() {
   const params = new URLSearchParams(window.location.search);
   const bridgeToken = params.get('token');
 
+  // api param: URL base de la API de Laravel. Inyectada por BridgeController cuando
+  // frontend y API están en orígenes distintos (ej. XAMPP local). Vacía en producción.
+  state.apiBase = params.get('api') ? decodeURIComponent(params.get('api')) : '';
+
+  // ── Inyectar URLs dinámicas ahora que apiBase está resuelto ──
+  const homeUrl    = state.apiBase + '/home';
+  const logoutUrl  = state.apiBase + '/home/v2/logout';
+  const logoUrl    = state.apiBase + '/img/logo/logo-recortado.png';
+  const privacyUrl = state.apiBase + '/privacy-politics';
+
+  const setHref = (id, href) => { const el = document.getElementById(id); if (el) el.href = href; };
+  const setSrc  = (id, src)  => { const el = document.getElementById(id); if (el) el.src  = src;  };
+
+  setSrc('header-logo-img', logoUrl);
+  setHref('header-logo-link', homeUrl);
+  setHref('nav-dashboard',   homeUrl);
+  setHref('nav-dashboard-m', homeUrl);
+  setHref('nav-logout',      logoutUrl);
+  setHref('nav-logout-m',    logoutUrl);
+  setHref('error-back-btn',  homeUrl);
+  setHref('footer-privacy',  privacyUrl);
+
+  // Activar logo fallback y hamburguesa inmediatamente
+  initOpenPayLogo();
+  initHamburger();
+
+  // Activar logo fallback de texto si la imagen no carga
+  const logoImg      = document.getElementById('header-logo-img');
+  const logoFallback = document.getElementById('header-logo-fallback');
+  if (logoImg && logoFallback) {
+    logoImg.addEventListener('error', () => {
+      logoImg.style.display    = 'none';
+      logoFallback.style.display = 'flex';
+    });
+  }
+
   if (!bridgeToken) {
     showError('Enlace inválido. No se encontró el parámetro de autenticación. Regresa al panel.');
     return;
   }
 
   try {
-    const res = await fetch('/api/v2/bridge/validate?token=' + encodeURIComponent(bridgeToken), {
+    const res = await fetch(state.apiBase + '/api/v2/bridge/validate?token=' + encodeURIComponent(bridgeToken), {
       headers: { 'Accept': 'application/json' },
     });
 

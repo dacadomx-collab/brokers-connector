@@ -1,42 +1,49 @@
 /* ═══════════════════════════════════════════════════════════════
-   V2 DESIGN SYSTEM — Brokers Connector
+   V2 DESIGN SYSTEM — Brokers Connector  (Light Theme)
    Regla #1 Strangler Fig: este archivo NUNCA se carga en el Legacy.
    Solo se enlaza desde módulos bajo /newbrokers/v2/
    ═══════════════════════════════════════════════════════════════ */
 
 /* ── Design Tokens ─────────────────────────────────────────── */
 :root {
-  /* Colores */
-  --v2-bg:              #0f172a;
-  --v2-surface:         #1e293b;
-  --v2-surface-alt:     #263348;
-  --v2-border:          #334155;
-  --v2-border-focus:    #6366f1;
+  /* Fondos — escala de blanco a gris plata claro */
+  --v2-bg:              #f1f5f9;   /* body — plata ultra claro */
+  --v2-surface:         #ffffff;   /* tarjetas y paneles — blanco puro */
+  --v2-surface-alt:     #f8fafc;   /* hover sutil sobre blanco */
+  --v2-border:          #e2e8f0;   /* borde delicado */
+  --v2-border-focus:    #4f46e5;   /* borde de foco activo */
 
-  --v2-accent:          #6366f1;
-  --v2-accent-hover:    #4f46e5;
-  --v2-accent-light:    rgba(99,102,241,.12);
+  /* Acento — índigo más saturado para garantizar contraste sobre blanco */
+  --v2-accent:          #4f46e5;   /* contraste blanco/índigo: 6.1:1 ✅ */
+  --v2-accent-hover:    #4338ca;
+  --v2-accent-light:    rgba(79,70,229,.07);   /* tinte muy sutil */
 
-  --v2-text:            #f8fafc;
-  --v2-text-muted:      #94a3b8;
-  --v2-text-subtle:     #64748b;
+  /* Tipografía — textos oscuros sobre fondo claro */
+  --v2-text:            #0f172a;   /* casi negro — 18.5:1 ✅ */
+  --v2-text-muted:      #475569;   /* gris medio — 7.2:1 ✅ */
+  --v2-text-subtle:     #64748b;   /* gris claro — 4.5:1 ✅ */
 
-  --v2-success:         #10b981;
-  --v2-success-bg:      rgba(16,185,129,.10);
-  --v2-error:           #ef4444;
-  --v2-error-bg:        rgba(239,68,68,.10);
-  --v2-warning:         #f59e0b;
+  /* Semánticos — versiones más oscuras para contraste sobre blanco */
+  --v2-success:         #047857;   /* verde oscuro — 5.2:1 ✅ */
+  --v2-success-bg:      rgba(4,120,87,.07);
+  --v2-error:           #dc2626;   /* rojo — 4.8:1 ✅ */
+  --v2-error-bg:        rgba(220,38,38,.07);
+  --v2-warning:         #b45309;   /* ámbar oscuro — 4.8:1 ✅ */
 
   /* Tipografía */
   --v2-font:            -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --v2-font-mono:       'SFMono-Regular', Consolas, monospace;
 
-  /* Espaciado */
+  /* Geometría */
   --v2-radius:          12px;
   --v2-radius-sm:       8px;
   --v2-radius-lg:       16px;
-  --v2-shadow:          0 4px 24px rgba(0,0,0,.4);
-  --v2-shadow-lg:       0 8px 40px rgba(0,0,0,.5);
+
+  /* Sombras — muy sutiles sobre fondo claro */
+  --v2-shadow:          0 1px 3px rgba(0,0,0,.07), 0 1px 2px rgba(0,0,0,.05);
+  --v2-shadow-md:       0 4px 12px rgba(0,0,0,.08), 0 2px 4px rgba(0,0,0,.05);
+  --v2-shadow-lg:       0 8px 24px rgba(0,0,0,.10), 0 3px 8px rgba(0,0,0,.06);
+  --v2-shadow-accent:   0 4px 14px rgba(79,70,229,.18);
 }
 
 /* ── Reset base (solo afecta a nodos V2) ───────────────────── */
@@ -93,7 +100,7 @@
 /* ── Tarjeta de error ───────────────────────────────────────── */
 .v2-error-card {
   background:    var(--v2-surface);
-  border:        1px solid var(--v2-error);
+  border:        1px solid rgba(220,38,38,.3);
   border-radius: var(--v2-radius-lg);
   padding:       48px 40px;
   text-align:    center;
@@ -120,7 +127,7 @@
 /* ── Success card ───────────────────────────────────────────── */
 .v2-success-card {
   background:    var(--v2-surface);
-  border:        1px solid var(--v2-success);
+  border:        1px solid rgba(4,120,87,.25);
   border-radius: var(--v2-radius-lg);
   padding:       48px 40px;
   text-align:    center;
@@ -160,7 +167,7 @@
   font-weight:     600;
   cursor:          pointer;
   border:          none;
-  transition:      background .2s, transform .1s, opacity .2s;
+  transition:      background .2s, transform .1s, box-shadow .2s;
   text-decoration: none;
 }
 .v2-btn:active {
@@ -169,14 +176,17 @@
 .v2-btn-primary {
   background: var(--v2-accent);
   color:      #fff;
+  box-shadow: var(--v2-shadow-accent);
 }
 .v2-btn-primary:hover {
-  background: var(--v2-accent-hover);
+  background:  var(--v2-accent-hover);
+  box-shadow:  0 6px 18px rgba(79,70,229,.25);
 }
 .v2-btn-primary:disabled {
   opacity: .55;
   cursor:  not-allowed;
   transform: none;
+  box-shadow: none;
 }
 .v2-btn-ghost {
   background: transparent;
@@ -185,6 +195,8 @@
 }
 .v2-btn-ghost:hover {
   background: var(--v2-surface-alt);
+  border-color: var(--v2-border-focus);
+  color: var(--v2-text);
 }
 
 /* ── Header V2 ──────────────────────────────────────────────── */
@@ -192,9 +204,11 @@
   display:          flex;
   align-items:      center;
   justify-content:  space-between;
-  padding:          18px 32px;
+  flex-wrap:        wrap;          /* permite que el menú móvil ocupe una segunda fila */
+  padding:          14px 24px;
   border-bottom:    1px solid var(--v2-border);
   background:       var(--v2-surface);
+  box-shadow:       var(--v2-shadow);
   position:         sticky;
   top:              0;
   z-index:          100;
@@ -216,6 +230,7 @@
   align-items: center;
   gap:         6px;
   font-size:   13px;
+  font-weight: 600;
   color:       var(--v2-success);
 }
 
@@ -241,6 +256,7 @@
   font-size:     26px;
   font-weight:   700;
   margin-bottom: 6px;
+  color:         var(--v2-text);
 }
 .v2-plans-section p.subtitle {
   color:         var(--v2-text-muted);
@@ -262,15 +278,17 @@
   cursor:        pointer;
   transition:    border-color .2s, background .2s, box-shadow .2s;
   position:      relative;
+  box-shadow:    var(--v2-shadow);
 }
 .v2-plan-card:hover {
   border-color: var(--v2-border-focus);
   background:   var(--v2-surface-alt);
+  box-shadow:   var(--v2-shadow-md);
 }
 .v2-plan-card.selected {
   border-color: var(--v2-accent);
   background:   var(--v2-accent-light);
-  box-shadow:   0 0 0 3px rgba(99,102,241,.2);
+  box-shadow:   0 0 0 3px rgba(79,70,229,.15), var(--v2-shadow-md);
 }
 .v2-plan-card.current-plan::before {
   content:       'Plan actual';
@@ -295,6 +313,7 @@
 .v2-plan-name {
   font-size:   18px;
   font-weight: 700;
+  color:       var(--v2-text);
 }
 .v2-plan-price {
   text-align: right;
@@ -353,12 +372,13 @@
   border:        1px solid var(--v2-border);
   border-radius: var(--v2-radius-lg);
   padding:       28px;
-  box-shadow:    var(--v2-shadow);
+  box-shadow:    var(--v2-shadow-md);
 }
 .v2-panel-title {
   font-size:     15px;
   font-weight:   700;
   margin-bottom: 4px;
+  color:         var(--v2-text);
   display:       flex;
   align-items:   center;
   gap:           8px;
@@ -370,7 +390,7 @@
 }
 .v2-selected-plan-display {
   background:    var(--v2-accent-light);
-  border:        1px solid rgba(99,102,241,.3);
+  border:        1px solid rgba(79,70,229,.2);
   border-radius: var(--v2-radius-sm);
   padding:       12px 16px;
   margin-bottom: 20px;
@@ -411,12 +431,13 @@
   font-size:     16px;
   padding:       0 14px;
   outline:       none;
-  transition:    border-color .2s, box-shadow .2s;
+  transition:    border-color .2s, box-shadow .2s, background .15s;
   font-family:   var(--v2-font);
 }
 .v2-input:focus {
+  background:   var(--v2-surface);
   border-color: var(--v2-border-focus);
-  box-shadow:   0 0 0 3px rgba(99,102,241,.15);
+  box-shadow:   0 0 0 3px rgba(79,70,229,.12);
 }
 .v2-input::placeholder {
   color: var(--v2-text-subtle);
@@ -464,11 +485,13 @@
   align-items:   center;
   justify-content: center;
   gap:           8px;
-  transition:    background .2s, transform .1s, opacity .2s;
+  transition:    background .2s, transform .1s, box-shadow .2s;
   font-family:   var(--v2-font);
+  box-shadow:    var(--v2-shadow-accent);
 }
 .v2-pay-btn:hover:not(:disabled) {
   background: var(--v2-accent-hover);
+  box-shadow: 0 6px 20px rgba(79,70,229,.28);
 }
 .v2-pay-btn:active:not(:disabled) {
   transform: scale(.99);
@@ -477,12 +500,13 @@
   opacity: .55;
   cursor:  not-allowed;
   transform: none;
+  box-shadow: none;
 }
 
 /* ── Error inline ───────────────────────────────────────────── */
 .v2-inline-error {
   background:    var(--v2-error-bg);
-  border:        1px solid rgba(239,68,68,.3);
+  border:        1px solid rgba(220,38,38,.25);
   border-radius: var(--v2-radius-sm);
   color:         var(--v2-error);
   font-size:     14px;
@@ -515,13 +539,14 @@
   color:         var(--v2-text-subtle);
   font-size:     13px;
   border-top:    1px solid var(--v2-border);
+  background:    var(--v2-surface);
   margin-top:    auto;
 }
 
 /* ── No-plan warning ────────────────────────────────────────── */
 .v2-no-plan-hint {
-  background:    rgba(245,158,11,.08);
-  border:        1px solid rgba(245,158,11,.3);
+  background:    rgba(180,83,9,.06);
+  border:        1px solid rgba(180,83,9,.25);
   border-radius: var(--v2-radius-sm);
   color:         var(--v2-warning);
   font-size:     13px;
@@ -531,4 +556,142 @@
 }
 .v2-no-plan-hint.visible {
   display: block;
+}
+
+/* ── Trust badge OpenPay ────────────────────────────────────── */
+.v2-trust-openpay {
+  display:     flex;
+  align-items: center;
+  justify-content: center;
+  min-height:  34px;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   NAVEGACIÓN — Header right, hamburguesa y menú móvil
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── Contenedor derecho del header ─────────────────────────── */
+.v2-header-right {
+  display:     flex;
+  align-items: center;
+  gap:         6px;
+}
+
+/* ── Badge "Pago seguro" (visible solo en desktop) ──────────── */
+.v2-secure-badge--desktop {
+  margin-right: 8px;
+}
+
+/* ── Navegación desktop ─────────────────────────────────────── */
+.v2-nav-desktop {
+  display:     flex;
+  align-items: center;
+  gap:         2px;
+}
+.v2-nav-link {
+  display:         inline-flex;
+  align-items:     center;
+  gap:             6px;
+  padding:         7px 12px;
+  border-radius:   var(--v2-radius-sm);
+  font-size:       14px;
+  font-weight:     600;
+  color:           var(--v2-text-muted);
+  text-decoration: none;
+  transition:      background .15s, color .15s;
+  white-space:     nowrap;
+}
+.v2-nav-link:hover {
+  background: var(--v2-surface-alt);
+  color:      var(--v2-text);
+}
+.v2-nav-logout {
+  color: var(--v2-text-subtle);
+}
+.v2-nav-logout:hover {
+  color: var(--v2-error);
+}
+
+/* ── Botón hamburguesa (oculto en desktop) ──────────────────── */
+.v2-hamburger {
+  display:         none;
+  flex-direction:  column;
+  justify-content: center;
+  align-items:     center;
+  gap:             5px;
+  width:           40px;
+  height:          40px;
+  background:      transparent;
+  border:          1px solid var(--v2-border);
+  border-radius:   var(--v2-radius-sm);
+  cursor:          pointer;
+  padding:         0;
+  transition:      border-color .15s;
+}
+.v2-hamburger:hover {
+  border-color: var(--v2-border-focus);
+}
+.v2-hamburger span {
+  display:       block;
+  width:         20px;
+  height:        2px;
+  background:    var(--v2-text-muted);
+  border-radius: 2px;
+  transition:    transform .22s ease, opacity .18s ease;
+}
+/* Animación X al abrir */
+.v2-hamburger.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+.v2-hamburger.open span:nth-child(2) { opacity: 0; transform: scaleX(0); }
+.v2-hamburger.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+/* ── Menú móvil (ocupa fila completa, bajo el header) ──────── */
+.v2-mobile-menu {
+  display:    none;
+  flex-basis: 100%;       /* fila completa en el flexbox del header */
+  flex-direction: column;
+  padding:    4px 0 8px;
+  border-top: 1px solid var(--v2-border);
+  margin-top: 10px;
+}
+.v2-mobile-menu.open {
+  display: flex;
+  animation: v2FadeIn .18s ease;
+}
+.v2-mobile-link {
+  display:         flex;
+  align-items:     center;
+  gap:             12px;
+  padding:         13px 4px;
+  font-size:       15px;
+  font-weight:     600;
+  color:           var(--v2-text-muted);
+  text-decoration: none;
+  border-bottom:   1px solid var(--v2-border);
+  transition:      color .15s;
+}
+.v2-mobile-link:last-child {
+  border-bottom: none;
+}
+.v2-mobile-link:hover {
+  color: var(--v2-accent);
+}
+.v2-mobile-link .fa-sign-out {
+  color: var(--v2-text-subtle);
+}
+.v2-mobile-link:hover .fa-sign-out {
+  color: var(--v2-error);
+}
+
+/* ── Responsive: mostrar hamburguesa, ocultar desktop nav ───── */
+@media (max-width: 640px) {
+  .v2-nav-desktop,
+  .v2-secure-badge--desktop {
+    display: none;
+  }
+  .v2-hamburger {
+    display: flex;
+  }
+  .v2-header {
+    padding: 12px 16px;
+  }
 }

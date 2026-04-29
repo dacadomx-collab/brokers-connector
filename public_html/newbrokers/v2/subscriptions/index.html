@@ -25,7 +25,7 @@
       <div class="v2-error-icon">🔒</div>
       <h2>Enlace expirado</h2>
       <p id="error-message">Este enlace ya no es válido. Regresa al panel e intenta de nuevo.</p>
-      <a href="/home" class="v2-btn v2-btn-primary">
+      <a href="#" id="error-back-btn" class="v2-btn v2-btn-primary">
         <i class="fa fa-arrow-left"></i> Volver al panel
       </a>
     </div>
@@ -36,14 +36,52 @@
 
     <!-- Header -->
     <header class="v2-header">
-      <span class="v2-header-logo">
-        <i class="fa fa-home"></i>
-        Brokers <span>Connector</span>
-      </span>
-      <span class="v2-secure-badge">
-        <i class="fa fa-lock"></i>
-        Pago 100% seguro
-      </span>
+
+      <!-- Logo: img real inyectada por JS; fallback de texto si no carga -->
+      <a href="#" id="header-logo-link" class="v2-header-logo">
+        <img id="header-logo-img"
+             src=""
+             alt="Brokers Connector"
+             height="36"
+             style="max-width:160px; display:block;">
+        <span id="header-logo-fallback"
+              style="display:none; align-items:center; gap:8px; font-size:17px; font-weight:700;">
+          <i class="fa fa-home"></i>
+          Brokers <span style="color:var(--v2-accent);">Connector</span>
+        </span>
+      </a>
+
+      <!-- Controles derecha: badge + nav desktop + hamburger -->
+      <div class="v2-header-right">
+        <span class="v2-secure-badge v2-secure-badge--desktop">
+          <i class="fa fa-lock"></i> Pago seguro
+        </span>
+        <nav class="v2-nav-desktop" aria-label="Panel">
+          <a href="#" id="nav-dashboard" class="v2-nav-link">
+            <i class="fa fa-th-large"></i> <span>Dashboard</span>
+          </a>
+          <a href="#" id="nav-logout" class="v2-nav-link v2-nav-logout">
+            <i class="fa fa-sign-out"></i> <span>Salir</span>
+          </a>
+        </nav>
+        <button id="v2-hamburger"
+                class="v2-hamburger"
+                aria-label="Abrir menú"
+                aria-expanded="false">
+          <span></span><span></span><span></span>
+        </button>
+      </div>
+
+      <!-- Menú móvil — ocupa fila completa bajo el header (flex-wrap) -->
+      <nav id="v2-mobile-menu" class="v2-mobile-menu" aria-hidden="true">
+        <a href="#" id="nav-dashboard-m" class="v2-mobile-link">
+          <i class="fa fa-th-large"></i> Dashboard
+        </a>
+        <a href="#" id="nav-logout-m" class="v2-mobile-link">
+          <i class="fa fa-sign-out"></i> Cerrar sesión
+        </a>
+      </nav>
+
     </header>
 
     <!-- Layout principal -->
@@ -158,10 +196,19 @@
 
           <!-- Trust badges -->
           <div class="v2-trust">
-            <img src="https://img.openpay.mx/assets/paynet_logo.png"
-                 alt="OpenPay — procesador de pagos seguro"
-                 height="28"
-                 style="opacity:.75;">
+            <div class="v2-trust-openpay">
+              <!-- Imagen oficial OpenPay CDN; el JS activa el fallback de texto si falla -->
+              <img id="openpay-logo"
+                   src="https://www.openpay.mx/img/openpay-logo.png"
+                   alt="Pago procesado por OpenPay"
+                   height="30">
+              <!-- Fallback tipográfico — visible solo si la imagen falla -->
+              <span id="openpay-text-fallback"
+                    style="display:none; font-weight:800; font-size:16px;
+                           color:#00a9e0; letter-spacing:-.3px;">
+                open<span style="color:#475569;">pay</span>
+              </span>
+            </div>
             <p class="v2-trust-text">
               <i class="fa fa-shield" style="color: var(--v2-success);"></i>
               Sus datos se transmiten con encriptación SSL de 256 bits.
@@ -176,7 +223,12 @@
 
     <footer class="v2-footer">
       Brokers Connector &mdash; &copy; <span id="footer-year"></span> &mdash;
-      <a href="/privacy-politics" style="color: var(--v2-text-subtle);">Aviso de privacidad</a>
+      <!-- target=_blank: abre en nueva pestaña para no destruir el estado de la SPA -->
+      <a id="footer-privacy"
+         href="#"
+         target="_blank"
+         rel="noopener noreferrer"
+         style="color: var(--v2-text-subtle);">Aviso de privacidad</a>
     </footer>
 
   </div><!-- /screen-checkout -->

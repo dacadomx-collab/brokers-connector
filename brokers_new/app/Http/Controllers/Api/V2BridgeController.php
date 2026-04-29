@@ -23,10 +23,11 @@ class V2BridgeController extends Controller
     /**
      * GET /api/v2/bridge/validate?token={TOKEN}
      *
-     * ⚠ PARCHE DE DEBUG ACTIVO — envuelve todo en Throwable para exponer errores
-     * que APP_DEBUG=false oculta. REMOVER tras identificar la causa raíz.
+     * Nombre del método: bridgeValidate (no "validate" — colisiona con el trait
+     * ValidatesRequests del Controller base; ReflectionMethod toma la firma del trait
+     * y el dispatcher crashea antes de entrar al body).
      */
-    public function validate(Request $request)
+    public function bridgeValidate(Request $request)
     {
         try {
 

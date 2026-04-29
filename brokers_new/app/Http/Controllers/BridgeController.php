@@ -27,7 +27,22 @@ class BridgeController extends Controller
     {
         $token = $this->generateBridgeToken();
 
-        return redirect('/v2/subscriptions/index.html?token=' . $token);
+        // V2_FRONTEND_BASE: raíz de newbrokers/ según el entorno.
+        // Vacío en producción (same-origin). En local: URL completa hasta newbrokers/.
+        $frontendBase = rtrim(env('V2_FRONTEND_BASE', ''), '/');
+
+        // V2_API_BASE: raíz de la API de Laravel según el entorno.
+        // Vacío en producción (same-origin). En local: URL completa hasta public/.
+        $apiBase = rtrim(env('V2_API_BASE', ''), '/');
+
+        $url = $frontendBase . '/v2/subscriptions/index.html?token=' . $token;
+
+        // Solo se adjunta si está configurado — el JS lo usa como prefijo de fetch.
+        if ($apiBase !== '') {
+            $url .= '&api=' . urlencode($apiBase);
+        }
+
+        return redirect($url);
     }
 
     /**

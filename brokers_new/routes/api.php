@@ -95,7 +95,7 @@ Route::group(['prefix' => 'ai', 'middleware' => ['auth:api']], function () {
 
 // V2 Bridge — token de un solo uso como mecanismo de autenticación
 Route::prefix('v2')->group(function () {
-    Route::get('/bridge/validate',  'Api\V2BridgeController@validate');
+    Route::get('/bridge/validate',  'Api\V2BridgeController@bridgeValidate');
     Route::post('/subscriptions',   'Api\V2BridgeController@subscribe');
 });
 
