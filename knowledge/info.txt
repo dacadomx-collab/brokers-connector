@@ -46,6 +46,8 @@ CVV: 123
 
 ******************************************************************************  R E P O R T E S  ***********************
 ************************************************************
+https://newbrokers.tourfindy.com/reportes/Evolucion_BrokersConnectV2.html
+
 https://newbrokers.tourfindy.com/reportes/Reporte_Seguridad_y_Cobros_V2.html
 
-https://newbrokers.tourfindy.com/reportes/Evolucion_BrokersConnectV2.html
+
