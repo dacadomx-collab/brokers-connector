@@ -222,10 +222,10 @@ Route::middleware(['auth', 'company','companyPayment'])->group(function () {
      // IA / Generador de copywriting inmobiliario
      Route::post('/home/ai/generate-copy', 'AiChatController@generateCopy')->name('ai.generate-copy');
 
-     // Suscripciones recurrentes
-     Route::get('/home/subscription',  'InvoicesController@subscription')->name('subscription');
-     Route::post('/home/subscription', 'InvoicesController@processSubscription')->name('subscription.process');
 });
+// Suscripciones — módulo migrado a V2 SPA (Misión #28).
+// Rutas Legacy eliminadas: GET/POST /home/subscription → InvoicesController.
+// Flujo activo: GET /home/v2/subscription-bridge → BridgeController → SPA V2.
 
 
 Route::middleware(['auth'])->group(function () {

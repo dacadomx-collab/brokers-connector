@@ -43,3 +43,9 @@ Titular: Juan Pérez (o tu nombre)
 Número de Tarjeta: 4111 1111 1111 1111 (Aprobada siempre)
 Mes/Año: Cualquier fecha futura (ej. 12 / 28)
 CVV: 123
+
+******************************************************************************  R E P O R T E S  ***********************
+************************************************************
+https://newbrokers.tourfindy.com/reportes/Reporte_Seguridad_y_Cobros_V2.html
+
+https://newbrokers.tourfindy.com/reportes/Evolucion_BrokersConnectV2.html

@@ -96,7 +96,7 @@ Todo módulo V2 nuevo debe registrarse en este archivo antes de comenzar su desa
 
 | Módulo | Estado | Prioridad | Notas |
 |---|---|---|---|
-| Suscripciones / Checkout | 🟡 En progreso | 🔴 Alta | Primer módulo V2. Puente creado. |
+| Suscripciones / Checkout | ✅ **Completo** (Misiones #15–#24) | 🔴 Alta | SPA V2 operativa, tema claro, hamburguesa, routing agnóstico |
 | Facturación / Historial | 🔲 Pendiente | 🟠 Media | Después de Suscripciones |
 | Dashboard de Analytics | 🔲 Pendiente | 🟡 Baja | Requiere datos históricos |
 | Gestión de Propiedades | 🔲 Pendiente | 🟡 Baja | Alto acoplamiento en Legacy |
@@ -104,37 +104,87 @@ Todo módulo V2 nuevo debe registrarse en este archivo antes de comenzar su desa
 
 ---
 
-## 🔐 PROTOCOLO DE AUTENTICACIÓN DEL PUENTE
+## 🔐 PROTOCOLO DE AUTENTICACIÓN DEL PUENTE (ESTADO FINAL)
 
 ```
 Usuario autenticado en Legacy
         ↓
-GET /home/v2/{modulo}-bridge  (web, auth middleware)
+GET /home/v2/subscription-bridge  (auth middleware — SIN companyPayment)
         ↓
 BridgeController::generateBridgeToken()
-  → Str::random(64) = $token
-  → Cache::put('v2_bridge_' . $token, [
-        'user_id'    => auth()->id(),
-        'company_id' => auth()->user()->company_id,
-        'created_at' => now()->timestamp,
-    ], 60)  ← 60 segundos TTL
+  → $frontendBase = env('V2_FRONTEND_BASE', '')
+  → $apiBase      = env('V2_API_BASE', '')
+  → $token        = Str::random(64)
+  → Cache::put('v2_bridge_' . $token, {user_id, company_id}, 60)  ← TTL 60s
         ↓
-redirect('/newbrokers/v2/{modulo}/index.html?token=' . $token)
+redirect("{frontendBase}/v2/subscriptions/index.html?token={TOKEN}[&api={apiBase}]")
         ↓
-Módulo V2 (JS)
-  → GET /api/v2/bridge/validate?token={TOKEN}  ← endpoint a crear en V2
-  → Lee los datos, invalida el token del Cache
-  → Almacena sesión local (localStorage / sessionStorage)
+SPA V2 (checkout.js)
+  → state.apiBase = URLSearchParams.get('api') || ''
+  → fetch(state.apiBase + '/api/v2/bridge/validate?token={TOKEN}')
+        ↓
+Api\V2BridgeController::bridgeValidate()   ← NOTA: método "bridgeValidate", NO "validate"
+  → Cache::get('v2_bridge_{token}')
+  → Cache::forget('v2_bridge_{token}')     ← QUEMA BRIDGE TOKEN (anti-replay)
+  → session_token = Str::random(64)
+  → Cache::put('v2_session_{session_token}', {user_id, company_id}, 1800)  ← TTL 30min
+  → return { success, session_token, company, plans, openpay }
+        ↓
+SPA JS: state.sessionToken en memoria (NO localStorage)
+        ↓
+[Usuario selecciona plan + ingresa tarjeta]
+        ↓
+OpenPay.js tokeniza tarjeta en cliente → card_token (PCI: nunca toca servidor)
+        ↓
+POST state.apiBase + '/api/v2/subscriptions'
+  Authorization: Bearer {session_token}
+  Body: { plan_id, token_id: card_token, device_id }
+        ↓
+Api\V2BridgeController::subscribe()
+  → valida session_token del Cache
+  → openPayService->createSubscription()
+  → company->openpay_subscription_id = subscription->id
+  → Cache::forget('v2_session_{session_token}')  ← QUEMA SESSION TOKEN (anti-doble-cobro)
+  → return { success, subscription_id }
+        ↓
+SPA: pantalla éxito → countdown 5s → state.apiBase + '/home'
 ```
+
+**Nota crítica de naming:** El método PHP en `V2BridgeController` se llama `bridgeValidate()` (NO `validate()`). El nombre `validate` estaba reservado por el trait `ValidatesRequests` del Controller base de Laravel, causando un fatal en el dispatch del router. Renombrado en Misión #20.
 
 ---
 
-## 📋 REGISTRO DE COMPONENTES V2
+## 📋 REGISTRO DE COMPONENTES V2 (ESTADO FINAL — Misión #27)
 
-| Componente | Ruta física | Estado | Puente Legacy |
+| Componente | Ruta física | Estado | Notas |
 |---|---|---|---|
-| `subscriptions/index.html` | `newbrokers/v2/subscriptions/index.html` | ✅ Completo (Misión #16) | `GET /home/v2/subscription-bridge` ✅ |
-| `subscriptions/checkout.js` | `newbrokers/v2/subscriptions/checkout.js` | ✅ Completo (Misión #16) | — |
-| `shared/v2.css` | `newbrokers/v2/shared/v2.css` | ✅ Completo (Misión #16) | — |
-| `api/v2/bridge/validate` | `brokers_new/routes/api.php` + `Api/V2BridgeController@validate` | ✅ Completo (Misión #16) | — |
-| `api/v2/subscriptions` | `brokers_new/routes/api.php` + `Api/V2BridgeController@subscribe` | ✅ Completo (Misión #16) | — |
+| `subscriptions/index.html` | `newbrokers/v2/subscriptions/index.html` | ✅ Completo | SPA light theme, hamburguesa, logo dinámico, fallback OpenPay |
+| `subscriptions/checkout.js` | `newbrokers/v2/subscriptions/checkout.js` | ✅ Completo | Routing agnóstico via `state.apiBase`, session token en memoria |
+| `shared/v2.css` | `newbrokers/v2/shared/v2.css` | ✅ Completo | Light theme, WCAG AA (todos los pares ≥4.5:1), hamburguesa CSS |
+| `GET /api/v2/bridge/validate` | `Api/V2BridgeController@bridgeValidate` | ✅ Completo | Método llamado `bridgeValidate` — ⚠ NO `validate` |
+| `POST /api/v2/subscriptions` | `Api/V2BridgeController@subscribe` | ✅ Completo | Bearer session_token, PCI compliant |
+| `GET /home/v2/subscription-bridge` | `BridgeController@subscriptionBridge` | ✅ Completo | Routing agnóstico: lee `V2_FRONTEND_BASE` + `V2_API_BASE` |
+| `GET /home/v2/logout` | `routes/web.php` closure | ✅ Completo | GET logout para SPA (auth middleware, sin CSRF) |
+
+## 🎨 ESTADO FINAL DE LA SPA V2 (Checkout de Suscripciones)
+
+### Design System
+- **Tema:** Light (pivotado en Misión #23 desde dark theme por psicología financiera)
+- **Tokens clave:** `--v2-bg: #f1f5f9` (plata claro) · `--v2-surface: #ffffff` (blanco) · `--v2-accent: #4f46e5` (índigo oscuro)
+- **WCAG AA:** Todos los pares de color verificados ≥4.5:1 (texto normal) y ≥3:1 (componentes UI)
+- **Sombras:** Muy sutiles `rgba(0,0,0,.07)` — aspecto premium SaaS (Stripe/Linear style)
+
+### UX Features
+- **Hamburger Menu:** Vanilla JS puro, `flex-wrap` en header (sin posicionamiento absoluto problemático)
+- **Logo dinámico:** Inyectado desde `state.apiBase + '/img/logo/logo-recortado.png'` + fallback tipográfico si falla
+- **OpenPay Trust Badge:** CDN oficial + fallback tipográfico `onerror`
+- **Footer:** Aviso de privacidad en `target="_blank"` — preserva estado SPA
+- **Logout:** `GET /home/v2/logout` — destruye sesión Laravel sin CSRF desde SPA estática
+
+### Routing Agnóstico
+| Variable `.env` | Producción | XAMPP Local |
+|---|---|---|
+| `V2_FRONTEND_BASE` | `""` | `http://localhost/brokersconnect_dev/public_html/newbrokers` |
+| `V2_API_BASE` | `""` | `http://localhost/brokersconnect_dev/public_html` |
+
+> **Arquitectura real local:** `public_html/index.php` es el entry point de Laravel (NO `brokers_new/public/`). El `.htaccess` tiene `RewriteBase /brokersconnect_dev/public_html/`.

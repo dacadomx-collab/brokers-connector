@@ -584,3 +584,208 @@ api_key (required), id (required|numeric), description, ubication, comission, si
 | `pending` | Pendiente (string alternativo) |
 | `paid` | Pagada (string alternativo) |
 | `overdue` | Vencida (string alternativo) |
+
+---
+
+---
+
+## 🌉 SISTEMA V2 — CONTRATOS DEL MÓDULO DE SUSCRIPCIONES
+
+> **Implementado en:** Misiones #15–#24  
+> **Última actualización:** 2026-04-29 (Misión #27)  
+> **Arquitectura:** Strangler Fig Pattern — SPA ligera + API Legacy como backend
+
+---
+
+### CONFIGURACIÓN DE ENTORNO (`.env`)
+
+| Variable | Producción | XAMPP Local | Descripción |
+|---|---|---|---|
+| `V2_FRONTEND_BASE` | `""` (vacío) | `http://localhost/brokersconnect_dev/public_html/newbrokers` | Prefijo URL de la SPA V2. Vacío = same-origin |
+| `V2_API_BASE` | `""` (vacío) | `http://localhost/brokersconnect_dev/public_html` | Prefijo URL de la API Legacy. Vacío = same-origin |
+| `OPENPAY_PLAN_BASICO` | ID del plan en OpenPay | igual | `plan_basico_mensual` por defecto |
+| `OPENPAY_PLAN_PROFESIONAL` | ID del plan en OpenPay | igual | `plan_profesional_mensual` por defecto |
+| `OPENPAY_PLAN_ENTERPRISE` | ID del plan en OpenPay | igual | `plan_enterprise_mensual` por defecto |
+
+> **Entry point real de Laravel en XAMPP local:** `public_html/index.php` (NO `brokers_new/public/`).
+> El `.htaccess` de `public_html/` tiene `RewriteBase /brokersconnect_dev/public_html/`.
+
+---
+
+### `GET /api/v2/bridge/validate?token={TOKEN}`
+
+**Intercambia el bridge token de 60 s por un session_token de 30 min. Destruye el bridge token al primer uso (anti-replay).**
+
+- **Middleware:** Ninguno (el token ES la autenticación)
+- **Controlador:** `Api\V2BridgeController@bridgeValidate`
+- **Query param:** `token` (string, 64 chars, generado por `BridgeController::generateBridgeToken()`)
+
+**Response 200 — Token válido:**
+```json
+{
+  "success": true,
+  "session_token": "string — 64 chars, TTL 30 min en Cache",
+  "company": {
+    "id":      "integer",
+    "name":    "string",
+    "email":   "string",
+    "package": "integer — FK services.id del plan actual"
+  },
+  "plans": [
+    {
+      "id":             "integer",
+      "service":        "string — nombre del plan",
+      "price":          "numeric",
+      "users_included": "integer",
+      "user_price":     "numeric",
+      "days_trial":     "integer"
+    }
+  ],
+  "openpay": {
+    "id":         "string — OPENPAY_ID del .env",
+    "public_key": "string — OPENPAY_KEY_PUBLIC del .env",
+    "sandbox":    "boolean — !OPENPAY_PRODUCTION"
+  }
+}
+```
+
+**Response 400 — Token ausente:**
+```json
+{ "success": false, "error": "Token requerido." }
+```
+
+**Response 401 — Token inválido o expirado (>60 s o ya usado):**
+```json
+{ "success": false, "error": "Enlace inválido o expirado. Regresa al panel e intenta de nuevo." }
+```
+
+**Response 404 — Compañía no encontrada:**
+```json
+{ "success": false, "error": "Cuenta no encontrada." }
+```
+
+**⚠ REGLA DE ORO:** El bridge token se quema con `Cache::forget()` ANTES de retornar cualquier dato. Si el Cache falla después del forget, el token está igualmente destruido. No existe segunda oportunidad de uso.
+
+---
+
+### `POST /api/v2/subscriptions`
+
+**Crea una suscripción recurrente en OpenPay. Requiere session_token como Bearer. Destruye el session_token tras el éxito (anti-doble-cobro).**
+
+- **Middleware:** Ninguno de Laravel — la autenticación es vía `Authorization: Bearer {session_token}` validado contra Cache
+- **Controlador:** `Api\V2BridgeController@subscribe`
+- **Headers requeridos:**
+  - `Authorization: Bearer {session_token}`
+  - `Content-Type: application/json`
+
+**Payload (JSON):**
+```json
+{
+  "plan_id":   "integer|required — FK services.id (1,2,3)",
+  "token_id":  "string|required — token de tarjeta generado por OpenPay.js en el cliente",
+  "device_id": "string|required — device_session_id generado por openpay-data.js"
+}
+```
+
+**Response 200 — Suscripción activada:**
+```json
+{
+  "success":         true,
+  "message":         "¡Suscripción activada! Bienvenido a Brokers Connector.",
+  "subscription_id": "string — ID de suscripción en OpenPay (persiste en companies.openpay_subscription_id)"
+}
+```
+
+**Response 401 — Sin token / sesión expirada:**
+```json
+{ "success": false, "error": "No autenticado." }
+{ "success": false, "error": "Sesión expirada. Regresa al panel e intenta de nuevo." }
+```
+
+**Response 422 — Datos incompletos o error de tarjeta:**
+```json
+{ "success": false, "error": "Datos de pago incompletos." }
+{ "success": false, "error": "Tu tarjeta fue rechazada. Verifica los datos o usa otra tarjeta." }
+```
+
+**Response 503 — Sin conexión con OpenPay:**
+```json
+{ "success": false, "error": "Sin conexión con el procesador de pagos. Intente de nuevo." }
+```
+
+**Mapa plan_id → OpenPay Plan ID:**
+
+| `plan_id` | Variable `.env` | Valor por defecto |
+|---|---|---|
+| 1 | `OPENPAY_PLAN_BASICO` | `plan_basico_mensual` |
+| 2 | `OPENPAY_PLAN_PROFESIONAL` | `plan_profesional_mensual` |
+| 3 | `OPENPAY_PLAN_ENTERPRISE` | `plan_enterprise_mensual` |
+
+**⚠ REGLA PCI DSS:** Los datos de tarjeta NUNCA tocan este endpoint. El `token_id` es un token opaco de un solo uso generado por `OpenPay.token.extractFormAndCreate()` en el cliente. El número de tarjeta nunca sale del browser.
+
+---
+
+### `GET /home/v2/subscription-bridge`
+**Genera el bridge token y redirige al módulo V2 de Suscripciones.**
+
+- **Middleware:** `auth` (sesión Legacy — sin `companyPayment` para permitir renovar cuenta vencida)
+- **Controlador:** `BridgeController@subscriptionBridge`
+- **Comportamiento:** Lee `V2_FRONTEND_BASE` y `V2_API_BASE` del `.env`. Redirige a:
+  ```
+  {V2_FRONTEND_BASE}/v2/subscriptions/index.html?token={TOKEN}[&api={V2_API_BASE}]
+  ```
+  El parámetro `&api=` solo se adjunta si `V2_API_BASE` no está vacío.
+
+---
+
+### `GET /home/v2/logout`
+**Destruye la sesión Laravel desde la SPA V2 (GET para evitar CSRF desde HTML estático).**
+
+- **Middleware:** `auth`
+- **Comportamiento:** `Auth::logout()` + `redirect('/')`
+- **Seguridad:** Solo usuarios autenticados pueden invocarla. El GET es intencional — la cookie de sesión acompaña el request automáticamente al ser mismo origen.
+
+---
+
+### CICLO DE VIDA COMPLETO DE TOKENS
+
+```
+[Usuario en Legacy panel]
+      ↓ clic en "Suscripción y Facturación"
+GET /home/v2/subscription-bridge  (auth middleware)
+      ↓
+BridgeController genera bridge_token (64 chars, TTL 60s)
+Cache::put('v2_bridge_{token}', {user_id, company_id}, 60)
+      ↓ redirect
+/v2/subscriptions/index.html?token={BRIDGE_TOKEN}&api={API_BASE}
+      ↓
+[SPA JS] lee ?token= y ?api= de la URL
+      ↓
+GET {API_BASE}/api/v2/bridge/validate?token={BRIDGE_TOKEN}
+      ↓ servidor: Cache::get → datos → Cache::forget (QUEMAR BRIDGE TOKEN)
+      ↓ servidor: genera session_token (64 chars, TTL 1800s)
+      ↓
+[SPA JS] state.sessionToken = session_token (en memoria, NO localStorage)
+      ↓ usuario selecciona plan + ingresa tarjeta
+[OpenPay.js] tokeniza tarjeta → devuelve card_token (nunca pasa por nuestro servidor)
+      ↓
+POST {API_BASE}/api/v2/subscriptions
+  Authorization: Bearer {session_token}
+  Body: { plan_id, token_id: card_token, device_id }
+      ↓ servidor: valida session, crea suscripción en OpenPay, guarda IDs
+      ↓ servidor: Cache::forget session_token (QUEMAR — anti-doble-cobro)
+      ↓
+[SPA JS] pantalla de éxito → countdown 5s → redirect /home
+```
+
+---
+
+### ESTADO DEL MÓDULO LEGACY DE SUSCRIPCIONES (Paralelo — No Eliminado)
+
+Las rutas `/home/subscription` (GET/POST) y la vista `companies/subscription.blade.php` siguen activas como **fallback administrativo** pero NO son el flujo primario. El menú lateral apunta exclusivamente a `v2.subscription.bridge`. No constituyen dead code — son red de seguridad.
+
+| Ruta | Estado | Rol |
+|---|---|---|
+| `GET /home/v2/subscription-bridge` | ✅ Primaria | Punto de entrada oficial |
+| `GET /home/subscription` | ⚠ Fallback | Accesible por URL directa, no vinculada en menú |
+| `POST /home/subscription` | ⚠ Fallback | Procesa formulario Legacy si se usa el fallback |
