@@ -73,11 +73,9 @@ class V2BridgeController extends Controller
                     'package' => $company->package,
                 ],
                 'plans'   => $plans,
-                'openpay' => [
-                    'id'         => env('OPENPAY_ID'),
-                    'public_key' => env('OPENPAY_KEY_PUBLIC'),
-                    'sandbox'    => !env('OPENPAY_PRODUCTION', false),
-                ],
+                // Devolver credenciales del entorno activo.
+                // El frontend las usa para inicializar OpenPay.js con el par correcto.
+                'openpay' => $this->openpayConfig(),
             ]);
 
         } catch (\Throwable $e) {
@@ -190,6 +188,17 @@ class V2BridgeController extends Controller
                 ],
             ], 500);
         }
+    }
+
+    private function openpayConfig(): array
+    {
+        $production = (bool) env('OPENPAY_PRODUCTION', false);
+
+        return [
+            'id'         => $production ? env('OPENPAY_ID')         : env('OPENPAY_SANDBOX_ID'),
+            'public_key' => $production ? env('OPENPAY_KEY_PUBLIC')  : env('OPENPAY_SANDBOX_KEY_PUBLIC'),
+            'sandbox'    => !$production,
+        ];
     }
 
     private function extractBearerToken(Request $request): ?string

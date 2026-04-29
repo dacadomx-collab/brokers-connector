@@ -11,11 +11,15 @@ class OpenPayService
 
     public function __construct()
     {
-        $this->openpay = Openpay::getInstance(
-            env('OPENPAY_ID'),
-            env('OPENPAY_KEY_SECRET')
-        );
-        Openpay::setProductionMode(env('OPENPAY_PRODUCTION', false));
+        $production = (bool) env('OPENPAY_PRODUCTION', false);
+
+        // En sandbox, las suscripciones y cargos directos usan las credenciales de prueba.
+        // En producción, usan las credenciales reales.
+        $id  = $production ? env('OPENPAY_ID')         : env('OPENPAY_SANDBOX_ID');
+        $key = $production ? env('OPENPAY_KEY_SECRET')  : env('OPENPAY_SANDBOX_KEY');
+
+        $this->openpay = Openpay::getInstance($id, $key);
+        Openpay::setProductionMode($production);
     }
 
     /**
