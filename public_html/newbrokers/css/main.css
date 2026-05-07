@@ -775,3 +775,322 @@ body {
         top: 1.5rem;
     }
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   § 12 — PANEL ADMIN: ORQUESTADOR DE IA (ai/settings)
+   Mobile-First · ARF-Grid · Prohibido !important y anchos fijos
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Contenedor y filas ─────────────────────────────────────── */
+.arf-container {
+    width: 100%;
+    max-width: 72rem;
+    margin-inline: auto;
+    padding-inline: 1rem;
+}
+
+.arf-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.25rem;
+}
+
+.arf-mb-lg { margin-bottom: 2rem; }
+.arf-mb-md { margin-bottom: 1rem; }
+
+/* ── Columnas fluidas ───────────────────────────────────────── */
+.col-xs-12 { flex: 0 0 100%; max-width: 100%; }
+
+@media (min-width: 48rem) {
+    .col-md-6 { flex: 0 0 calc(50% - 0.625rem); max-width: calc(50% - 0.625rem); }
+}
+
+@media (min-width: 36rem) {
+    .col-sm-6 { flex: 0 0 calc(50% - 0.625rem); max-width: calc(50% - 0.625rem); }
+}
+
+/* ── Encabezados de sección ─────────────────────────────────── */
+.arf-section-title {
+    font-size: 1.375rem;
+    font-weight: 700;
+    color: var(--color-text, #1e293b);
+    margin-bottom: 0.25rem;
+}
+
+.arf-section-subtitle {
+    font-size: 0.875rem;
+    color: var(--color-text-muted, #64748b);
+}
+
+/* ── Cards ──────────────────────────────────────────────────── */
+.arf-card {
+    width: 100%;
+    background: var(--color-surface, #ffffff);
+    border: 1px solid var(--color-border, #e2e8f0);
+    border-radius: 0.75rem;
+    overflow: hidden;
+}
+
+.arf-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.875rem 1.25rem;
+    font-weight: 600;
+    font-size: 0.875rem;
+    border-bottom: 1px solid var(--color-border, #e2e8f0);
+    background: var(--color-surface-alt, #f8fafc);
+}
+
+.arf-card-body { padding: 1.25rem; }
+
+/* ── Tabla ──────────────────────────────────────────────────── */
+.arf-table-responsive { overflow-x: auto; }
+
+.arf-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+}
+
+.arf-table thead th {
+    padding: 0.625rem 0.875rem;
+    text-align: left;
+    font-weight: 600;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-text-muted, #64748b);
+    border-bottom: 2px solid var(--color-border, #e2e8f0);
+    white-space: nowrap;
+}
+
+.arf-table tbody td {
+    padding: 0.75rem 0.875rem;
+    border-bottom: 1px solid var(--color-border, #e2e8f0);
+    vertical-align: middle;
+}
+
+.arf-table tbody tr:last-child td { border-bottom: none; }
+
+.arf-table-empty {
+    text-align: center;
+    color: var(--color-text-muted, #94a3b8);
+    padding: 2rem;
+    font-style: italic;
+}
+
+/* ── Badges y pills ─────────────────────────────────────────── */
+.arf-badge {
+    display: inline-block;
+    padding: 0.2rem 0.6rem;
+    border-radius: 9999px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    background: var(--color-surface-alt, #f1f5f9);
+    color: var(--color-text-muted, #64748b);
+}
+
+.arf-badge-danger {
+    display: inline-block;
+    padding: 0.2rem 0.6rem;
+    border-radius: 9999px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+.arf-priority-pill {
+    display: inline-block;
+    padding: 0.15rem 0.5rem;
+    border-radius: 0.375rem;
+    font-size: 0.7rem;
+    font-weight: 700;
+    background: #dbeafe;
+    color: #1d4ed8;
+}
+
+/* ── Provider badges por tipo ───────────────────────────────── */
+.arf-provider-badge {
+    display: inline-block;
+    padding: 0.2rem 0.65rem;
+    border-radius: 0.375rem;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+}
+
+.arf-provider-openai { background: #d1fae5; color: #065f46; }
+.arf-provider-groq   { background: #ede9fe; color: #5b21b6; }
+
+/* ── Clave enmascarada ──────────────────────────────────────── */
+.arf-key-masked {
+    font-family: monospace;
+    font-size: 0.875rem;
+    letter-spacing: 0.05em;
+    color: var(--color-text-muted, #64748b);
+    background: var(--color-surface-alt, #f8fafc);
+    padding: 0.15rem 0.4rem;
+    border-radius: 0.25rem;
+}
+
+/* ── Toggle switch ──────────────────────────────────────────── */
+.arf-toggle {
+    position: relative;
+    display: inline-block;
+    width: 2.5rem;
+    height: 1.375rem;
+    cursor: pointer;
+}
+
+.arf-toggle input { opacity: 0; width: 0; height: 0; }
+
+.arf-toggle-slider {
+    position: absolute;
+    inset: 0;
+    background: #cbd5e1;
+    border-radius: 9999px;
+    transition: background 0.2s ease;
+}
+
+.arf-toggle-slider::before {
+    content: '';
+    position: absolute;
+    width: 1rem;
+    height: 1rem;
+    left: 0.2rem;
+    top: 50%;
+    transform: translateY(-50%);
+    background: white;
+    border-radius: 50%;
+    transition: transform 0.2s ease;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+.arf-toggle input:checked + .arf-toggle-slider { background: #2563eb; }
+
+.arf-toggle input:checked + .arf-toggle-slider::before {
+    transform: translate(1.125rem, -50%);
+}
+
+/* ── Formulario ─────────────────────────────────────────────── */
+.arf-form-group { margin-bottom: 1rem; }
+
+.arf-label {
+    display: block;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--color-text, #1e293b);
+    margin-bottom: 0.35rem;
+}
+
+.arf-label-hint {
+    font-weight: 400;
+    color: var(--color-text-muted, #94a3b8);
+    font-size: 0.75rem;
+    margin-left: 0.35rem;
+}
+
+.arf-input {
+    width: 100%;
+    padding: 0.55rem 0.75rem;
+    border: 1px solid var(--color-border, #e2e8f0);
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    background: var(--color-surface, #ffffff);
+    color: var(--color-text, #1e293b);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    box-sizing: border-box;
+}
+
+.arf-input:focus {
+    outline: none;
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.arf-textarea-sm { min-height: 4.5rem; resize: vertical; }
+
+.arf-form-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-top: 1.25rem;
+}
+
+/* ── Botones ────────────────────────────────────────────────── */
+.arf-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.55rem 1.25rem;
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: opacity 0.15s ease, transform 0.1s ease;
+    text-decoration: none;
+}
+
+.arf-btn:active { transform: scale(0.98); }
+
+.arf-btn-sm { padding: 0.3rem 0.75rem; font-size: 0.8rem; }
+
+.arf-btn-primary  { background: #2563eb; color: #ffffff; }
+.arf-btn-secondary{ background: var(--color-surface-alt, #f1f5f9); color: var(--color-text, #1e293b); }
+.arf-btn-danger   { background: #fee2e2; color: #dc2626; }
+
+.arf-btn-primary:hover   { opacity: 0.88; }
+.arf-btn-secondary:hover { opacity: 0.75; }
+.arf-btn-danger:hover    { opacity: 0.80; }
+
+/* ── Alerta ─────────────────────────────────────────────────── */
+.arf-alert {
+    padding: 0.75rem 1rem;
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+}
+
+.arf-alert-success {
+    background: #d1fae5;
+    color: #065f46;
+    border: 1px solid #a7f3d0;
+}
+
+/* ── Escalera de failover ───────────────────────────────────── */
+.arf-orchestrator-ladder {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.arf-ladder-step {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.625rem 0.875rem;
+    background: var(--color-surface-alt, #f8fafc);
+    border-radius: 0.5rem;
+    border: 1px solid var(--color-border, #e2e8f0);
+}
+
+.arf-ladder-arrow { color: #94a3b8; font-size: 0.9rem; margin-left: auto; }
+
+.arf-ladder-end {
+    border-style: dashed;
+    border-color: #fca5a5;
+    background: #fff5f5;
+}
+
+.arf-ladder-label { font-size: 0.8rem; color: #94a3b8; }
+
+/* ── Dark Mode ──────────────────────────────────────────────── */
+.dark-mode .arf-card         { background: var(--color-surface, #1e293b); border-color: var(--color-border, #334155); }
+.dark-mode .arf-card-header  { background: var(--color-surface-alt, #0f172a); border-color: var(--color-border, #334155); }
+.dark-mode .arf-input        { background: var(--color-surface, #1e293b); border-color: #334155; color: #e2e8f0; }
+.dark-mode .arf-table thead th { border-color: #334155; }
+.dark-mode .arf-table tbody td { border-color: #334155; }
+.dark-mode .arf-ladder-step  { background: #0f172a; border-color: #334155; }
+.dark-mode .arf-key-masked   { background: #0f172a; }

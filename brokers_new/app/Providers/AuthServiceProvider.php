@@ -26,6 +26,7 @@ class AuthServiceProvider extends ServiceProvider
     {
         $this->registerPolicies();
         Passport::routes();
-        //
+        // Load RSA keys from files — bypasses env parsing which fails under Apache/XAMPP
+        Passport::loadKeysFrom(storage_path());
     }
 }

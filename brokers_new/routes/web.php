@@ -3,6 +3,7 @@
 use App\User;
 
 
+
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -13,6 +14,8 @@ use App\User;
 | contains the "web" middleware group. Now create something great!
 |
 */
+
+
 
 Route::get('/test-email-invoice', function () {
     $invoice=App\Invoice::findOrFail(60);
@@ -217,12 +220,20 @@ Route::middleware(['auth', 'company','companyPayment'])->group(function () {
      Route::post('/home/plans/edit', 'CompanyController@editPlan')->name('edit.plans');
 
      // IA / Widget de chat del panel (sesión web + CSRF — no requiere Bearer Token)
-     Route::post('/home/ai/chat', 'AiChatController@sendMessage')->name('ai.chat');
+     Route::post('/home/ai/chat', 'AiChatController@sendMessage')
+          ->middleware('throttle:15,1')
+          ->name('ai.chat');
 
      // IA / Generador de copywriting inmobiliario
-     Route::post('/home/ai/generate-copy', 'AiChatController@generateCopy')->name('ai.generate-copy');
+     Route::post('/home/ai/generate-copy', 'AiChatController@generateCopy')
+          ->middleware('throttle:5,1')
+          ->name('ai.generate-copy');
 
 });
+
+// ── Panel Admin IA — migrado a V2 SPA (Misión AI Orchestration).
+// Rutas Legacy /admin/ai-settings eliminadas: viven en /api/v2/admin/ai-settings (SuperAdminController).
+// Flujo activo: GET /home/v2/admin-bridge → BridgeController → SPA V2 → /v2/admin/security.html
 // Suscripciones — módulo migrado a V2 SPA (Misión #28).
 // Rutas Legacy eliminadas: GET/POST /home/subscription → InvoicesController.
 // Flujo activo: GET /home/v2/subscription-bridge → BridgeController → SPA V2.
@@ -236,6 +247,11 @@ Route::middleware(['auth'])->group(function () {
     // para permitir que el usuario renueve su suscripción en V2.
     Route::get('/home/v2/subscription-bridge', 'BridgeController@subscriptionBridge')
         ->name('v2.subscription.bridge');
+
+    // Panel Super Admin V2 — solo super_admin puede cruzar el puente
+    Route::get('/home/v2/admin-bridge', 'BridgeController@adminBridge')
+        ->middleware('role:super_admin')
+        ->name('v2.admin.bridge');
 
     // Logout para la SPA V2 (GET — evita necesidad de CSRF desde HTML estático)
     Route::get('/home/v2/logout', function () {

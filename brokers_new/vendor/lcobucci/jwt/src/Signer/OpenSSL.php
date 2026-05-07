@@ -20,19 +20,15 @@ abstract class OpenSSL extends BaseSigner
     {
         $privateKey = $this->getPrivateKey($key->getContent(), $key->getPassphrase());
 
-        try {
-            $signature = '';
+        $signature = '';
 
-            if (! openssl_sign($payload, $signature, $privateKey, $this->getAlgorithm())) {
-                throw new InvalidArgumentException(
-                    'There was an error while creating the signature: ' . openssl_error_string()
-                );
-            }
-
-            return $signature;
-        } finally {
-            openssl_free_key($privateKey);
+        if (! openssl_sign($payload, $signature, $privateKey, $this->getAlgorithm())) {
+            throw new InvalidArgumentException(
+                'There was an error while creating the signature: ' . openssl_error_string()
+            );
         }
+
+        return $signature;
     }
 
     /**
@@ -59,7 +55,6 @@ abstract class OpenSSL extends BaseSigner
     {
         $publicKey = $this->getPublicKey($key->getContent());
         $result    = openssl_verify($payload, $expected, $publicKey, $this->getAlgorithm());
-        openssl_free_key($publicKey);
 
         return $result === 1;
     }
@@ -86,7 +81,8 @@ abstract class OpenSSL extends BaseSigner
      */
     private function validateKey($key)
     {
-        if (! is_resource($key)) {
+        // PHP 8.0+ devuelve OpenSSLAsymmetricKey (objeto), no resource — ambos son válidos
+        if (! is_resource($key) && ! ($key instanceof \OpenSSLAsymmetricKey)) {
             throw new InvalidArgumentException(
                 'It was not possible to parse your key, reason: ' . openssl_error_string()
             );

@@ -36,8 +36,15 @@ User
 leolage@acadep.com
 acadep01
 
+Super Admin
+id=25
+dacadomx@gmail.com
+Gargantua2026!
+
 **************************************************************************	(Sandbox) de OpenPay ***********************
 ************************************************************
+
+
 Tarjeta de Prueba Oficial de OpenPay:
 Titular: Juan Pérez (o tu nombre)
 Número de Tarjeta: 4111 1111 1111 1111 (Aprobada siempre)

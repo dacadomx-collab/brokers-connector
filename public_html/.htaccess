@@ -3,10 +3,13 @@
     RewriteBase /brokersconnect_dev/public_html/
     DirectoryIndex index.php
 
+    # Pasar el header Authorization a PHP — Apache lo elimina por defecto en algunas configs
+    RewriteRule ^ - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
     # No reescribir si es un archivo o directorio real
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME} !-d
 
-    # Redirigir todo lo demás a index.php (Laravel front controller)
-    RewriteRule ^ index.php [L]
+    # Redirigir todo lo demás a index.php — [QSA] preserva el query string explícitamente
+    RewriteRule ^ index.php [L,QSA]
 </IfModule>

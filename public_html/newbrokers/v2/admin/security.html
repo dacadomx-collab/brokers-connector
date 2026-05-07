@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Panel Super Admin — Brokers Connector</title>
+  <link rel="stylesheet" href="../shared/v2.css">
+  <link rel="stylesheet" href="security.css">
+</head>
+<body class="v2-root">
+
+  <!-- ══ PANTALLA: CARGANDO ════════════════════════════════════════════ -->
+  <div id="screen-loading" class="v2-screen">
+    <div class="v2-spinner"></div>
+    <p class="v2-loading-text">Verificando sesión de Super Administrador&hellip;</p>
+  </div>
+
+  <!-- ══ PANTALLA: ERROR ══════════════════════════════════════════════ -->
+  <div id="screen-error" class="v2-screen hidden">
+    <div class="v2-error-card">
+      <div class="v2-error-icon">🔐</div>
+      <h2>Acceso denegado</h2>
+      <p id="error-message">Enlace inválido o sesión expirada.</p>
+      <a href="/brokersconnect_dev/public_html/home" id="error-back-btn" class="v2-btn v2-btn-primary">
+        ← Volver al panel
+      </a>
+    </div>
+  </div>
+
+  <!-- ══ PANTALLA: PANEL PRINCIPAL ════════════════════════════════════ -->
+  <div id="screen-main" class="v2-screen hidden">
+
+    <!-- Header ──────────────────────────────────────────────────────── -->
+    <header class="sa-header">
+      <div class="sa-header-inner">
+        <div class="sa-brand">
+          <div class="sa-brand-mark">B</div>
+          <div>
+            <p class="sa-brand-name">Brokers Connector</p>
+            <p class="sa-brand-role">Super Administrador</p>
+          </div>
+        </div>
+        <div class="sa-header-actions">
+          <span id="header-actor" class="sa-actor-badge"></span>
+          <a href="/brokersconnect_dev/public_html/home/v2/logout" class="v2-btn v2-btn-ghost sa-btn-logout">
+            Cerrar sesión
+          </a>
+        </div>
+      </div>
+    </header>
+
+    <!-- Contenido principal ─────────────────────────────────────────── -->
+    <main class="sa-main">
+
+      <!-- Banner de seguridad -->
+      <div class="sa-security-banner">
+        <span class="sa-banner-icon">⚠️</span>
+        <span>Zona de máxima seguridad. Todas las acciones quedan registradas en los logs del sistema.</span>
+      </div>
+
+      <!-- Toast global -->
+      <div id="sa-toast" class="sa-toast hidden" role="alert" aria-live="polite"></div>
+
+      <!-- ── TABS ──────────────────────────────────────────────────── -->
+      <nav class="sa-tabs" role="tablist" aria-label="Módulos del panel">
+        <button id="tab-users" class="sa-tab sa-tab-active" role="tab"
+                aria-selected="true" aria-controls="panel-users">
+          Administradores
+        </button>
+        <button id="tab-ai" class="sa-tab" role="tab"
+                aria-selected="false" aria-controls="panel-ai">
+          Orquestador IA
+        </button>
+      </nav>
+
+      <!-- ══ PANEL: ADMINISTRADORES ══════════════════════════════════ -->
+      <div id="panel-users" class="sa-panel" role="tabpanel" aria-labelledby="tab-users">
+
+        <div class="sa-section-head">
+          <h1 class="sa-section-title">Gestión de Administradores</h1>
+          <p class="sa-section-sub">Roles y credenciales de usuarios con acceso privilegiado.</p>
+        </div>
+
+        <!-- Modal: confirmación reset password -->
+        <div id="sa-modal" class="sa-modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+          <div class="sa-modal-card">
+            <div class="sa-modal-icon">🔑</div>
+            <h3 id="modal-title" class="sa-modal-title">¿Resetear contraseña?</h3>
+            <p id="modal-body" class="sa-modal-body"></p>
+            <div class="sa-modal-actions">
+              <button id="modal-cancel" class="v2-btn v2-btn-ghost">Cancelar</button>
+              <button id="modal-confirm" class="v2-btn v2-btn-danger">Sí, resetear</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Resultado del reset -->
+        <div id="password-result" class="sa-password-result hidden">
+          <div class="sa-pwd-header">
+            <span>🔐 Contraseña temporal generada</span>
+            <button id="pwd-close" class="sa-pwd-close" aria-label="Cerrar">✕</button>
+          </div>
+          <p class="sa-pwd-note">Entrégala de forma segura. <strong>Esta pantalla no se puede recuperar.</strong></p>
+          <div class="sa-pwd-row">
+            <code id="pwd-value" class="sa-pwd-code"></code>
+            <button id="pwd-copy" class="v2-btn v2-btn-ghost sa-btn-copy">Copiar</button>
+          </div>
+          <p class="sa-pwd-user"></p>
+        </div>
+
+        <!-- Tabla de administradores -->
+        <div class="sa-card">
+          <div class="sa-card-header">
+            <span>Usuarios con acceso privilegiado</span>
+            <span id="admin-count" class="sa-count-badge">—</span>
+          </div>
+          <div id="table-loading" class="sa-table-placeholder">
+            <div class="v2-spinner sa-spinner-sm"></div>
+            <span>Cargando usuarios&hellip;</span>
+          </div>
+          <div id="table-empty" class="sa-table-placeholder hidden">Sin administradores registrados.</div>
+          <div id="table-wrapper" class="sa-table-wrapper hidden">
+            <p id="admin-page-info" style="font-size:.8rem;color:var(--v2-text-muted);margin:.4rem 0 .6rem;"></p>
+            <table class="sa-table" role="grid">
+              <thead>
+                <tr>
+                  <th scope="col">Usuario</th>
+                  <th scope="col">Email</th>
+                  <th scope="col">Rol actual</th>
+                  <th scope="col">Estado</th>
+                  <th scope="col" class="sa-col-actions">Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="admins-tbody"></tbody>
+            </table>
+            <div id="admin-pager" style="margin-top:.8rem;display:flex;gap:.5rem;align-items:center;"></div>
+          </div>
+        </div>
+      </div><!-- /panel-users -->
+
+      <!-- ══ PANEL: ORQUESTADOR IA ════════════════════════════════════ -->
+      <div id="panel-ai" class="sa-panel hidden" role="tabpanel" aria-labelledby="tab-ai">
+
+        <div class="sa-section-head">
+          <h1 class="sa-section-title">Orquestador de IA</h1>
+          <p class="sa-section-sub">Gestiona las API Keys y la escalera de Failover Dinámico.</p>
+        </div>
+
+        <!-- Grid: escalera activa (izq) + formulario (der) -->
+        <div class="ai-grid">
+
+          <!-- Escalera de failover (visualización) -->
+          <div class="sa-card ai-ladder-card">
+            <div class="sa-card-header">
+              <span>Escalera de Failover</span>
+              <span id="ai-active-count" class="sa-count-badge">—</span>
+            </div>
+            <div class="ai-card-body">
+              <div id="ai-loading" class="sa-table-placeholder">
+                <div class="v2-spinner sa-spinner-sm"></div>
+                <span>Cargando proveedores&hellip;</span>
+              </div>
+              <div id="ai-empty" class="sa-table-placeholder hidden">
+                Sin proveedores activos configurados.
+              </div>
+              <div id="ai-ladder" class="ai-ladder hidden"></div>
+            </div>
+          </div>
+
+          <!-- Formulario de alta/edición -->
+          <div class="sa-card">
+            <div class="sa-card-header">
+              <span id="ai-form-title">Agregar Proveedor</span>
+            </div>
+            <div class="ai-card-body">
+              <form id="ai-form" novalidate>
+                <input type="hidden" id="ai-setting-id" value="">
+
+                <div class="ai-field">
+                  <label class="ai-label" for="ai-provider">Proveedor</label>
+                  <select class="ai-input" id="ai-provider" name="provider_name" required>
+                    <option value="">Seleccionar&hellip;</option>
+                    <option value="openai">OpenAI (GPT-4o)</option>
+                    <option value="groq">Groq (Llama 3)</option>
+                    <option value="anthropic">Anthropic (Claude)</option>
+                    <option value="gemini">Google (Gemini)</option>
+                    <option value="mistral">Mistral AI</option>
+                  </select>
+                </div>
+
+                <div class="ai-field">
+                  <label class="ai-label" for="ai-key">
+                    API Key
+                    <span class="ai-label-hint">Al editar, deja vacío para no cambiarla.</span>
+                  </label>
+                  <input class="ai-input" type="password" id="ai-key" name="api_key"
+                         placeholder="sk-••••••••••••" autocomplete="new-password">
+                </div>
+
+                <div class="ai-row">
+                  <div class="ai-field">
+                    <label class="ai-label" for="ai-priority">Prioridad</label>
+                    <input class="ai-input" type="number" id="ai-priority" name="priority_order"
+                           min="1" max="99" value="1" required>
+                    <span class="ai-label-hint">1 = primero en usarse</span>
+                  </div>
+                  <div class="ai-field">
+                    <label class="ai-label" for="ai-active">Estado</label>
+                    <select class="ai-input" id="ai-active" name="is_active">
+                      <option value="1">Activo</option>
+                      <option value="0">Inactivo</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="ai-field">
+                  <label class="ai-label" for="ai-extra">
+                    Config extra (JSON)
+                    <span class="ai-label-hint">Ej: {"model":"gpt-4o","max_tokens":1024}</span>
+                  </label>
+                  <textarea class="ai-input ai-textarea" id="ai-extra" name="extra_config"
+                            placeholder='{"model":"gpt-4o"}' rows="3"></textarea>
+                </div>
+
+                <div class="ai-actions">
+                  <button type="submit" class="v2-btn v2-btn-primary" id="ai-btn-submit">
+                    Guardar
+                  </button>
+                  <button type="button" class="v2-btn v2-btn-ghost hidden" id="ai-btn-cancel">
+                    Cancelar
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div><!-- /ai-grid -->
+
+        <!-- Tabla completa de proveedores -->
+        <div class="sa-card">
+          <div class="sa-card-header">
+            <span>Todos los proveedores</span>
+            <span id="ai-total-count" class="sa-count-badge">—</span>
+          </div>
+          <div id="ai-table-loading" class="sa-table-placeholder">
+            <div class="v2-spinner sa-spinner-sm"></div>
+            <span>Cargando&hellip;</span>
+          </div>
+          <div id="ai-table-empty" class="sa-table-placeholder hidden">Sin proveedores registrados.</div>
+          <div id="ai-table-wrapper" class="sa-table-wrapper hidden">
+            <table class="sa-table" role="grid">
+              <thead>
+                <tr>
+                  <th scope="col">Proveedor</th>
+                  <th scope="col">API Key</th>
+                  <th scope="col">Prioridad</th>
+                  <th scope="col">Estado</th>
+                  <th scope="col">Tenant</th>
+                  <th scope="col" class="sa-col-actions">Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="ai-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+
+      </div><!-- /panel-ai -->
+
+    </main>
+
+    <footer class="sa-footer">
+      <p>Brokers Connector &copy; 2026 &mdash; Panel de Super Administrador</p>
+    </footer>
+
+  </div><!-- /screen-main -->
+
+  <script src="security.js"></script>
+</body>
+</html>

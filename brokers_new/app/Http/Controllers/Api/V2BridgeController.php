@@ -54,27 +54,24 @@ class V2BridgeController extends Controller
                 'company_id' => $payload['company_id'],
             ], 1800);
 
-            $company = Company::find($payload['company_id']);
+            // company_id puede ser null (super_admin sin empresa asignada).
+            // El panel Admin no necesita company/plans/openpay — solo session_token.
+            $company = $payload['company_id'] ? Company::find($payload['company_id']) : null;
 
-            if (!$company) {
-                return response()->json(['success' => false, 'error' => 'Cuenta no encontrada.'], 404);
-            }
-
-            $plans = Service::orderBy('price')
-                ->get(['id', 'service', 'price', 'users_included', 'user_price', 'days_trial']);
+            $plans = $company
+                ? Service::orderBy('price')->get(['id', 'service', 'price', 'users_included', 'user_price', 'days_trial'])
+                : collect();
 
             return response()->json([
                 'success'       => true,
                 'session_token' => $sessionToken,
-                'company'       => [
+                'company'       => $company ? [
                     'id'      => $company->id,
                     'name'    => $company->name,
                     'email'   => $company->email,
                     'package' => $company->package,
-                ],
+                ] : null,
                 'plans'   => $plans,
-                // Devolver credenciales del entorno activo.
-                // El frontend las usa para inicializar OpenPay.js con el par correcto.
                 'openpay' => $this->openpayConfig(),
             ]);
 

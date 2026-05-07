@@ -89,14 +89,30 @@ Route::get('/getfeatures', function () {
 
 
 // IA / Chat — requiere Bearer Token (Passport)
-Route::group(['prefix' => 'ai', 'middleware' => ['auth:api']], function () {
+Route::group(['prefix' => 'ai', 'middleware' => ['auth:api', 'throttle:15,1']], function () {
     Route::post('/chat', 'AiChatController@sendMessage');
 });
+
 
 // V2 Bridge — token de un solo uso como mecanismo de autenticación
 Route::prefix('v2')->group(function () {
     Route::get('/bridge/validate',  'Api\V2BridgeController@bridgeValidate');
     Route::post('/subscriptions',   'Api\V2BridgeController@subscribe');
+
+    // ── Panel Super Admin — Passport OAuth2 nativo (auth:api + role:super_admin) ──
+    Route::prefix('admin')->middleware(['auth:api', 'role:super_admin', 'throttle:30,1'])->group(function () {
+        // Gestión de usuarios Admin / super_admin
+        Route::get('/users',                          'Api\SuperAdminController@listAdmins');
+        Route::post('/users/{id}/toggle-role',        'Api\SuperAdminController@toggleRole');
+        Route::post('/users/{id}/reset-password',     'Api\SuperAdminController@resetPassword');
+
+        // Orquestador IA — CRUD de proveedores (ai_settings)
+        Route::get('/ai-settings',                    'Api\SuperAdminController@listAiSettings');
+        Route::post('/ai-settings',                   'Api\SuperAdminController@storeAiSetting');
+        Route::put('/ai-settings/{id}',               'Api\SuperAdminController@updateAiSetting');
+        Route::delete('/ai-settings/{id}',            'Api\SuperAdminController@destroyAiSetting');
+        Route::patch('/ai-settings/{id}/toggle',      'Api\SuperAdminController@toggleAiSetting');
+    });
 });
 
 //API APP MOBILE

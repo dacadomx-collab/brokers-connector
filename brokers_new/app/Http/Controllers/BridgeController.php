@@ -46,6 +46,32 @@ class BridgeController extends Controller
     }
 
     /**
+     * Genera un Personal Access Token de Passport y redirige al panel Super Admin V2.
+     * Arquitectura: OAuth2 nativo — sin Cache, sin bridge token efímero.
+     *
+     * GET /home/v2/admin-bridge
+     * Middleware: auth + role:super_admin
+     */
+    public function adminBridge(Request $request)
+    {
+        $accessToken = auth()->user()
+            ->createToken('V2_SuperAdmin_Session')
+            ->accessToken;
+
+        $frontendBase = rtrim(env('V2_FRONTEND_BASE', ''), '/');
+        $apiBase      = rtrim(env('V2_API_BASE', ''), '/');
+
+        // urlencode por si el token contiene +, / o = según versión de Passport
+        $url = $frontendBase . '/v2/admin/security.html?access_token=' . urlencode($accessToken);
+
+        if ($apiBase !== '') {
+            $url .= '&api=' . urlencode($apiBase);
+        }
+
+        return redirect($url);
+    }
+
+    /**
      * Genera y almacena en Cache un token de un solo uso con los datos del tenant.
      *
      * @return string Token aleatorio de 64 caracteres (hex-safe URL)
@@ -63,8 +89,8 @@ class BridgeController extends Controller
         // Token criptográficamente aleatorio (256 bits de entropía)
         $token = Str::random(64);
 
-        // TTL de 60 segundos — el módulo V2 debe intercambiarlo inmediatamente
-        Cache::put('v2_bridge_' . $token, $payload, 60);
+        // TTL de 300 segundos — margen suficiente para bootstrap de Laravel en local
+        Cache::put('v2_bridge_' . $token, $payload, 300);
 
         return $token;
     }

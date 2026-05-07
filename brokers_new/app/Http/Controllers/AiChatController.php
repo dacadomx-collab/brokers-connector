@@ -4,25 +4,28 @@ namespace App\Http\Controllers;
 
 use App\AiConversation;
 use App\AiMessage;
-use GuzzleHttp\Client;
-use GuzzleHttp\Exception\RequestException;
+use App\Services\AIService;
 use Illuminate\Http\Request;
 
 class AiChatController extends Controller
 {
-    /**
-     * Número máximo de mensajes de historial que se envían a OpenAI como contexto.
-     */
     const CONTEXT_WINDOW = 5;
+
+    private $aiService;
+
+    public function __construct(AIService $aiService)
+    {
+        $this->aiService = $aiService;
+    }
 
     public function sendMessage(Request $request)
     {
         $request->validate([
-            'message'         => 'required|string',
+            'message'         => 'required|string|max:2000',
             'conversation_id' => 'nullable|integer',
         ]);
 
-        // TENANT LOCK — Mandamiento #2: company_id siempre del servidor, nunca del payload
+        // TENANT LOCK — company_id siempre del servidor, nunca del payload
         $company_id = auth()->user()->company_id;
 
         if (!$company_id) {
@@ -31,7 +34,7 @@ class AiChatController extends Controller
 
         $user_id = auth()->user()->id;
 
-        // ── Resolución del hilo de conversación ─────────────────────────────
+        // ── Resolución del hilo de conversación ──────────────────────────────
         if ($request->conversation_id) {
             $conversation = AiConversation::where('id', $request->conversation_id)
                 ->where('company_id', $company_id)   // cross-tenant guard
@@ -49,7 +52,7 @@ class AiChatController extends Controller
             ]);
         }
 
-        // ── Persistir mensaje del usuario ────────────────────────────────────
+        // ── Persistir mensaje del usuario (antes de llamar a la IA) ──────────
         AiMessage::create([
             'conversation_id' => $conversation->id,
             'role'            => 'user',
@@ -57,13 +60,12 @@ class AiChatController extends Controller
             'tokens_used'     => 0,
         ]);
 
-        // ── Recuperar historial (ventana de contexto) ────────────────────────
-        // Se consultan DESPUÉS de guardar el mensaje del usuario para incluirlo en el contexto.
+        // ── Construir ventana de contexto ────────────────────────────────────
         $history = AiMessage::where('conversation_id', $conversation->id)
             ->orderBy('created_at', 'desc')
             ->limit(self::CONTEXT_WINDOW)
             ->get()
-            ->reverse()   // cronológico ascendente para OpenAI
+            ->reverse()
             ->values();
 
         $messages = [
@@ -76,48 +78,25 @@ class AiChatController extends Controller
         ];
 
         foreach ($history as $msg) {
-            $messages[] = [
-                'role'    => $msg->role,
-                'content' => $msg->content,
-            ];
+            $messages[] = ['role' => $msg->role, 'content' => $msg->content];
         }
 
-        // ── Llamada a OpenAI ─────────────────────────────────────────────────
+        // ── Orquestador con Failover Dinámico ────────────────────────────────
         try {
-            $client = new Client(['timeout' => 30]);
-
-            $response = $client->post('https://api.openai.com/v1/chat/completions', [
-                'headers' => [
-                    'Authorization' => 'Bearer ' . env('OPENAI_API_KEY'),
-                    'Content-Type'  => 'application/json',
-                    'Accept'        => 'application/json',
-                ],
-                'json' => [
-                    'model'       => 'gpt-3.5-turbo',
-                    'messages'    => $messages,
-                    'temperature' => 0.7,
-                ],
+            $result = $this->aiService->dispatch(
+                ['messages' => $messages, 'temperature' => 0.7],
+                $company_id
+            );
+        } catch (\RuntimeException $e) {
+            \Log::error('AiChat.sendMessage: todos los proveedores fallaron', [
+                'user_id'         => auth()->id(),
+                'company_id'      => $company_id,
+                'conversation_id' => $conversation->id,
+                'error'           => $e->getMessage(),
             ]);
 
-            $body        = json_decode($response->getBody()->getContents(), true);
-            $aiContent   = $body['choices'][0]['message']['content'] ?? '';
-            $tokensUsed  = $body['usage']['total_tokens'] ?? 0;
-
-        } catch (RequestException $e) {
-            $status  = $e->hasResponse() ? $e->getResponse()->getStatusCode() : 503;
-            $message = $e->hasResponse()
-                ? json_decode($e->getResponse()->getBody()->getContents(), true)['error']['message'] ?? $e->getMessage()
-                : $e->getMessage();
-
             return response()->json([
-                'error'   => 'OpenAI API error.',
-                'details' => $message,
-            ], 500);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'error'   => 'Unexpected error communicating with AI service.',
-                'details' => $e->getMessage(),
+                'error' => 'Los sistemas de IA están experimentando alta latencia. Intente de nuevo en unos momentos.',
             ], 500);
         }
 
@@ -125,16 +104,16 @@ class AiChatController extends Controller
         $assistantMessage = AiMessage::create([
             'conversation_id' => $conversation->id,
             'role'            => 'assistant',
-            'content'         => $aiContent,
-            'tokens_used'     => $tokensUsed,
+            'content'         => $result['response'],
+            'tokens_used'     => $result['tokens_used'],
         ]);
 
         return response()->json([
             'conversation_id' => $conversation->id,
             'message_id'      => $assistantMessage->id,
             'status'          => 'ok',
-            'ai_response'     => $aiContent,
-            'tokens_used'     => $tokensUsed,
+            'ai_response'     => $result['response'],
+            'tokens_used'     => $result['tokens_used'],
         ], 200);
     }
 
@@ -150,14 +129,6 @@ class AiChatController extends Controller
             'currency'    => 'nullable|string|max:10',
         ]);
 
-        // Early exit si la API Key aún no está configurada en el servidor
-        if (empty(env('OPENAI_API_KEY'))) {
-            return response()->json([
-                'copy' => '⚠️ La Inteligencia Artificial está lista, pero falta configurar la API Key de OpenAI en el servidor para generar el texto.',
-            ], 200);
-        }
-
-        // Construir el brief de la propiedad con los datos disponibles
         $parts = array_filter([
             $request->title       ? "Título: {$request->title}" : null,
             $request->prop_type   ? "Tipo de propiedad: {$request->prop_type}" : null,
@@ -174,44 +145,33 @@ class AiChatController extends Controller
         $messages = [
             [
                 'role'    => 'system',
-                'content' => 'Eres un experto copywriter inmobiliario. Escribe una descripción persuasiva, '
-                           . 'atractiva y orientada a la venta para una propiedad con las siguientes características: '
-                           . $propertyData
-                           . '. Usa viñetas para destacar beneficios y un llamado a la acción final. '
+                'content' => 'Eres un experto copywriter inmobiliario. '
+                           . 'El usuario te proporcionará los datos estructurados de una propiedad. '
+                           . 'Escribe una descripción persuasiva, atractiva y orientada a la venta. '
+                           . 'Usa viñetas para destacar beneficios y un llamado a la acción final. '
                            . 'Sé profesional pero emocionante. Máximo 3 párrafos.',
             ],
             [
                 'role'    => 'user',
-                'content' => 'Genera la descripción de venta para esta propiedad.',
+                'content' => 'Genera la descripción de venta para esta propiedad con los siguientes datos: '
+                           . $propertyData,
             ],
         ];
 
+        // ONE-SHOT: sin persistencia en BD — Regla de Piedra del CODEX
         try {
-            $client = new Client(['timeout' => 30]);
+            $result = $this->aiService->dispatch(
+                ['messages' => $messages, 'temperature' => 0.8],
+                auth()->user()->company_id
+            );
 
-            $response = $client->post('https://api.openai.com/v1/chat/completions', [
-                'headers' => [
-                    'Authorization' => 'Bearer ' . env('OPENAI_API_KEY'),
-                    'Content-Type'  => 'application/json',
-                    'Accept'        => 'application/json',
-                ],
-                'json' => [
-                    'model'       => 'gpt-3.5-turbo',
-                    'messages'    => $messages,
-                    'temperature' => 0.8,
-                ],
-            ]);
-
-            $body = json_decode($response->getBody()->getContents(), true);
-            $copy = $body['choices'][0]['message']['content'] ?? '';
+            return response()->json(['copy' => $result['response']], 200);
 
         } catch (\Exception $e) {
-            // Cualquier fallo (API Key inválida, red, timeout) → respuesta amigable, sin romper la UI
+            // Catch universal — nunca expone un 500 al frontend (CODEX §generateCopy)
             return response()->json([
-                'copy' => '⚠️ La Inteligencia Artificial está lista, pero falta configurar la API Key de OpenAI en el servidor para generar el texto.',
+                'copy' => '⚠️ La Inteligencia Artificial está lista, pero falta configurar un proveedor activo en el servidor para generar el texto.',
             ], 200);
         }
-
-        return response()->json(['copy' => $copy], 200);
     }
 }

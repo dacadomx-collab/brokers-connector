@@ -82,7 +82,17 @@
                             <a class="" href="<?php echo e(url('home/website')); ?>" aria-expanded="false"> <i class="fa fa-desktop fa-icon"></i>&nbsp;<span class="mini-click-non"> Sitio web</span></a>
                         </li>
                             <?php endif; ?>
-                        
+
+                        <?php if(auth()->check() && auth()->user()->hasRole('super_admin')): ?>
+                        <li>
+                            <a href="<?php echo e(url('home/v2/admin-bridge')); ?>"
+                               title="Zona de máxima seguridad — gestión de roles y orquestador IA">
+                                <i class="fa fa-shield fa-icon" aria-hidden="true"></i>&nbsp;
+                                <span class="mini-click-non">Panel Super Admin</span>
+                            </a>
+                        </li>
+                        <?php endif; ?>
+
                     </ul>
                 </nav>
             </div>

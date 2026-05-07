@@ -394,6 +394,15 @@
 | `guard_name` | VARCHAR(255) |
 | `created_at` / `updated_at` | TIMESTAMP |
 
+**Catálogo de roles activos (guard_name: web):**
+| ID | name | display_name | Nivel de acceso |
+| :--- | :--- | :--- | :--- |
+| 1 | `Admin` | Propietario | Panel CRM completo por tenant |
+| 2 | `Agent` | Agente | Acceso operativo limitado |
+| 3 | `super_admin` | Super Administrador | Panel V2 Admin — gestión de roles y credenciales |
+
+> **Regla:** Solo un `super_admin` puede promover/degradar Admins. Nunca se elimina el usuario de la BD. El puente de acceso es `GET /home/v2/admin-bridge` (middleware `role:super_admin`).
+
 #### Tabla: `model_has_permissions`
 > Permisos directos asignados a un modelo (polimórfico).
 
@@ -468,6 +477,24 @@
 
 ---
 
+### ⚙️ Tabla: `ai_settings`
+> Configuración del Orquestador IA con Failover Dinámico. Patrón Strategy.
+
+| Columna | Tipo | Notas |
+| :--- | :--- | :--- |
+| `id` | BIGINT UNSIGNED PK | Auto-increment |
+| `provider_name` | VARCHAR(255) | Identificador del adaptador: `openai`, `groq` |
+| `api_key` | TEXT | Clave API **cifrada con `encrypt()`** — nunca texto plano |
+| `extra_config` | JSON NULL | Config adicional del proveedor: `{"model":"gpt-4o"}` |
+| `priority_order` | TINYINT UNSIGNED DEFAULT 1 | 1 = mayor prioridad en la escalera de failover |
+| `is_active` | BOOLEAN DEFAULT 1 | 0 = excluido del orquestador |
+| `company_id` | BIGINT UNSIGNED NULL | FK → `companies.id` CASCADE DELETE. NULL = configuración global |
+| `created_at` / `updated_at` | TIMESTAMP NULL | Timestamps Laravel |
+
+> **REGLA DE ORO:** `api_key` se guarda con `encrypt()` en `store`/`update`. Se recupera con `decryptedKey()` del Modelo — nunca en vistas. La vista recibe solo `api_key_masked` (ej. `••••••••4o3a`).
+
+---
+
 ## 🧠 REGISTRO SEMÁNTICO (VOCABULARIO CONTROLADO)
 
 ### ✅ Términos Permitidos
@@ -515,6 +542,12 @@ cities    ──< districts            (city_id)
 companies ──< ai_conversations     (company_id)   ← AISLAMIENTO DE TENANT obligatorio
 users     ──< ai_conversations     (user_id)      ← nullable; sesión del agente
 ai_conversations ──< ai_messages   (conversation_id, CASCADE DELETE)
+
+── IA / ORQUESTADOR ──
+companies ──< ai_settings          (company_id, CASCADE DELETE) ← NULL = global
+ai_settings → AIService.php        (Patrón Strategy + Failover Dinámico)
+ai_settings → OpenAIProvider       (priority_order 1, adaptador Tier 1)
+ai_settings → GroqProvider         (priority_order 2, adaptador Tier 2)
 ```
 
 ---
@@ -532,3 +565,15 @@ ai_conversations ──< ai_messages   (conversation_id, CASCADE DELETE)
 | `AiConversation.php` | `brokers_new/app/AiConversation.php` | Eloquent Model | ✅ Producción | Modelo de hilo de chat. Relaciones: `belongsTo(Company)`, `belongsTo(User)`, `hasMany(AiMessage, 'conversation_id')`. Fillable: `company_id`, `user_id`, `title`, `status`. |
 | `AiMessage.php` | `brokers_new/app/AiMessage.php` | Eloquent Model | ✅ Producción | Modelo de mensaje IA. Relación: `belongsTo(AiConversation, 'conversation_id')`. Fillable: `conversation_id`, `role`, `content`, `tokens_used`. |
 | `AiChatController.php` | `brokers_new/app/Http/Controllers/AiChatController.php` | Controller | ✅ Producción | Controlador IA. Métodos: `sendMessage()` (chat + persistencia) y `generateCopy()` (copywriting one-shot). Usa Guzzle 6 para llamadas a OpenAI. |
+| `AiSetting.php` | `brokers_new/app/AiSetting.php` | Eloquent Model | ✅ Producción | Modelo del Orquestador. `api_key` en `$hidden`. Método `decryptedKey()` — único punto de desencriptación. |
+| `AIProviderInterface.php` | `brokers_new/app/Services/Contracts/AIProviderInterface.php` | Interface (Strategy) | ✅ Producción | Contrato para todos los adaptadores. Método: `request(array $payload, array $config): array`. |
+| `AIService.php` | `brokers_new/app/Services/AIService.php` | Service (Orchestrator) | ✅ Producción | Orquestador maestro con failover dinámico. Itera proveedores por `priority_order`, hace `Log::warning` en cada fallo y lanza `RuntimeException` si todos fallan. |
+| `OpenAIProvider.php` | `brokers_new/app/Services/Providers/OpenAIProvider.php` | Provider Adapter (Tier 1) | ✅ Producción | Adaptador OpenAI. Modelo configurable vía `extra_config.model` (default: `gpt-4o`). Retorna JSON estandarizado con `latency_ms`. |
+| `GroqProvider.php` | `brokers_new/app/Services/Providers/GroqProvider.php` | Provider Adapter (Tier 2) | ✅ Producción | Adaptador Groq (LPU). Endpoint OpenAI-compatible. Modelo configurable (default: `llama3-8b-8192`). Timeout 15s (vs 30s de OpenAI). |
+| `AISettingsController.php` | `brokers_new/app/Http/Controllers/AISettingsController.php` | Controller (Admin-only) | ✅ Producción | CRUD de `ai_settings`. Doble candado: triple middleware + `hasRole('Admin')`. `api_key` → `encrypt()` en store/update. Vista recibe solo `api_key_masked`. |
+| `ai/settings.blade.php` | `brokers_new/resources/views/ai/settings.blade.php` | Blade View (Admin) | ✅ Producción | Panel de configuración del Orquestador. ARF-Grid. Tabla con keys enmascaradas, toggle inline de activo/inactivo, formulario store/update, escalera visual de failover. |
+| `SuperAdminController.php` | `brokers_new/app/Http/Controllers/Api/SuperAdminController.php` | API Controller (V2) | ✅ Producción | Panel Super Admin. Auth: Bearer session_token V2 + `hasRole('super_admin')`. Endpoints: `listAdmins`, `toggleRole`, `resetPassword`. Sin Passport — usa patrón Bridge V2. |
+| `BridgeController.php` (adminBridge) | `brokers_new/app/Http/Controllers/BridgeController.php` | Web Controller (Bridge) | ✅ Producción | Método `adminBridge()` añadido. Genera bridge token y redirige a `v2/admin/security.html`. Acceso: `GET /home/v2/admin-bridge` middleware `[auth, role:super_admin]`. |
+| `v2/admin/security.html` | `public_html/newbrokers/v2/admin/security.html` | SPA HTML (V2) | ✅ Producción | Panel de gestión de credenciales de Super Admin. 3 pantallas: loading / error / main. Usa el flujo bridge V2 idéntico a checkout. |
+| `v2/admin/security.js` | `public_html/newbrokers/v2/admin/security.js` | SPA JS (V2 Vanilla) | ✅ Producción | Cerebro del panel. Boot → bridge/validate → listAdmins. Funciones: `toggleRole()`, `openModal()` + `execResetPassword()`. camelCase estricto. `escHtml()` protege contra XSS. |
+| `v2/admin/security.css` | `public_html/newbrokers/v2/admin/security.css` | CSS (V2 ARF-Grid) | ✅ Producción | Estilos del panel Super Admin. Usa variables `--v2-*` de `shared/v2.css`. Mobile-First. Sin `!important`, sin anchos fijos. Responsive: oculta columna Estado en móvil. |

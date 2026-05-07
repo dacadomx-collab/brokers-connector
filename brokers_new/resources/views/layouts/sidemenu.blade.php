@@ -84,7 +84,17 @@
                             <a class="" href="{{ url('home/website') }}" aria-expanded="false"> <i class="fa fa-desktop fa-icon"></i>&nbsp;<span class="mini-click-non"> Sitio web</span></a>
                         </li>
                             @endrole
-                        
+
+                        @hasrole('super_admin')
+                        <li>
+                            <a href="{{ url('home/v2/admin-bridge') }}"
+                               title="Zona de máxima seguridad — gestión de roles y orquestador IA">
+                                <i class="fa fa-shield fa-icon" aria-hidden="true"></i>&nbsp;
+                                <span class="mini-click-non">Panel Super Admin</span>
+                            </a>
+                        </li>
+                        @endhasrole
+
                     </ul>
                 </nav>
             </div>
