@@ -1,0 +1,504 @@
+<!-- Palette: Brokers Indigo (Vibrant Professional) - Hex: #4f46e5, #3b82f6, #10b981, #f8fafc -->
+<!-- NO MERMAID JS NOR SVG WERE USED IN THIS OUTPUT. -->
+<!-- Narrative Plan: Introduction (Context V2) -> Cost Comparison (Bar Chart) -> Payment Methods Matrix (HTML Grid) -> Architectural Capabilities (Radar Chart) -> Individual Technical Specs (Cards) -> Final Verdict. -->
+<!-- Visualizations: 1. Comisiones Base (Bar Chart) -> Goal: Compare -> Justification: Clearest way to show % differences. 2. Capacidades Arquitectónicas (Radar Chart) -> Goal: Compare multi-variate -> Justification: Shows strengths/weaknesses across 5 axes. All using Chart.js Canvas. NO SVG. -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Brokers Connector V2: Análisis de Pasarelas de Pago</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f1f5f9;
+            color: #1e293b;
+        }
+
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 350px;
+            max-height: 400px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 400px;
+            }
+        }
+
+        .gradient-text {
+            background: linear-gradient(to right, #4f46e5, #3b82f6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .card-hover {
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        }
+        
+        .card-hover:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <header class="bg-slate-900 text-white pt-16 pb-24 px-6 border-b-4 border-indigo-500 relative overflow-hidden">
+        <div class="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none" style="background-image: radial-gradient(#4f46e5 2px, transparent 2px); background-size: 30px 30px;"></div>
+        <div class="max-w-6xl mx-auto relative z-10">
+            <div class="flex items-center space-x-2 mb-4">
+                <span class="bg-indigo-600 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">Reporte Confidencial</span>
+                <span class="text-slate-400 text-sm font-mono">BROKERS CONNECTOR V2</span>
+            </div>
+            <h1 class="text-4xl md:text-6xl font-extrabold tracking-tight mb-4 leading-tight">
+                Auditoría Arquitectónica:<br>
+                <span class="text-indigo-400">Pasarelas de Pago Globales</span>
+            </h1>
+            <p class="text-lg md:text-xl text-slate-300 max-w-3xl leading-relaxed">
+                Investigación forense y comparativa estratégica de Stripe, FastSpring, Nuvei y Cobre para la integración en la infraestructura SaaS de Brokers Connector V2. Análisis enfocado en escalabilidad, métodos locales (OXXO/SPEI) y cumplimiento de la Regla de O.R.O.
+            </p>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-6 -mt-12 relative z-20 pb-24">
+
+        <section class="bg-white rounded-2xl shadow-xl p-8 mb-12 border border-slate-100">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div class="col-span-1 md:col-span-3 mb-4">
+                    <h2 class="text-2xl font-bold text-slate-800 border-l-4 border-indigo-500 pl-4">El Paradigma Actual</h2>
+                    <p class="text-slate-600 mt-4 leading-relaxed">
+                        Actualmente (Fase 7.6), el Kernel opera con <strong>OpenPay</strong> (2.9% de comisión), soportando tarjetas, Paynet (OXXO) y SPEI mediante `App\Services\OpenPayService`. Para expandir Brokers Connector V2 a un nivel Enterprise y multi-región, evaluamos 4 alternativas de alto rendimiento. El objetivo: optimizar costos, blindar la seguridad (PCI-DSS) y maximizar la conversión en LatAm.
+                    </p>
+                </div>
+                
+                <div class="bg-slate-50 rounded-xl p-6 border border-slate-200">
+                    <div class="text-3xl mb-2">💰</div>
+                    <h3 class="text-lg font-bold text-slate-800 mb-2">Eficiencia de Costos</h3>
+                    <p class="text-sm text-slate-600">Minimizar comisiones transaccionales para proteger el margen de las agencias inmobiliarias.</p>
+                </div>
+                <div class="bg-slate-50 rounded-xl p-6 border border-slate-200">
+                    <div class="text-3xl mb-2">🏪</div>
+                    <h3 class="text-lg font-bold text-slate-800 mb-2">Inclusión Financiera</h3>
+                    <p class="text-sm text-slate-600">Soporte nativo y sin fricción para pagos en efectivo (OXXO) y transferencias (SPEI).</p>
+                </div>
+                <div class="bg-slate-50 rounded-xl p-6 border border-slate-200">
+                    <div class="text-3xl mb-2">⚙️</div>
+                    <h3 class="text-lg font-bold text-slate-800 mb-2">Arquitectura API</h3>
+                    <p class="text-sm text-slate-600">Webhooks resilientes, tokenización segura y gestión nativa de Customer IDs para suscripciones.</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="mb-16">
+            <h2 class="text-3xl font-bold text-slate-800 mb-8 text-center">Comparativa de Comisiones Base (Tarjetas)</h2>
+            <div class="bg-white rounded-2xl shadow-xl p-8 border border-slate-100">
+                <p class="text-slate-600 mb-8 text-center max-w-2xl mx-auto">
+                    Análisis comparativo del porcentaje base de cobro por transacción exitosa con tarjeta de crédito/débito. 
+                    <br><span class="text-xs text-slate-400">*FastSpring incluye gestión de impuestos globales (MoR). Cobre y Nuvei operan con esquemas variables B2B.</span>
+                </p>
+                <div class="chart-container">
+                    <canvas id="costChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <section class="mb-16">
+            <h2 class="text-3xl font-bold text-slate-800 mb-8 text-center">Matriz de Inclusión de Métodos de Pago</h2>
+            <div class="bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-100">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-800 text-white text-sm uppercase tracking-wider">
+                                <th class="p-4 font-semibold">Pasarela</th>
+                                <th class="p-4 font-semibold text-center">Tarjetas (Global) 💳</th>
+                                <th class="p-4 font-semibold text-center">OXXO / Efectivo 🏪</th>
+                                <th class="p-4 font-semibold text-center">SPEI / Transfer 🏦</th>
+                                <th class="p-4 font-semibold text-center">Billeteras (Apple/Google) 📱</th>
+                                <th class="p-4 font-semibold text-center">Dispersiones (B2B) 💸</th>
+                            </tr>
+                        </thead>
+                        <tbody class="text-slate-700">
+                            <tr class="border-b border-slate-200 hover:bg-slate-50 transition-colors">
+                                <td class="p-4 font-bold flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-indigo-600"></span> Stripe</td>
+                                <td class="p-4 text-center text-emerald-500 font-bold">✔ Nativo</td>
+                                <td class="p-4 text-center text-emerald-500 font-bold">✔ Nativo</td>
+                                <td class="p-4 text-center text-emerald-500 font-bold">✔ Nativo</td>
+                                <td class="p-4 text-center text-emerald-500 font-bold">✔ Integrado</td>
+                                <td class="p-4 text-center text-amber-500 font-semibold">⚠ Vía Connect</td>
+                            </tr>
+                            <tr class="border-b border-slate-200 hover:bg-slate-50 transition-colors bg-slate-50/50">
+                                <td class="p-4 font-bold flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-blue-500"></span> FastSpring</td>
+                                <td class="p-4 text-center text-emerald-500 font-bold">✔ Nativo</td>
+                                <td class="p-4 text-center text-amber-500 font-semibold">⚠ Vía Partners</td>
+                                <td class="p-4 text-center text-amber-500 font-semibold">⚠ Limitado LatAm</td>
+                                <td class="p-4 text-center text-emerald-500 font-bold">✔ Integrado</td>
+                                <td class="p-4 text-center text-rose-500 font-bold">✘ No</td>
+                            </tr>
+                            <tr class="border-b border-slate-200 hover:bg-slate-50 transition-colors">
+                                <td class="p-4 font-bold flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-teal-500"></span> Nuvei</td>
+                                <td class="p-4 text-center text-emerald-500 font-bold">✔ Nativo</td>
+                                <td class="p-4 text-center text-emerald-500 font-bold">✔ Nativo</td>
+                                <td class="p-4 text-center text-emerald-500 font-bold">✔ Nativo</td>
+                                <td class="p-4 text-center text-emerald-500 font-bold">✔ Integrado</td>
+                                <td class="p-4 text-center text-emerald-500 font-bold">✔ Nativo</td>
+                            </tr>
+                            <tr class="border-b border-slate-200 hover:bg-slate-50 transition-colors bg-slate-50/50">
+                                <td class="p-4 font-bold flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-slate-700"></span> Cobre</td>
+                                <td class="p-4 text-center text-rose-500 font-bold">✘ No es foco</td>
+                                <td class="p-4 text-center text-rose-500 font-bold">✘ No</td>
+                                <td class="p-4 text-center text-emerald-500 font-bold">✔ Ultra Optimizado</td>
+                                <td class="p-4 text-center text-rose-500 font-bold">✘ No</td>
+                                <td class="p-4 text-center text-emerald-500 font-bold">✔ Core Business</td>
+                            </tr>
+                            <tr class="hover:bg-indigo-50 transition-colors">
+                                <td class="p-4 font-bold flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-indigo-300"></span> OpenPay (Actual)</td>
+                                <td class="p-4 text-center text-emerald-500 font-bold">✔ Nativo</td>
+                                <td class="p-4 text-center text-emerald-500 font-bold">✔ Nativo (Paynet)</td>
+                                <td class="p-4 text-center text-emerald-500 font-bold">✔ Nativo</td>
+                                <td class="p-4 text-center text-rose-500 font-bold">✘ No</td>
+                                <td class="p-4 text-center text-amber-500 font-semibold">⚠ Básico</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <section class="mb-16">
+            <h2 class="text-3xl font-bold text-slate-800 mb-8 text-center">Evaluación de Capacidades Arquitectónicas</h2>
+            <div class="bg-white rounded-2xl shadow-xl p-8 border border-slate-100 flex flex-col md:flex-row items-center gap-8">
+                <div class="w-full md:w-1/3">
+                    <h3 class="text-xl font-bold text-slate-800 mb-4">Métricas de Evaluación V2</h3>
+                    <ul class="space-y-4">
+                        <li class="flex items-start gap-3">
+                            <span class="text-indigo-600 font-bold mt-1">1.</span>
+                            <p class="text-sm text-slate-600"><strong>DX (Developer Experience):</strong> Calidad de la API, SDKs, webhooks y documentación para aislar el frontend (SPA).</p>
+                        </li>
+                        <li class="flex items-start gap-3">
+                            <span class="text-indigo-600 font-bold mt-1">2.</span>
+                            <p class="text-sm text-slate-600"><strong>Penetración LatAm:</strong> Tasa de aprobación local y métodos alternativos (SPEI/OXXO).</p>
+                        </li>
+                        <li class="flex items-start gap-3">
+                            <span class="text-indigo-600 font-bold mt-1">3.</span>
+                            <p class="text-sm text-slate-600"><strong>Motor de Suscripciones:</strong> Facilidad para tokenizar tarjetas y cobrar membresías recurrentes.</p>
+                        </li>
+                        <li class="flex items-start gap-3">
+                            <span class="text-indigo-600 font-bold mt-1">4.</span>
+                            <p class="text-sm text-slate-600"><strong>Gestión Fiscal:</strong> Resolución automática de IVA/Taxes internacionales.</p>
+                        </li>
+                    </ul>
+                </div>
+                <div class="w-full md:w-2/3 chart-container">
+                    <canvas id="radarChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <section class="mb-16">
+            <h2 class="text-3xl font-bold text-slate-800 mb-8 text-center">Expedientes Técnicos</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                
+                <div class="bg-white rounded-2xl shadow-lg p-8 border-t-4 border-indigo-600 card-hover flex flex-col h-full">
+                    <div class="flex justify-between items-start mb-4">
+                        <h3 class="text-2xl font-black text-slate-900">Stripe</h3>
+                        <span class="bg-indigo-100 text-indigo-800 text-xs font-bold px-3 py-1 rounded-full">El Estándar SaaS</span>
+                    </div>
+                    <p class="text-slate-600 text-sm mb-6 flex-grow">
+                        La API más robusta del mercado. Ideal para la arquitectura V2 desacoplada. Permite crear Customer IDs, tokenizar con Elements (sin tocar nuestro servidor, cumpliendo PCI-DSS) y maneja SPEI y OXXO nativamente en México.
+                    </p>
+                    <div class="space-y-3 mt-auto">
+                        <div class="flex items-center gap-2 text-sm text-emerald-600 font-semibold"><span class="text-lg">⊕</span> DX perfecto, webhooks indestructibles.</div>
+                        <div class="flex items-center gap-2 text-sm text-emerald-600 font-semibold"><span class="text-lg">⊕</span> Stripe Billing para suscripciones complejas.</div>
+                        <div class="flex items-center gap-2 text-sm text-rose-500 font-semibold"><span class="text-lg">⊖</span> Costo base ligeramente alto (3.6% + $3 MXN).</div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-2xl shadow-lg p-8 border-t-4 border-blue-500 card-hover flex flex-col h-full">
+                    <div class="flex justify-between items-start mb-4">
+                        <h3 class="text-2xl font-black text-slate-900">FastSpring</h3>
+                        <span class="bg-blue-100 text-blue-800 text-xs font-bold px-3 py-1 rounded-full">Merchant of Record</span>
+                    </div>
+                    <p class="text-slate-600 text-sm mb-6 flex-grow">
+                        No es solo una pasarela, actúan como revendedor. Ellos cobran, asumen el riesgo de fraude, calculan y pagan los impuestos globales (VAT) y luego nos transfieren las ganancias. Excelente si BC escala fuera de México rápidamente.
+                    </p>
+                    <div class="space-y-3 mt-auto">
+                        <div class="flex items-center gap-2 text-sm text-emerald-600 font-semibold"><span class="text-lg">⊕</span> Cero carga fiscal/contable internacional.</div>
+                        <div class="flex items-center gap-2 text-sm text-emerald-600 font-semibold"><span class="text-lg">⊕</span> Checkout hiper-localizado por país.</div>
+                        <div class="flex items-center gap-2 text-sm text-rose-500 font-semibold"><span class="text-lg">⊖</span> Altísimo costo (aprox 8.9% o 5.9% + fijos).</div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-2xl shadow-lg p-8 border-t-4 border-teal-500 card-hover flex flex-col h-full">
+                    <div class="flex justify-between items-start mb-4">
+                        <h3 class="text-2xl font-black text-slate-900">Nuvei</h3>
+                        <span class="bg-teal-100 text-teal-800 text-xs font-bold px-3 py-1 rounded-full">Alcance Global & Crypto</span>
+                    </div>
+                    <p class="text-slate-600 text-sm mb-6 flex-grow">
+                        Plataforma Enterprise con conexiones directas a adquirentes locales en LatAm. Altas tasas de aprobación. Soporta métodos de pago masivos (más de 600 globales) incluyendo OXXO, SPEI, PIX y opciones de criptomonedas.
+                    </p>
+                    <div class="space-y-3 mt-auto">
+                        <div class="flex items-center gap-2 text-sm text-emerald-600 font-semibold"><span class="text-lg">⊕</span> Tasas de aprobación superiores en LatAm.</div>
+                        <div class="flex items-center gap-2 text-sm text-emerald-600 font-semibold"><span class="text-lg">⊕</span> Precios customizables (Interchange++).</div>
+                        <div class="flex items-center gap-2 text-sm text-rose-500 font-semibold"><span class="text-lg">⊖</span> Integración más compleja que Stripe.</div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-2xl shadow-lg p-8 border-t-4 border-slate-800 card-hover flex flex-col h-full">
+                    <div class="flex justify-between items-start mb-4">
+                        <h3 class="text-2xl font-black text-slate-900">Cobre</h3>
+                        <span class="bg-slate-200 text-slate-800 text-xs font-bold px-3 py-1 rounded-full">Tesorería B2B LatAm</span>
+                    </div>
+                    <p class="text-slate-600 text-sm mb-6 flex-grow">
+                        Diferente al resto. Su fuerte no es cobrar tarjetas en un checkout, sino centralizar la tesorería corporativa. Optimizan SPEI y conciliaciones. Ideal si Brokers Connector necesita pagar comisiones automáticamente a los brokers.
+                    </p>
+                    <div class="space-y-3 mt-auto">
+                        <div class="flex items-center gap-2 text-sm text-emerald-600 font-semibold"><span class="text-lg">⊕</span> Infraestructura perfecta para dispersiones.</div>
+                        <div class="flex items-center gap-2 text-sm text-emerald-600 font-semibold"><span class="text-lg">⊕</span> Conciliación SPEI nivel corporativo.</div>
+                        <div class="flex items-center gap-2 text-sm text-rose-500 font-semibold"><span class="text-lg">⊖</span> No sustituye a un procesador de tarjetas B2C.</div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <section class="bg-indigo-900 text-white rounded-3xl shadow-2xl p-10 relative overflow-hidden">
+            <div class="absolute top-0 right-0 w-64 h-64 bg-indigo-600 rounded-full mix-blend-multiply filter blur-3xl opacity-50 animate-blob pointer-events-none"></div>
+            <div class="relative z-10">
+                <h2 class="text-3xl font-black mb-6">Veredicto del Lead Architect</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <div class="col-span-2 space-y-4">
+                        <p class="text-indigo-100 text-lg leading-relaxed">
+                            Basado en los "Protocolos de Vuelo" y la necesidad de aislar el Frontend V2 (SPA), la recomendación absoluta para reemplazar o potenciar OpenPay es <strong>Stripe</strong>.
+                        </p>
+                        <p class="text-indigo-100 leading-relaxed">
+                            Aunque Stripe tiene un fee nominal mayor (3.6% vs 2.9%), su SDK para SPA garantiza el cumplimiento estricto de la regla "Origen y Seguridad" al evitar que tarjetas toquen nuestro Kernel Laravel. Además, su manejo nativo de webhooks para SPEI y OXXO resuelve la "Deuda Técnica Resuelta" mencionada en la Fase 7.6, sin necesidad de mantener servicios customizados frágiles.
+                        </p>
+                        <p class="text-indigo-100 leading-relaxed">
+                            <strong>Nota Estratégica:</strong> Si Brokers Connector evoluciona hacia un modelo donde recauda pagos de clientes finales para dispersar comisiones a los Agentes, se debe evaluar una arquitectura híbrida: <strong>Stripe</strong> para Pay-ins (suscripciones) + <strong>Cobre</strong> para Pay-outs (dispersión SPEI).
+                        </p>
+                    </div>
+                    <div class="bg-white/10 rounded-xl p-6 backdrop-blur-sm border border-white/20">
+                        <h4 class="text-xl font-bold mb-4">Plan de Migración (Strangler Fig)</h4>
+                        <ul class="space-y-3 text-sm text-indigo-100">
+                            <li class="flex gap-2"><span>1.</span> Mantener OpenPay V1 operando.</li>
+                            <li class="flex gap-2"><span>2.</span> Crear `v2/subscriptions` con Stripe Elements en React/Vanilla.</li>
+                            <li class="flex gap-2"><span>3.</span> Migrar tabla `users` añadiendo `stripe_customer_id`.</li>
+                            <li class="flex gap-2"><span>4.</span> Enrutar nuevos cobros OXXO/SPEI vía Stripe Webhooks.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="bg-slate-900 border-t border-slate-800 text-center py-8 text-slate-500 text-sm">
+        <p>Generado por Sistema Central de IA — Módulo de Arquitectura | Brokers Connector V2</p>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            
+            function wrapLabels(labels, maxChars = 16) {
+                return labels.map(label => {
+                    if (label.length <= maxChars) return label;
+                    const words = label.split(' ');
+                    const lines = [];
+                    let currentLine = '';
+                    
+                    words.forEach(word => {
+                        if ((currentLine + word).length > maxChars) {
+                            if (currentLine.trim() !== '') {
+                                lines.push(currentLine.trim());
+                            }
+                            currentLine = word + ' ';
+                        } else {
+                            currentLine += word + ' ';
+                        }
+                    });
+                    if (currentLine.trim() !== '') {
+                        lines.push(currentLine.trim());
+                    }
+                    return lines;
+                });
+            }
+
+            const tooltipConfig = {
+                tooltip: {
+                    callbacks: {
+                        title: function(tooltipItems) {
+                            const item = tooltipItems[0];
+                            let label = item.chart.data.labels[item.dataIndex];
+                            if (Array.isArray(label)) {
+                              return label.join(' ');
+                            } else {
+                              return label;
+                            }
+                        }
+                    }
+                }
+            };
+
+            const rawCostLabels = ['Stripe', 'FastSpring', 'Nuvei (Interchange++)', 'Cobre (Fijo B2B)', 'OpenPay (Legacy)'];
+            const wrappedCostLabels = wrapLabels(rawCostLabels);
+
+            const ctxCost = document.getElementById('costChart').getContext('2d');
+            new Chart(ctxCost, {
+                type: 'bar',
+                data: {
+                    labels: wrappedCostLabels,
+                    datasets: [{
+                        label: 'Comisión Base % (Tarjetas LatAm)',
+                        data: [3.6, 5.9, 3.0, 1.5, 2.9],
+                        backgroundColor: [
+                            'rgba(79, 70, 229, 0.8)',
+                            'rgba(59, 130, 246, 0.8)',
+                            'rgba(20, 184, 166, 0.8)',
+                            'rgba(30, 41, 59, 0.8)',
+                            'rgba(148, 163, 184, 0.8)'
+                        ],
+                        borderColor: [
+                            'rgb(79, 70, 229)',
+                            'rgb(59, 130, 246)',
+                            'rgb(20, 184, 166)',
+                            'rgb(30, 41, 59)',
+                            'rgb(148, 163, 184)'
+                        ],
+                        borderWidth: 1,
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        ...tooltipConfig,
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Porcentaje (%)'
+                            },
+                            grid: {
+                                color: '#f1f5f9'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            }
+                        }
+                    }
+                }
+            });
+
+            const rawRadarLabels = ['Documentación y API', 'Conversión LATAM (OXXO/SPEI)', 'Motor Suscripciones', 'Gestión de Impuestos (MoR)', 'Capacidad de Dispersión B2B'];
+            const wrappedRadarLabels = wrapLabels(rawRadarLabels);
+
+            const ctxRadar = document.getElementById('radarChart').getContext('2d');
+            new Chart(ctxRadar, {
+                type: 'radar',
+                data: {
+                    labels: wrappedRadarLabels,
+                    datasets: [
+                        {
+                            label: 'Stripe',
+                            data: [10, 9, 10, 4, 6],
+                            fill: true,
+                            backgroundColor: 'rgba(79, 70, 229, 0.2)',
+                            borderColor: 'rgb(79, 70, 229)',
+                            pointBackgroundColor: 'rgb(79, 70, 229)',
+                            pointBorderColor: '#fff',
+                            pointHoverBackgroundColor: '#fff',
+                            pointHoverBorderColor: 'rgb(79, 70, 229)'
+                        },
+                        {
+                            label: 'FastSpring',
+                            data: [7, 6, 8, 10, 2],
+                            fill: true,
+                            backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                            borderColor: 'rgb(59, 130, 246)',
+                            pointBackgroundColor: 'rgb(59, 130, 246)',
+                            pointBorderColor: '#fff',
+                            pointHoverBackgroundColor: '#fff',
+                            pointHoverBorderColor: 'rgb(59, 130, 246)'
+                        },
+                        {
+                            label: 'Nuvei',
+                            data: [8, 10, 7, 5, 8],
+                            fill: true,
+                            backgroundColor: 'rgba(20, 184, 166, 0.2)',
+                            borderColor: 'rgb(20, 184, 166)',
+                            pointBackgroundColor: 'rgb(20, 184, 166)',
+                            pointBorderColor: '#fff',
+                            pointHoverBackgroundColor: '#fff',
+                            pointHoverBorderColor: 'rgb(20, 184, 166)'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    elements: {
+                        line: {
+                            borderWidth: 3
+                        }
+                    },
+                    plugins: {
+                        ...tooltipConfig,
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                font: {
+                                    family: "'Inter', sans-serif"
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        r: {
+                            angleLines: {
+                                color: 'rgba(0, 0, 0, 0.1)'
+                            },
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.1)'
+                            },
+                            pointLabels: {
+                                font: {
+                                    size: 11,
+                                    family: "'Inter', sans-serif",
+                                    weight: '600'
+                                },
+                                color: '#475569'
+                            },
+                            ticks: {
+                                display: false,
+                                min: 0,
+                                max: 10
+                            }
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>
