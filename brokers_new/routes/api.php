@@ -112,6 +112,14 @@ Route::prefix('v2')->group(function () {
         Route::put('/ai-settings/{id}',               'Api\SuperAdminController@updateAiSetting');
         Route::delete('/ai-settings/{id}',            'Api\SuperAdminController@destroyAiSetting');
         Route::patch('/ai-settings/{id}/toggle',      'Api\SuperAdminController@toggleAiSetting');
+
+        // Motor de Pagos — CRUD de pasarelas (payment_gateway_settings)
+        Route::get('/payment-gateways',                       'Api\PaymentGatewayController@index');
+        Route::post('/payment-gateways',                      'Api\PaymentGatewayController@store');
+        Route::put('/payment-gateways/{id}',                  'Api\PaymentGatewayController@update');
+        Route::delete('/payment-gateways/{id}',               'Api\PaymentGatewayController@destroy');
+        Route::patch('/payment-gateways/{id}/toggle',         'Api\PaymentGatewayController@toggle');
+        Route::patch('/payment-gateways/{id}/toggle-sandbox', 'Api\PaymentGatewayController@toggleSandbox');
     });
 });
 

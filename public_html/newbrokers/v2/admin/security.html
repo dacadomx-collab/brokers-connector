@@ -42,6 +42,9 @@
         </div>
         <div class="sa-header-actions">
           <span id="header-actor" class="sa-actor-badge"></span>
+          <a href="/brokersconnect_dev/public_html/home" class="v2-btn v2-btn-ghost">
+            &#8592; Dashboard
+          </a>
           <a href="/brokersconnect_dev/public_html/home/v2/logout" class="v2-btn v2-btn-ghost sa-btn-logout">
             Cerrar sesión
           </a>
@@ -70,6 +73,10 @@
         <button id="tab-ai" class="sa-tab" role="tab"
                 aria-selected="false" aria-controls="panel-ai">
           Orquestador IA
+        </button>
+        <button id="tab-payments" class="sa-tab" role="tab"
+                aria-selected="false" aria-controls="panel-payments">
+          Pasarelas de Pago
         </button>
       </nav>
 
@@ -264,6 +271,58 @@
         </div>
 
       </div><!-- /panel-ai -->
+
+      <!-- ══ PANEL: PASARELAS DE PAGO ═══════════════════════════════ -->
+      <div id="panel-payments" class="sa-panel hidden" role="tabpanel" aria-labelledby="tab-payments">
+
+        <!-- Grid de pasarelas fijas -->
+        <div class="sa-card">
+          <div class="sa-card-header">
+            <span>Proveedores de Pago</span>
+            <span id="pgw-active-count" class="sa-count-badge">— activos</span>
+          </div>
+          <div id="pgw-loading" class="sa-table-placeholder">
+            <div class="v2-spinner sa-spinner-sm"></div>
+            <span>Cargando pasarelas&hellip;</span>
+          </div>
+          <div id="pgw-empty" class="sa-table-placeholder hidden">Sin pasarelas configuradas.</div>
+          <div id="pgw-grid" class="pgw-grid hidden"></div>
+        </div>
+
+        <!-- Modal configurar llaves -->
+        <div id="pgw-modal" class="sa-modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="pgw-modal-title">
+          <div class="sa-modal-box" style="max-width:480px">
+            <div class="sa-modal-header">
+              <h3 id="pgw-modal-title" class="sa-modal-title">Configurar llaves</h3>
+              <button id="pgw-modal-close" class="sa-modal-close" aria-label="Cerrar">&#10005;</button>
+            </div>
+            <div class="sa-modal-body">
+              <p id="pgw-modal-provider" class="sa-modal-subtitle"></p>
+              <div id="pgw-creds-current" class="pgw-creds-preview hidden">
+                <p class="pgw-creds-label">Llaves actuales (enmascaradas):</p>
+                <div id="pgw-creds-masked" class="pgw-masked-list"></div>
+              </div>
+              <div class="v2-form-group">
+                <label class="v2-label" for="pgw-public-key">Public Key / Client ID</label>
+                <input id="pgw-public-key" type="password" class="v2-input" placeholder="pk_live_… o sandbox equivalente" autocomplete="off">
+              </div>
+              <div class="v2-form-group">
+                <label class="v2-label" for="pgw-secret-key">Secret Key / API Secret</label>
+                <input id="pgw-secret-key" type="password" class="v2-input" placeholder="sk_live_… o sandbox equivalente" autocomplete="off">
+              </div>
+              <div class="v2-form-group">
+                <label class="v2-label" for="pgw-webhook-secret">Webhook Secret (opcional)</label>
+                <input id="pgw-webhook-secret" type="password" class="v2-input" placeholder="whsec_…" autocomplete="off">
+              </div>
+            </div>
+            <div class="sa-modal-footer">
+              <button id="pgw-modal-cancel" class="v2-btn v2-btn-ghost">Cancelar</button>
+              <button id="pgw-modal-save" class="v2-btn v2-btn-primary">Guardar llaves</button>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /panel-payments -->
 
     </main>
 

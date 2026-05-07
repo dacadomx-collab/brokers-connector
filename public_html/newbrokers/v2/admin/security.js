@@ -78,8 +78,9 @@ function getInitials(name) {
 // ── Tabs ─────────────────────────────────────────────────────────────────────
 
 const TABS = [
-  { btn: 'tab-users', panel: 'panel-users' },
-  { btn: 'tab-ai',    panel: 'panel-ai'    },
+  { btn: 'tab-users',    panel: 'panel-users'    },
+  { btn: 'tab-ai',       panel: 'panel-ai'       },
+  { btn: 'tab-payments', panel: 'panel-payments' },
 ];
 
 function activateTab(targetBtnId) {
@@ -95,6 +96,10 @@ $('tab-users').addEventListener('click', () => activateTab('tab-users'));
 $('tab-ai').addEventListener('click', () => {
   activateTab('tab-ai');
   loadAiSettings();
+});
+$('tab-payments').addEventListener('click', () => {
+  activateTab('tab-payments');
+  loadGateways();
 });
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -499,6 +504,207 @@ function execDestroyAi(id) {
     .then((d) => { if (!d.success) throw new Error(d.error); showToast('Proveedor eliminado.'); loadAiSettings(); })
     .catch((e) => showToast(e.message, 'error'));
 }
+
+// ══════════════════════════════════════════════════════════════════════════════
+// MÓDULO C — PASARELAS DE PAGO
+// ══════════════════════════════════════════════════════════════════════════════
+
+const PGW_META = {
+  stripe:  { label: 'Stripe',   color: '#635bff', icon: '💳' },
+  openpay: { label: 'OpenPay',  color: '#1aa72c', icon: '🔐' },
+  paypal:  { label: 'PayPal',   color: '#003087', icon: '🅿️'  },
+  nuvei:   { label: 'Nuvei',    color: '#e5282a', icon: '🌐' },
+};
+
+var pgwState = { editingId: null, editingProvider: '' };
+
+function pgwMeta(name) {
+  return PGW_META[name.toLowerCase()] || { label: name, color: '#6b7280', icon: '💰' };
+}
+
+// ── Cargar y renderizar grid ─────────────────────────────────────────────────
+
+function loadGateways() {
+  $('pgw-loading').classList.remove('hidden');
+  $('pgw-grid').classList.add('hidden');
+  $('pgw-empty').classList.add('hidden');
+
+  apiFetch('/api/v2/admin/payment-gateways')
+    .then(function (d) {
+      if (!d.success) throw new Error(d.error);
+      renderGatewayGrid(d.data);
+    })
+    .catch(function (e) { showToast(e.message, 'error'); });
+}
+
+function renderGatewayGrid(gateways) {
+  var grid = $('pgw-grid');
+  grid.innerHTML = '';
+
+  // Proveedores fijos — siempre muestra las 4 tarjetas aunque no haya registro en BD
+  var providers = ['stripe', 'openpay', 'paypal', 'nuvei'];
+  var byName    = {};
+  gateways.forEach(function (g) { byName[g.provider_name.toLowerCase()] = g; });
+
+  var active = gateways.filter(function (g) { return g.is_active; }).length;
+  $('pgw-active-count').textContent = active + ' activo' + (active !== 1 ? 's' : '');
+
+  providers.forEach(function (key) {
+    var meta = pgwMeta(key);
+    var g    = byName[key] || null;
+
+    var isActive  = g ? g.is_active  : false;
+    var isSandbox = g ? g.is_sandbox : true;
+    var hasCreds  = g ? g.has_credentials : false;
+    var gid       = g ? g.id : null;
+
+    var card = document.createElement('div');
+    card.className = 'pgw-card';
+    card.dataset.provider = key;
+    if (gid) card.dataset.id = gid;
+
+    card.innerHTML =
+      '<div class="pgw-card-head" style="border-color:' + meta.color + '">' +
+        '<span class="pgw-icon">' + meta.icon + '</span>' +
+        '<span class="pgw-name" style="color:' + meta.color + '">' + escHtml(meta.label) + '</span>' +
+      '</div>' +
+      '<div class="pgw-toggles">' +
+        '<div class="pgw-toggle-row">' +
+          '<span class="pgw-toggle-label">Activo</span>' +
+          '<label class="sa-toggle">' +
+            '<input type="checkbox" class="js-pgw-active"' + (isActive ? ' checked' : '') + (gid ? ' data-id="'+gid+'"' : '') + (gid ? '' : ' disabled') + '>' +
+            '<span class="sa-toggle-slider"></span>' +
+          '</label>' +
+        '</div>' +
+        '<div class="pgw-toggle-row">' +
+          '<span class="pgw-toggle-label">' + (isSandbox ? '🔵 Sandbox' : '🟢 Producción') + '</span>' +
+          '<label class="sa-toggle">' +
+            '<input type="checkbox" class="js-pgw-sandbox"' + (!isSandbox ? ' checked' : '') + (gid ? ' data-id="'+gid+'"' : '') + (gid ? '' : ' disabled') + '>' +
+            '<span class="sa-toggle-slider sa-toggle-prod"></span>' +
+          '</label>' +
+        '</div>' +
+      '</div>' +
+      '<div class="pgw-card-footer">' +
+        (hasCreds ? '<span class="pgw-creds-ok">🔑 Llaves configuradas</span>' : '<span class="pgw-creds-missing">⚠️ Sin llaves</span>') +
+        '<button class="v2-btn v2-btn-sm v2-btn-ghost js-pgw-config" data-key="' + key + '"' + (gid ? ' data-id="'+gid+'"' : '') + '>' +
+          'Configurar' +
+        '</button>' +
+      '</div>';
+
+    grid.appendChild(card);
+  });
+
+  // Listeners activo/sandbox/config
+  grid.querySelectorAll('.js-pgw-active').forEach(function (cb) {
+    cb.addEventListener('change', function () {
+      if (!cb.dataset.id) return;
+      apiFetch('/api/v2/admin/payment-gateways/' + cb.dataset.id + '/toggle', { method: 'PATCH' })
+        .then(function () { loadGateways(); })
+        .catch(function (e) { showToast(e.message, 'error'); cb.checked = !cb.checked; });
+    });
+  });
+
+  grid.querySelectorAll('.js-pgw-sandbox').forEach(function (cb) {
+    cb.addEventListener('change', function () {
+      if (!cb.dataset.id) return;
+      apiFetch('/api/v2/admin/payment-gateways/' + cb.dataset.id + '/toggle-sandbox', { method: 'PATCH' })
+        .then(function () { loadGateways(); })
+        .catch(function (e) { showToast(e.message, 'error'); cb.checked = !cb.checked; });
+    });
+  });
+
+  grid.querySelectorAll('.js-pgw-config').forEach(function (btn) {
+    btn.addEventListener('click', function () { openPgwModal(btn.dataset.key, btn.dataset.id || null, byName[btn.dataset.key] || null); });
+  });
+
+  $('pgw-loading').classList.add('hidden');
+  if (!gateways.length) {
+    $('pgw-empty').classList.remove('hidden');
+  } else {
+    grid.classList.remove('hidden');
+  }
+  grid.classList.remove('hidden');
+}
+
+// ── Modal configurar llaves ──────────────────────────────────────────────────
+
+function openPgwModal(providerKey, gid, gatewayData) {
+  pgwState.editingId       = gid;
+  pgwState.editingProvider = providerKey;
+
+  var meta = pgwMeta(providerKey);
+  $('pgw-modal-title').textContent    = 'Configurar ' + meta.label;
+  $('pgw-modal-provider').textContent = 'Las llaves se guardan encriptadas y nunca se exponen en texto claro.';
+
+  // Limpiar inputs
+  $('pgw-public-key').value    = '';
+  $('pgw-secret-key').value    = '';
+  $('pgw-webhook-secret').value = '';
+
+  // Mostrar credenciales enmascaradas si existen
+  var previewEl = $('pgw-creds-current');
+  var maskedEl  = $('pgw-creds-masked');
+  maskedEl.innerHTML = '';
+  if (gatewayData && gatewayData.has_credentials && gatewayData.credentials && Object.keys(gatewayData.credentials).length) {
+    previewEl.classList.remove('hidden');
+    Object.entries(gatewayData.credentials).forEach(function (entry) {
+      var row = document.createElement('div');
+      row.className = 'pgw-masked-row';
+      row.innerHTML = '<span class="pgw-masked-key">' + escHtml(entry[0]) + '</span>' +
+                      '<code class="ai-key-masked">' + escHtml(entry[1]) + '</code>';
+      maskedEl.appendChild(row);
+    });
+  } else {
+    previewEl.classList.add('hidden');
+  }
+
+  $('pgw-modal').classList.remove('hidden');
+  $('pgw-public-key').focus();
+}
+
+function closePgwModal() {
+  $('pgw-modal').classList.add('hidden');
+  pgwState.editingId = null;
+  pgwState.editingProvider = '';
+}
+
+$('pgw-modal-close').addEventListener('click', closePgwModal);
+$('pgw-modal-cancel').addEventListener('click', closePgwModal);
+$('pgw-modal').addEventListener('click', function (e) { if (e.target === $('pgw-modal')) closePgwModal(); });
+
+$('pgw-modal-save').addEventListener('click', function () {
+  var pubKey     = $('pgw-public-key').value.trim();
+  var secKey     = $('pgw-secret-key').value.trim();
+  var webhookKey = $('pgw-webhook-secret').value.trim();
+
+  if (!pubKey && !secKey) {
+    showToast('Ingresa al menos la Public Key y la Secret Key.', 'error');
+    return;
+  }
+
+  var creds = {};
+  if (pubKey)     creds.public_key      = pubKey;
+  if (secKey)     creds.secret_key      = secKey;
+  if (webhookKey) creds.webhook_secret  = webhookKey;
+
+  var provider = pgwState.editingProvider;
+  var gid      = pgwState.editingId;
+
+  var promise = gid
+    ? apiFetch('/api/v2/admin/payment-gateways/' + gid, { method: 'PUT',
+        body: JSON.stringify({ credentials: creds }) })
+    : apiFetch('/api/v2/admin/payment-gateways', { method: 'POST',
+        body: JSON.stringify({ provider_name: provider, credentials: creds }) });
+
+  promise
+    .then(function (d) {
+      if (!d.success) throw new Error(d.error || 'Error al guardar.');
+      showToast('Llaves de ' + pgwMeta(provider).label + ' guardadas.');
+      closePgwModal();
+      loadGateways();
+    })
+    .catch(function (e) { showToast(e.message, 'error'); });
+});
 
 // ══════════════════════════════════════════════════════════════════════════════
 // BOOT — Idéntico al flujo Bridge de checkout.js

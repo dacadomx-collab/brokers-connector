@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lista de Compras V2 - Brokers Connector</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+        
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #f8fafc;
+            color: #0f172a;
+        }
+
+        .glass-header {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .gradient-text {
+            background: linear-gradient(135deg, #2563eb, #0ea5e9);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .card-hover {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .card-hover:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
+        }
+
+        .emoji-icon {
+            font-size: 2rem;
+            line-height: 1;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 4rem;
+            height: 4rem;
+            border-radius: 1rem;
+            background: #f1f5f9;
+        }
+
+        .check-item {
+            position: relative;
+            padding-left: 1.75rem;
+        }
+
+        .check-item::before {
+            content: '✓';
+            position: absolute;
+            left: 0;
+            top: 0;
+            color: #10b981;
+            font-weight: 800;
+        }
+    </style>
+</head>
+<body class="antialiased selection:bg-blue-100 selection:text-blue-900">
+
+    <header class="sticky top-0 z-50 glass-header">
+        <div class="max-w-5xl mx-auto px-6 h-20 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-blue-200">B</div>
+                <div class="leading-none">
+                    <span class="text-xl font-bold tracking-tight text-slate-800 block">Brokers Connector</span>
+                    <span class="text-[10px] font-bold text-blue-600 uppercase tracking-widest">Portal de Operaciones</span>
+                </div>
+            </div>
+            <div class="hidden sm:block text-sm font-semibold text-slate-500 bg-slate-100 px-4 py-2 rounded-full">
+                Proyecto V2
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-5xl mx-auto px-6 py-16 space-y-20">
+
+        <section class="text-center space-y-6 max-w-3xl mx-auto">
+            <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-50 text-3xl mb-4">
+                👋
+            </div>
+            <h1 class="text-4xl md:text-5xl font-extrabold text-slate-900 tracking-tight leading-tight">
+                Hola TEAM, esta es la <br>
+                <span class="gradient-text">"Lista de Compras"</span> para V2
+            </h1>
+            <p class="text-lg text-slate-600 leading-relaxed">
+                Aquí tienes estructurado exactamente qué necesitamos tramitar administrativa y técnicamente para conectar los cerebros de Inteligencia Artificial y el nuevo Motor Financiero de Brokers Connector.
+            </p>
+        </section>
+
+        <section>
+            <div class="flex items-center gap-4 mb-8">
+                <div class="w-12 h-12 bg-indigo-100 rounded-2xl flex items-center justify-center text-2xl shadow-inner">🧠</div>
+                <div>
+                    <h2 class="text-2xl font-bold text-slate-900">1. Módulo de Orquestador IA</h2>
+                    <p class="text-slate-500 text-sm">Cerebros de Inteligencia Artificial para asistencia y operaciones.</p>
+                </div>
+            </div>
+
+            <div class="bg-amber-50 border border-amber-200 rounded-2xl p-6 mb-8 flex gap-4 items-start">
+                <div class="text-2xl">💳</div>
+                <div>
+                    <h4 class="font-bold text-amber-900">Aviso Administrativo Importante</h4>
+                    <p class="text-amber-800 text-sm mt-1">Para generar estas llaves, ambas plataformas requieren que se asocie una tarjeta de crédito corporativa. Funcionan bajo un modelo de "pago por uso" (Pay-as-you-go), cobrando solo los tokens que el sistema consuma.</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="bg-white p-8 rounded-3xl border border-slate-200 card-hover">
+                    <div class="flex justify-between items-start mb-6">
+                        <div class="emoji-icon bg-blue-50">🌐</div>
+                    </div>
+                    <h3 class="text-xl font-bold text-slate-900 mb-2">Google Gemini</h3>
+                    <p class="text-sm text-slate-500 mb-6">Plataforma: Google AI Studio</p>
+                    <div class="bg-slate-50 rounded-xl p-4">
+                        <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Se requiere generar:</p>
+                        <ul class="space-y-3 text-sm font-medium text-slate-700">
+                            <li class="check-item">1x API Key de Producción</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="bg-white p-8 rounded-3xl border border-slate-200 card-hover">
+                    <div class="flex justify-between items-start mb-6">
+                        <div class="emoji-icon bg-purple-50">🤖</div>
+                    </div>
+                    <h3 class="text-xl font-bold text-slate-900 mb-2">Anthropic Claude</h3>
+                    <p class="text-sm text-slate-500 mb-6">Plataforma: Anthropic Console</p>
+                    <div class="bg-slate-50 rounded-xl p-4">
+                        <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Se requiere generar:</p>
+                        <ul class="space-y-3 text-sm font-medium text-slate-700">
+                            <li class="check-item">1x API Key de Producción</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section>
+            <div class="flex items-center gap-4 mb-8">
+                <div class="w-12 h-12 bg-emerald-100 rounded-2xl flex items-center justify-center text-2xl shadow-inner">🏦</div>
+                <div>
+                    <h2 class="text-2xl font-bold text-slate-900">2. Módulo de Pasarelas de Pago</h2>
+                    <p class="text-slate-500 text-sm">El Motor Financiero para el selector del Super Admin.</p>
+                </div>
+            </div>
+
+            <div class="bg-blue-50 border border-blue-100 rounded-2xl p-6 mb-8 flex gap-4 items-start">
+                <div class="text-2xl">🔑</div>
+                <div>
+                    <h4 class="font-bold text-blue-900">Estructura de Entornos</h4>
+                    <p class="text-blue-800 text-sm mt-1">Para construir esto correctamente, necesitamos abrir cuentas corporativas en cada plataforma y extraer <strong>dos juegos de llaves por cuenta</strong>: Uno para el entorno <strong>Sandbox/Pruebas</strong> y otro para <strong>Producción</strong> (Dinero Real).</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="bg-white p-8 rounded-3xl border border-slate-200 card-hover relative overflow-hidden">
+                    <div class="absolute top-0 right-0 w-24 h-24 bg-blue-50 rounded-bl-[100px] -z-10"></div>
+                    <h3 class="text-xl font-bold text-slate-900 mb-2">Stripe</h3>
+                    <p class="text-sm text-slate-500 mb-6">Pasarela internacional principal</p>
+                    <ul class="space-y-4 text-sm text-slate-700">
+                        <li class="flex items-start gap-3">
+                            <span class="text-blue-500 font-bold mt-0.5">»</span>
+                            <div>
+                                <span class="font-bold block">Public Key</span>
+                                <span class="text-slate-500 text-xs">Publishable key para el frontend.</span>
+                            </div>
+                        </li>
+                        <li class="flex items-start gap-3">
+                            <span class="text-blue-500 font-bold mt-0.5">»</span>
+                            <div>
+                                <span class="font-bold block">Secret Key</span>
+                                <span class="text-slate-500 text-xs">Para cobros seguros desde el servidor.</span>
+                            </div>
+                        </li>
+                        <li class="flex items-start gap-3">
+                            <span class="text-blue-500 font-bold mt-0.5">»</span>
+                            <div>
+                                <span class="font-bold block">Webhook Signing Secret</span>
+                                <span class="text-slate-500 text-xs">Vital para escuchar cuando un cliente pague en OXXO.</span>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="bg-white p-8 rounded-3xl border border-slate-200 card-hover relative overflow-hidden">
+                    <div class="absolute top-0 right-0 w-24 h-24 bg-orange-50 rounded-bl-[100px] -z-10"></div>
+                    <h3 class="text-xl font-bold text-slate-900 mb-2">OpenPay</h3>
+                    <p class="text-sm text-slate-500 mb-6">Pasarela nacional (México)</p>
+                    <ul class="space-y-4 text-sm text-slate-700">
+                        <li class="flex items-start gap-3">
+                            <span class="text-orange-500 font-bold mt-0.5">»</span>
+                            <div>
+                                <span class="font-bold block">Merchant ID</span>
+                            </div>
+                        </li>
+                        <li class="flex items-start gap-3">
+                            <span class="text-orange-500 font-bold mt-0.5">»</span>
+                            <div>
+                                <span class="font-bold block">Public Key</span>
+                            </div>
+                        </li>
+                        <li class="flex items-start gap-3">
+                            <span class="text-orange-500 font-bold mt-0.5">»</span>
+                            <div>
+                                <span class="font-bold block">Private Key</span>
+                            </div>
+                        </li>
+                        <li class="flex items-start gap-3">
+                            <span class="text-orange-500 font-bold mt-0.5">»</span>
+                            <div>
+                                <span class="font-bold block">Webhook Secret</span>
+                                <span class="text-slate-500 text-xs">Para notificaciones de Paynet y SPEI.</span>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="bg-white p-8 rounded-3xl border border-slate-200 card-hover relative overflow-hidden">
+                    <div class="absolute top-0 right-0 w-24 h-24 bg-sky-50 rounded-bl-[100px] -z-10"></div>
+                    <h3 class="text-xl font-bold text-slate-900 mb-2">PayPal</h3>
+                    <p class="text-sm text-slate-500 mb-6">Braintree / REST API</p>
+                    <ul class="space-y-4 text-sm text-slate-700">
+                        <li class="flex items-start gap-3">
+                            <span class="text-sky-500 font-bold mt-0.5">»</span>
+                            <div>
+                                <span class="font-bold block">Client ID</span>
+                            </div>
+                        </li>
+                        <li class="flex items-start gap-3">
+                            <span class="text-sky-500 font-bold mt-0.5">»</span>
+                            <div>
+                                <span class="font-bold block">Secret Key</span>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="bg-white p-8 rounded-3xl border border-slate-200 card-hover relative overflow-hidden">
+                    <div class="absolute top-0 right-0 w-24 h-24 bg-teal-50 rounded-bl-[100px] -z-10"></div>
+                    <h3 class="text-xl font-bold text-slate-900 mb-2">Nuvei</h3>
+                    <p class="text-sm text-slate-500 mb-6">Procesamiento alternativo</p>
+                    <ul class="space-y-4 text-sm text-slate-700">
+                        <li class="flex items-start gap-3">
+                            <span class="text-teal-500 font-bold mt-0.5">»</span>
+                            <div>
+                                <span class="font-bold block">Merchant ID / Site ID</span>
+                            </div>
+                        </li>
+                        <li class="flex items-start gap-3">
+                            <span class="text-teal-500 font-bold mt-0.5">»</span>
+                            <div>
+                                <span class="font-bold block">Secret Key / Hash Key</span>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <section class="bg-slate-900 rounded-[2rem] p-10 text-center relative overflow-hidden mt-12 shadow-2xl">
+            <div class="absolute inset-0 opacity-10" style="background-image: radial-gradient(circle at 50% 0%, #38bdf8 0%, transparent 70%);"></div>
+            <h2 class="text-2xl font-bold text-white mb-4 relative z-10">¿Dudas con la creación de cuentas?</h2>
+            <p class="text-slate-400 mb-8 max-w-2xl mx-auto relative z-10">
+                Una vez que se completen estos trámites administrativos y tengamos las llaves, el equipo de desarrollo podrá integrarlas en el panel "Secret" del Super Admin para poner el sistema a operar.
+            </p>
+            <div class="inline-flex items-center gap-2 px-6 py-3 bg-white/10 text-white rounded-full font-semibold border border-white/20 relative z-10">
+                <span>🚀 Listo para la Integración V2</span>
+            </div>
+        </section>
+
+    </main>
+
+</body>
+</html>
