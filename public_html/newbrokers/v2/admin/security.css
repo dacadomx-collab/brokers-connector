@@ -717,6 +717,69 @@
 
 .ai-textarea { min-height: 4.5rem; resize: vertical; font-family: var(--v2-font-mono); font-size: 0.8rem; }
 
+/* ══════════════════════════════════════════════════════════════
+   § EMPRESAS — Badges de estatus de suscripción
+   ══════════════════════════════════════════════════════════════ */
+
+.sa-badge {
+  display: inline-block;
+  padding: 0.15rem 0.6rem;
+  border-radius: 0.3rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.sa-badge-green  { background: #d1fae5; color: #065f46; }
+.sa-badge-yellow { background: #fef3c7; color: #92400e; }
+.sa-badge-red    { background: #fee2e2; color: #991b1b; }
+.sa-badge-gray   { background: var(--v2-surface-alt); color: var(--v2-text-muted); }
+
+/* ══════════════════════════════════════════════════════════════
+   § EMPRESAS — Sorting de columnas
+   ══════════════════════════════════════════════════════════════ */
+
+.co-sortable {
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+  transition: background 0.12s ease;
+}
+
+.co-sortable:hover {
+  background: var(--v2-surface-alt, #f1f5f9);
+}
+
+.co-sortable[aria-sort] {
+  background: var(--v2-surface-alt, #f1f5f9);
+  color: var(--v2-primary, #4f46e5);
+}
+
+/* Ícono de ordenamiento */
+.co-sort-icon {
+  display: inline-block;
+  margin-left: 0.3rem;
+  font-size: 0.7rem;
+  opacity: 0.35;
+  vertical-align: middle;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.co-sortable:hover .co-sort-icon {
+  opacity: 0.65;
+}
+
+.co-sortable[aria-sort="ascending"] .co-sort-icon,
+.co-sortable[aria-sort="descending"] .co-sort-icon {
+  opacity: 1;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   § AUDIT TRAIL — no requiere estilos adicionales (reutiliza
+   sa-table, sa-card, sa-badge y v2-btn existentes)
+   ══════════════════════════════════════════════════════════════ */
+
 .ai-row {
   display: flex;
   flex-wrap: wrap;

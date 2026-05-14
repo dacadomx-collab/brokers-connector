@@ -78,9 +78,11 @@ function getInitials(name) {
 // ── Tabs ─────────────────────────────────────────────────────────────────────
 
 const TABS = [
-  { btn: 'tab-users',    panel: 'panel-users'    },
-  { btn: 'tab-ai',       panel: 'panel-ai'       },
-  { btn: 'tab-payments', panel: 'panel-payments' },
+  { btn: 'tab-users',     panel: 'panel-users'     },
+  { btn: 'tab-ai',        panel: 'panel-ai'        },
+  { btn: 'tab-payments',  panel: 'panel-payments'  },
+  { btn: 'tab-companies', panel: 'panel-companies' },
+  { btn: 'tab-audit',     panel: 'panel-audit'     },
 ];
 
 function activateTab(targetBtnId) {
@@ -100,6 +102,14 @@ $('tab-ai').addEventListener('click', () => {
 $('tab-payments').addEventListener('click', () => {
   activateTab('tab-payments');
   loadGateways();
+});
+$('tab-companies').addEventListener('click', () => {
+  activateTab('tab-companies');
+  loadCompanies();
+});
+$('tab-audit').addEventListener('click', () => {
+  activateTab('tab-audit');
+  loadAuditLogs();
 });
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -704,6 +714,321 @@ $('pgw-modal-save').addEventListener('click', function () {
       loadGateways();
     })
     .catch(function (e) { showToast(e.message, 'error'); });
+});
+
+// ══════════════════════════════════════════════════════════════════════════════
+// MÓDULO D — GESTIÓN DE EMPRESAS
+// ══════════════════════════════════════════════════════════════════════════════
+
+var coState = {
+  page:          1,
+  search:        '',
+  pendingAction: null,
+  sortField:     'id',
+  sortDir:       'asc',
+};
+
+// ── Inicializar listeners de sorting en thead ────────────────────────────────
+(function initSortHeaders() {
+  var thead = $('co-thead');
+  if (!thead) return;
+  var sortableThs = thead.querySelectorAll('.co-sortable');
+  sortableThs.forEach(function (th) {
+    th.addEventListener('click', function () {
+      var field = th.getAttribute('data-field');
+      if (coState.sortField === field) {
+        coState.sortDir = coState.sortDir === 'asc' ? 'desc' : 'asc';
+      } else {
+        coState.sortField = field;
+        coState.sortDir   = 'asc';
+      }
+      updateSortIcons();
+      loadCompanies(1);
+    });
+  });
+}());
+
+function updateSortIcons() {
+  var thead = $('co-thead');
+  if (!thead) return;
+  thead.querySelectorAll('.co-sortable').forEach(function (th) {
+    var icon  = th.querySelector('.co-sort-icon');
+    var field = th.getAttribute('data-field');
+    if (field === coState.sortField) {
+      th.setAttribute('aria-sort', coState.sortDir === 'asc' ? 'ascending' : 'descending');
+      icon.textContent = coState.sortDir === 'asc' ? ' ▲' : ' ▼';
+    } else {
+      th.removeAttribute('aria-sort');
+      icon.textContent = '';
+    }
+  });
+}
+
+function loadCompanies(page) {
+  page = page || 1;
+  coState.page = page;
+
+  $('co-loading').classList.remove('hidden');
+  $('co-wrapper').classList.add('hidden');
+  $('co-empty').classList.add('hidden');
+
+  var qs = '?per_page=20&page=' + page;
+  if (coState.search)   qs += '&search='   + encodeURIComponent(coState.search);
+  if (coState.sortField) qs += '&sort_by='  + encodeURIComponent(coState.sortField);
+  if (coState.sortDir)   qs += '&sort_dir=' + encodeURIComponent(coState.sortDir);
+
+  apiFetch('/api/v2/admin/companies' + qs)
+    .then(function (d) {
+      $('co-loading').classList.add('hidden');
+      if (!d.success || !d.data.length) {
+        $('co-empty').classList.remove('hidden');
+        $('co-count').textContent = '0';
+        return;
+      }
+      $('co-count').textContent = d.meta.total;
+      renderCompanies(d.data);
+      renderCoPager(d.meta);
+      updateSortIcons();
+      $('co-wrapper').classList.remove('hidden');
+    })
+    .catch(function (e) {
+      $('co-loading').classList.add('hidden');
+      showToast(e.message, 'error');
+    });
+}
+
+var STATUS_CLASS = {
+  'Activa':     'sa-badge-green',
+  'Vencida':    'sa-badge-yellow',
+  'Suspendida': 'sa-badge-red',
+};
+
+function renderCompanies(rows) {
+  var tbody = $('co-tbody');
+  tbody.innerHTML = '';
+  rows.forEach(function (c) {
+    var cls = STATUS_CLASS[c.status_label] || 'sa-badge-gray';
+    var tr = document.createElement('tr');
+    tr.innerHTML =
+      '<td>' + escHtml(c.id) + '</td>' +
+      '<td><strong>' + escHtml(c.name) + '</strong></td>' +
+      '<td>' + escHtml(c.email || '—') + '</td>' +
+      '<td>' + escHtml(c.package || '—') + '</td>' +
+      '<td><span class="sa-badge ' + cls + '">' + escHtml(c.status_label) + '</span></td>' +
+      '<td>' + escHtml(c.last_payment || '—') + '</td>' +
+      '<td>' + escHtml(c.due_date || '—') + '</td>' +
+      '<td class="sa-col-actions">' +
+        '<button class="v2-btn v2-btn-ghost" style="font-size:.75rem;padding:.3rem .6rem;" ' +
+          'onclick="coToggle(' + c.id + ',\'' + escAttr(c.name) + '\',' + c.active + ')">' +
+          (c.active ? 'Suspender' : 'Activar') +
+        '</button> ' +
+        '<button class="v2-btn v2-btn-danger" style="font-size:.75rem;padding:.3rem .6rem;" ' +
+          'onclick="coDelete(' + c.id + ',\'' + escAttr(c.name) + '\')">' +
+          'Eliminar' +
+        '</button>' +
+      '</td>';
+    tbody.appendChild(tr);
+  });
+}
+
+function renderCoPager(meta) {
+  var pager = $('co-pager');
+  pager.innerHTML = '';
+  if (meta.last_page <= 1) return;
+  for (var p = 1; p <= meta.last_page; p++) {
+    var btn = document.createElement('button');
+    btn.textContent = p;
+    btn.className = 'v2-btn ' + (p === meta.current_page ? 'v2-btn-primary' : 'v2-btn-ghost');
+    btn.style.padding = '.3rem .7rem';
+    (function (pg) { btn.addEventListener('click', function () { loadCompanies(pg); }); }(p));
+    pager.appendChild(btn);
+  }
+}
+
+// Modal confirmación
+function coToggle(id, name, currentActive) {
+  var action = currentActive ? 'suspender' : 'activar';
+  $('co-modal-icon').textContent = currentActive ? '⏸️' : '▶️';
+  $('co-modal-title').textContent = (currentActive ? 'Suspender' : 'Activar') + ' empresa';
+  $('co-modal-body').textContent = '¿Confirmas ' + action + ' la empresa "' + name + '"?';
+  coState.pendingAction = function () {
+    apiFetch('/api/v2/admin/companies/' + id + '/toggle-status', { method: 'PATCH' })
+      .then(function (d) {
+        if (!d.success) throw new Error(d.error || 'Error.');
+        showToast(d.message);
+        loadCompanies(coState.page);
+      })
+      .catch(function (e) { showToast(e.message, 'error'); });
+  };
+  $('co-modal').classList.remove('hidden');
+}
+
+function coDelete(id, name) {
+  $('co-modal-icon').textContent = '🗑️';
+  $('co-modal-title').textContent = 'Eliminar empresa';
+  $('co-modal-body').textContent = 'Esta acción suspenderá y marcará como eliminada la empresa "' + name + '". No se puede deshacer.';
+  coState.pendingAction = function () {
+    apiFetch('/api/v2/admin/companies/' + id, { method: 'DELETE' })
+      .then(function (d) {
+        if (!d.success) throw new Error(d.error || 'Error.');
+        showToast(d.message);
+        loadCompanies(coState.page);
+      })
+      .catch(function (e) { showToast(e.message, 'error'); });
+  };
+  $('co-modal').classList.remove('hidden');
+}
+
+$('co-modal-cancel').addEventListener('click', function () {
+  $('co-modal').classList.add('hidden');
+  coState.pendingAction = null;
+});
+$('co-modal-confirm').addEventListener('click', function () {
+  $('co-modal').classList.add('hidden');
+  if (coState.pendingAction) { coState.pendingAction(); coState.pendingAction = null; }
+});
+$('co-search-btn').addEventListener('click', function () {
+  coState.search = $('co-search').value.trim();
+  loadCompanies(1);
+});
+$('co-clear-btn').addEventListener('click', function () {
+  $('co-search').value = '';
+  coState.search = '';
+  loadCompanies(1);
+});
+$('co-search').addEventListener('keydown', function (e) {
+  if (e.key === 'Enter') { coState.search = e.target.value.trim(); loadCompanies(1); }
+});
+
+// ══════════════════════════════════════════════════════════════════════════════
+// MÓDULO E — AUDIT TRAIL + EXPORTACIÓN PDF
+// ══════════════════════════════════════════════════════════════════════════════
+
+var auditState = { page: 1, rows: [] };
+
+var ACTION_LABEL = {
+  activate:       'Activar',
+  suspend:        'Suspender',
+  delete:         'Eliminar',
+  toggle_role:    'Cambio de Rol',
+  reset_password: 'Reset Contraseña',
+};
+
+function loadAuditLogs(page) {
+  page = page || 1;
+  auditState.page = page;
+
+  $('audit-loading').classList.remove('hidden');
+  $('audit-wrapper').classList.add('hidden');
+  $('audit-empty').classList.add('hidden');
+
+  apiFetch('/api/v2/admin/audit-logs?per_page=50&page=' + page)
+    .then(function (d) {
+      $('audit-loading').classList.add('hidden');
+      if (!d.success || !d.data.length) {
+        $('audit-empty').classList.remove('hidden');
+        $('audit-count').textContent = '0';
+        return;
+      }
+      auditState.rows = d.data;
+      $('audit-count').textContent = d.meta.total + ' registros';
+      renderAuditLogs(d.data);
+      renderAuditPager(d.meta);
+      $('audit-wrapper').classList.remove('hidden');
+    })
+    .catch(function (e) {
+      $('audit-loading').classList.add('hidden');
+      showToast(e.message, 'error');
+    });
+}
+
+function renderAuditLogs(rows) {
+  var tbody = $('audit-tbody');
+  tbody.innerHTML = '';
+  rows.forEach(function (log, i) {
+    var tr = document.createElement('tr');
+    var fecha = log.created_at
+      ? new Date(log.created_at).toLocaleString('es-MX', { hour12: false })
+      : '—';
+    tr.innerHTML =
+      '<td>' + escHtml(log.id) + '</td>' +
+      '<td style="white-space:nowrap;">' + escHtml(fecha) + '</td>' +
+      '<td>' + escHtml(log.actor_email || '—') + '</td>' +
+      '<td><strong>' + escHtml(ACTION_LABEL[log.action] || log.action) + '</strong></td>' +
+      '<td>' + escHtml(log.target_name || log.target_id || '—') + '</td>' +
+      '<td><span class="sa-badge sa-badge-gray">' + escHtml(log.from_status || '—') + '</span></td>' +
+      '<td><span class="sa-badge sa-badge-green">' + escHtml(log.to_status || '—') + '</span></td>';
+    tbody.appendChild(tr);
+  });
+}
+
+function renderAuditPager(meta) {
+  var pager = $('audit-pager');
+  pager.innerHTML = '';
+  if (meta.last_page <= 1) return;
+  for (var p = 1; p <= meta.last_page; p++) {
+    var btn = document.createElement('button');
+    btn.textContent = p;
+    btn.className = 'v2-btn ' + (p === meta.current_page ? 'v2-btn-primary' : 'v2-btn-ghost');
+    btn.style.padding = '.3rem .7rem';
+    (function (pg) { btn.addEventListener('click', function () { loadAuditLogs(pg); }); }(p));
+    pager.appendChild(btn);
+  }
+}
+
+$('audit-refresh').addEventListener('click', function () { loadAuditLogs(auditState.page); });
+
+// Exportación a PDF con jsPDF
+$('audit-export-pdf').addEventListener('click', function () {
+  if (!auditState.rows.length) {
+    showToast('Sin datos para exportar.', 'error');
+    return;
+  }
+
+  var jsPDF = window.jspdf && window.jspdf.jsPDF;
+  if (!jsPDF) {
+    showToast('Librería jsPDF no disponible.', 'error');
+    return;
+  }
+
+  var doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+  var fechaGen = new Date().toLocaleString('es-MX', { hour12: false });
+
+  doc.setFontSize(14);
+  doc.text('Brokers Connector — Audit Trail', 14, 15);
+  doc.setFontSize(9);
+  doc.text('Generado: ' + fechaGen, 14, 21);
+  doc.text('Página: 1', 267, 21, { align: 'right' });
+
+  var cols = ['#', 'Fecha / Hora', 'Super Admin', 'Acción', 'Empresa', 'De', 'A'];
+  var rows = auditState.rows.map(function (log) {
+    var fecha = log.created_at
+      ? new Date(log.created_at).toLocaleString('es-MX', { hour12: false })
+      : '—';
+    return [
+      String(log.id),
+      fecha,
+      log.actor_email || '—',
+      ACTION_LABEL[log.action] || log.action,
+      log.target_name || String(log.target_id) || '—',
+      log.from_status || '—',
+      log.to_status   || '—',
+    ];
+  });
+
+  // autoTable: incluido en jsPDF v2 UMD
+  doc.autoTable({
+    startY: 26,
+    head: [cols],
+    body: rows,
+    styles: { fontSize: 8, cellPadding: 2 },
+    headStyles: { fillColor: [48, 119, 183], textColor: 255, fontStyle: 'bold' },
+    alternateRowStyles: { fillColor: [245, 248, 252] },
+    margin: { left: 14, right: 14 },
+  });
+
+  doc.save('audit-trail-' + new Date().toISOString().slice(0, 10) + '.pdf');
+  showToast('PDF generado correctamente.');
 });
 
 // ══════════════════════════════════════════════════════════════════════════════

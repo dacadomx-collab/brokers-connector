@@ -14,6 +14,7 @@ use Spatie\Permission\Traits\HasRoles;
 use App\Company;
 use App\Property;
 use App\PropertyStock;
+use App\Http\Scopes\TenantUserScope;
 
 class User extends Authenticatable implements CanResetPasswordContract
 {
@@ -46,14 +47,15 @@ class User extends Authenticatable implements CanResetPasswordContract
         'email_verified_at' => 'datetime',
     ];
 
-    public static function boot() {
-        
+    protected static function boot(): void
+    {
         parent::boot();
 
-        static::creating(function($user) {
+        static::addGlobalScope(new TenantUserScope());
+
+        static::creating(function ($user) {
             $user->token = Str::random(30);
         });
-       
     }
 
 

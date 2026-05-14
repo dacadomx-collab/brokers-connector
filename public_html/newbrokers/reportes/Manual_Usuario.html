@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manual del Usuario — Brokers Connector</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f1f5f9; }
+        .bg-oro { background-color: #f59e0b; }
+        .text-oro { color: #f59e0b; }
+        .border-oro { border-color: #f59e0b; }
+        .shadow-oro { box-shadow: 0 4px 14px 0 rgba(245, 158, 11, 0.39); }
+        .section-card { transition: all 0.3s ease; }
+        .section-card:hover { transform: translateY(-2px); box-shadow: 0 10px 30px -5px rgba(0,0,0,0.08); }
+        .badge-new {
+            animation: pulse-badge 2s infinite;
+        }
+        @keyframes pulse-badge {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4); }
+            50% { box-shadow: 0 0 0 6px rgba(59, 130, 246, 0); }
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <div class="max-w-4xl mx-auto bg-white rounded-3xl shadow-2xl overflow-hidden border border-gray-200">
+
+        <!-- HEADER -->
+        <header class="bg-gradient-to-br from-blue-900 to-slate-900 text-white p-8 md:p-12 relative overflow-hidden">
+            <div class="absolute top-0 right-0 -mt-16 -mr-16 w-72 h-72 bg-blue-800 rounded-full opacity-30"></div>
+            <div class="absolute bottom-0 left-0 -mb-12 -ml-12 w-48 h-48 bg-blue-400 rounded-full opacity-10"></div>
+
+            <div class="relative z-10">
+                <div class="flex items-center gap-3 mb-4">
+                    <span class="bg-blue-500 text-white text-xs font-bold uppercase px-3 py-1 rounded-full tracking-wider">
+                        <i class="fas fa-book-open mr-1"></i> Guía para Agentes
+                    </span>
+                    <span class="bg-blue-900/60 text-blue-200 text-xs font-medium px-3 py-1 rounded-full border border-blue-700">v1.0 · 2026</span>
+                </div>
+                <h1 class="text-4xl md:text-5xl font-extrabold tracking-tight mb-2">
+                    Manual del <span class="text-blue-300">Usuario</span>
+                </h1>
+                <p class="text-blue-200 text-lg font-light max-w-xl">
+                    Todo lo que necesitas para moverte con confianza dentro de la plataforma, desde el primer día.
+                </p>
+                <div class="mt-6 flex items-center gap-3">
+                    <div class="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
+                        <i class="fas fa-user-tie text-white text-lg"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs text-blue-300 uppercase tracking-widest">Para</p>
+                        <p class="font-semibold text-white">Agentes y Brokers Inmobiliarios</p>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- ÍNDICE -->
+        <nav class="bg-slate-50 px-8 py-6 border-b border-gray-100">
+            <p class="text-xs font-bold uppercase tracking-widest text-slate-400 mb-4">Contenido del Manual</p>
+            <ul class="space-y-2 text-sm">
+                <li>
+                    <a href="#sec1" class="flex items-center gap-2 text-slate-600 hover:text-blue-600 transition-colors">
+                        <i class="fas fa-chevron-right text-blue-400 text-xs"></i>
+                        1. La Puerta de Entrada y Tu Seguridad Inicial
+                    </a>
+                    <ul class="ml-6 mt-1 space-y-1">
+                        <li><a href="#sec1a" class="flex items-center gap-2 text-slate-500 hover:text-blue-500 transition-colors text-xs"><i class="fas fa-minus text-slate-300 text-xs"></i> 1.1 Tu primer acceso a la plataforma</a></li>
+                        <li class="bg-blue-50 rounded-lg px-2 py-1 border border-blue-100">
+                            <a href="#sec1b" class="flex items-center gap-2 text-blue-700 font-semibold hover:text-blue-900 transition-colors text-xs">
+                                <i class="fas fa-key text-blue-500 text-xs"></i> 1.2 ¿Olvidaste tu contraseña? (Recuperación Segura)
+                                <span class="bg-blue-500 text-white text-xs px-2 py-0.5 rounded-full badge-new">¡NUEVO!</span>
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+                <li><a href="#sec2" class="flex items-center gap-2 text-slate-600 hover:text-blue-600 transition-colors"><i class="fas fa-chevron-right text-blue-400 text-xs"></i> 2. Tu Perfil y Configuración Personal</a></li>
+                <li><a href="#sec3" class="flex items-center gap-2 text-slate-600 hover:text-blue-600 transition-colors"><i class="fas fa-chevron-right text-blue-400 text-xs"></i> 3. Gestión del Catálogo de Propiedades</a></li>
+                <li><a href="#sec4" class="flex items-center gap-2 text-slate-600 hover:text-blue-600 transition-colors"><i class="fas fa-chevron-right text-blue-400 text-xs"></i> 4. Trabajo en Red con Otros Brokers</a></li>
+            </ul>
+        </nav>
+
+        <div class="p-8 md:p-12 space-y-12">
+
+            <!-- SECCIÓN 1 -->
+            <section id="sec1">
+                <div class="flex items-center gap-4 mb-6">
+                    <div class="w-12 h-12 bg-blue-600 text-white rounded-2xl flex items-center justify-center text-xl font-extrabold flex-shrink-0 shadow-sm">1</div>
+                    <div>
+                        <h2 class="text-2xl font-bold text-slate-800">La Puerta de Entrada y Tu Seguridad Inicial</h2>
+                        <p class="text-sm text-slate-500">Tu primera conexión con la red</p>
+                    </div>
+                </div>
+
+                <!-- SUB-SECCIÓN 1.1 -->
+                <div id="sec1a" class="bg-slate-50 rounded-2xl p-6 border border-slate-100 section-card mb-6">
+                    <h3 class="font-bold text-slate-800 text-lg mb-3 flex items-center gap-2">
+                        <i class="fas fa-door-open text-blue-500"></i>
+                        1.1 Tu primer acceso a la plataforma
+                    </h3>
+                    <p class="text-slate-600 leading-relaxed mb-4">
+                        Cuando un administrador aprueba tu registro, recibirás las instrucciones para ingresar. Dirígete al portal de inicio de sesión, ingresa tu correo electrónico y la contraseña que estableciste al registrarte.
+                    </p>
+                    <p class="text-slate-600 leading-relaxed">
+                        El sistema te llevará directamente a tu panel personal, donde encontrarás todas las herramientas que necesitas para tu labor como agente inmobiliario. <strong class="text-slate-800">Todo está pensado para que puedas concentrarte en lo que realmente importa: cerrar negocios y servir a tus clientes.</strong>
+                    </p>
+                    <div class="mt-4 bg-blue-50 border border-blue-100 rounded-xl p-4 text-sm text-blue-700">
+                        <i class="fas fa-shield-alt mr-2"></i>
+                        <strong>Tu seguridad importa:</strong> Te recomendamos usar una contraseña única para esta plataforma. Tu información y la de tus clientes merece la mejor protección.
+                    </div>
+                </div>
+
+                <!-- SUB-SECCIÓN 1.2 — NUEVA -->
+                <div id="sec1b" class="relative">
+                    <div class="absolute -top-3 -right-2 bg-blue-500 text-white text-xs font-extrabold px-4 py-1 rounded-full shadow-lg badge-new transform rotate-1">
+                        ¡NUEVO!
+                    </div>
+
+                    <div class="border-2 border-blue-200 rounded-3xl p-8 bg-gradient-to-br from-blue-50 to-indigo-50">
+
+                        <h3 class="font-bold text-slate-800 text-xl mb-1 flex items-center gap-3">
+                            <div class="w-10 h-10 bg-blue-500 text-white rounded-xl flex items-center justify-center flex-shrink-0">
+                                <i class="fas fa-key text-lg"></i>
+                            </div>
+                            1.2 ¿Olvidaste tu contraseña?
+                            <span class="text-blue-600">(Recuperación Segura)</span>
+                        </h3>
+                        <p class="text-sm text-blue-700 font-medium mb-5 ml-14">Recuperación segura de credenciales de acceso en 3 pasos</p>
+
+                        <p class="text-slate-600 leading-relaxed mb-6">
+                            ¡No te preocupes, le pasa a todos! Si en algún momento no recuerdas tu contraseña, el proceso para recuperar el acceso es muy sencillo y está diseñado para que en ningún momento tu seguridad quede comprometida.
+                        </p>
+
+                        <!-- Paso a paso para el usuario -->
+                        <div class="space-y-4">
+
+                            <div class="flex gap-4 bg-white rounded-2xl p-5 border border-blue-100 shadow-sm">
+                                <div class="flex-shrink-0 w-9 h-9 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold text-sm">
+                                    1
+                                </div>
+                                <div>
+                                    <h4 class="font-semibold text-slate-800 mb-1">Comunícate con tu administrador</h4>
+                                    <p class="text-sm text-slate-600 leading-relaxed">
+                                        Simplemente dile al administrador de tu organización que necesitas recuperar el acceso. No necesitas dar más explicaciones — él tiene la herramienta para ayudarte de forma rápida y discreta, directamente desde su panel.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div class="flex gap-4 bg-white rounded-2xl p-5 border border-blue-100 shadow-sm">
+                                <div class="flex-shrink-0 w-9 h-9 bg-amber-500 text-white rounded-full flex items-center justify-center font-bold text-sm">
+                                    2
+                                </div>
+                                <div>
+                                    <h4 class="font-semibold text-slate-800 mb-1">Recibe tu clave temporal</h4>
+                                    <p class="text-sm text-slate-600 leading-relaxed">
+                                        Tu administrador te enviará una <strong>contraseña temporal de un solo uso</strong>. Esta clave fue generada exclusivamente para restablecer tu acceso. Úsala para ingresar a la plataforma con tu correo y esa clave temporal.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div class="flex gap-4 border-2 border-emerald-200 bg-gradient-to-r from-emerald-50 to-teal-50 rounded-2xl p-5 shadow-sm">
+                                <div class="flex-shrink-0 w-9 h-9 bg-emerald-600 text-white rounded-full flex items-center justify-center font-bold text-sm">
+                                    3
+                                </div>
+                                <div>
+                                    <h4 class="font-semibold text-slate-800 mb-1 flex items-center gap-2">
+                                        Crea tu nueva contraseña — solo tú la sabrás
+                                        <i class="fas fa-lock text-emerald-500 text-sm"></i>
+                                    </h4>
+                                    <p class="text-sm text-slate-600 leading-relaxed mb-3">
+                                        Aquí viene la parte más importante: <strong class="text-slate-800">al usar esa clave temporal, el sistema te redirigirá obligatoriamente a una pantalla especial</strong>. No podrás saltarte este paso. Ahí podrás crear una contraseña completamente nueva, que solo tú conocerás y que quedará como tu acceso permanente.
+                                    </p>
+                                    <div class="bg-white border border-emerald-200 rounded-xl p-3 text-xs text-emerald-700 flex items-start gap-2">
+                                        <i class="fas fa-user-shield text-emerald-500 mt-0.5 flex-shrink-0"></i>
+                                        <span>
+                                            <strong>Máxima privacidad garantizada:</strong> Ni tu administrador, ni nadie en la plataforma, tiene acceso a tu nueva contraseña. El sistema la guarda de forma encriptada. Tu vida digital es tuya y solo tuya.
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+
+                        <!-- Resumen visual -->
+                        <div class="mt-8 bg-white rounded-2xl p-5 border border-blue-100">
+                            <p class="text-xs font-bold uppercase tracking-widest text-slate-400 mb-4 text-center">Así de simple es el proceso</p>
+                            <div class="flex items-center justify-center flex-wrap gap-2 text-xs font-semibold text-center">
+                                <div class="bg-blue-100 text-blue-700 px-3 py-2 rounded-xl">📞 Llamas al admin</div>
+                                <i class="fas fa-arrow-right text-slate-300"></i>
+                                <div class="bg-amber-100 text-amber-700 px-3 py-2 rounded-xl">🔑 Recibes clave temporal</div>
+                                <i class="fas fa-arrow-right text-slate-300"></i>
+                                <div class="bg-emerald-100 text-emerald-700 px-3 py-2 rounded-xl">🔐 Entras y creas tu nueva clave</div>
+                                <i class="fas fa-arrow-right text-slate-300"></i>
+                                <div class="bg-purple-100 text-purple-700 px-3 py-2 rounded-xl">✅ ¡Listo, ya estás dentro!</div>
+                            </div>
+                        </div>
+
+                        <div class="mt-4 text-center">
+                            <p class="text-xs text-slate-400 italic">
+                                "El sistema nunca te dejará vulnerable — cada paso del proceso está diseñado para protegerte."
+                            </p>
+                        </div>
+
+                    </div>
+                </div>
+
+            </section>
+
+            <!-- SECCIÓN 2 -->
+            <section id="sec2">
+                <div class="flex items-center gap-4 mb-6">
+                    <div class="w-12 h-12 bg-blue-600 text-white rounded-2xl flex items-center justify-center text-xl font-extrabold flex-shrink-0 shadow-sm">2</div>
+                    <div>
+                        <h2 class="text-2xl font-bold text-slate-800">Tu Perfil y Configuración Personal</h2>
+                        <p class="text-sm text-slate-500">Tu identidad en la red</p>
+                    </div>
+                </div>
+                <div class="bg-slate-50 rounded-2xl p-6 border border-slate-100 section-card">
+                    <p class="text-slate-600 leading-relaxed mb-4">
+                        Tu perfil es tu carta de presentación dentro de la plataforma. Un perfil completo genera confianza con tus colegas y facilita la colaboración en red. Mantén actualizada tu foto, tu información de contacto y tu especialidad.
+                    </p>
+                    <ul class="space-y-2 text-sm text-slate-600">
+                        <li class="flex items-start gap-2"><i class="fas fa-check-circle text-blue-500 mt-0.5"></i> Foto de perfil profesional.</li>
+                        <li class="flex items-start gap-2"><i class="fas fa-check-circle text-blue-500 mt-0.5"></i> Número de contacto y redes sociales.</li>
+                        <li class="flex items-start gap-2"><i class="fas fa-check-circle text-blue-500 mt-0.5"></i> Cambio de contraseña desde la sección de seguridad de tu perfil.</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- SECCIÓN 3 -->
+            <section id="sec3">
+                <div class="flex items-center gap-4 mb-6">
+                    <div class="w-12 h-12 bg-blue-600 text-white rounded-2xl flex items-center justify-center text-xl font-extrabold flex-shrink-0 shadow-sm">3</div>
+                    <div>
+                        <h2 class="text-2xl font-bold text-slate-800">Gestión del Catálogo de Propiedades</h2>
+                        <p class="text-sm text-slate-500">Tu inventario, siempre ordenado y disponible</p>
+                    </div>
+                </div>
+                <div class="bg-slate-50 rounded-2xl p-6 border border-slate-100 section-card">
+                    <p class="text-slate-600 leading-relaxed mb-4">
+                        Aquí vive tu trabajo. Puedes agregar, editar y gestionar todas tus propiedades en un catálogo profesional que puede sincronizarse con portales externos mediante feeds XML, amplificando tu alcance sin esfuerzo extra.
+                    </p>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        <div class="bg-white p-3 rounded-xl border border-slate-200 text-center text-xs">
+                            <i class="fas fa-plus-circle text-xl text-blue-500 mb-1"></i>
+                            <p class="font-semibold text-slate-700">Agregar propiedad</p>
+                        </div>
+                        <div class="bg-white p-3 rounded-xl border border-slate-200 text-center text-xs">
+                            <i class="fas fa-images text-xl text-purple-500 mb-1"></i>
+                            <p class="font-semibold text-slate-700">Subir fotografías</p>
+                        </div>
+                        <div class="bg-white p-3 rounded-xl border border-slate-200 text-center text-xs">
+                            <i class="fas fa-rss text-xl text-orange-500 mb-1"></i>
+                            <p class="font-semibold text-slate-700">Feed XML</p>
+                        </div>
+                        <div class="bg-white p-3 rounded-xl border border-slate-200 text-center text-xs">
+                            <i class="fas fa-chart-bar text-xl text-emerald-500 mb-1"></i>
+                            <p class="font-semibold text-slate-700">Estadísticas</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECCIÓN 4 -->
+            <section id="sec4">
+                <div class="flex items-center gap-4 mb-6">
+                    <div class="w-12 h-12 bg-blue-600 text-white rounded-2xl flex items-center justify-center text-xl font-extrabold flex-shrink-0 shadow-sm">4</div>
+                    <div>
+                        <h2 class="text-2xl font-bold text-slate-800">Trabajo en Red con Otros Brokers</h2>
+                        <p class="text-sm text-slate-500">La fuerza de la comunidad a tu favor</p>
+                    </div>
+                </div>
+                <div class="bg-slate-50 rounded-2xl p-6 border border-slate-100 section-card">
+                    <p class="text-slate-600 leading-relaxed mb-4">
+                        La plataforma está diseñada para el trabajo colaborativo. Puedes explorar el inventario compartido de otros agentes de tu red, referenciar propiedades y construir alianzas estratégicas que multipliquen tus oportunidades de cierre.
+                    </p>
+                    <div class="bg-blue-50 border border-blue-100 rounded-xl p-4 text-sm text-blue-700">
+                        <i class="fas fa-users mr-2"></i>
+                        <strong>Red Colaborativa:</strong> La Bolsa Inmobiliaria de Brokers Connector te permite explorar el inventario de otras agencias, co-listar propiedades y generar alianzas estratégicas que amplíen tu cartera sin esfuerzo adicional.
+                    </div>
+                </div>
+            </section>
+
+        </div>
+
+        <!-- FOOTER -->
+        <footer class="bg-gradient-to-br from-blue-900 to-slate-900 text-slate-400 p-6 text-center text-xs">
+            <p class="font-semibold text-slate-300 mb-1">Brokers Connector · Manual del Usuario · v1.0</p>
+            <p>Plataforma SaaS B2B para Agentes y Brokers Inmobiliarios. <span class="text-blue-400">Brokers Connector · Todos los derechos reservados.</span></p>
+        </footer>
+
+    </div>
+
+</body>
+</html>

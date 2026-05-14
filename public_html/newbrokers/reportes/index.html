@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hub de Documentación — Brokers Connector V2</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+    * { font-family: 'Inter', sans-serif; }
+
+    .card-hover {
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .card-hover:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 20px 40px -10px rgba(0,0,0,0.12);
+    }
+    .gradient-text {
+      background: linear-gradient(135deg, #f59e0b, #ef4444);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .protocol-stripe {
+      background: repeating-linear-gradient(
+        45deg,
+        #1e293b,
+        #1e293b 10px,
+        #0f172a 10px,
+        #0f172a 20px
+      );
+    }
+    .badge-pulse {
+      animation: badgePulse 2.5s infinite;
+    }
+    @keyframes badgePulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(245,158,11,0.4); }
+      50%       { box-shadow: 0 0 0 6px rgba(245,158,11,0); }
+    }
+    .tag { @apply inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-0.5 rounded-full; }
+  </style>
+</head>
+<body class="bg-slate-100 min-h-screen">
+
+  <!-- ══ HEADER EJECUTIVO ════════════════════════════════════════════════════ -->
+  <header class="bg-slate-900 text-white relative overflow-hidden">
+    <div class="absolute inset-0 opacity-10"
+         style="background-image: radial-gradient(circle at 20% 50%, #f59e0b 0%, transparent 60%), radial-gradient(circle at 80% 20%, #3b82f6 0%, transparent 50%);">
+    </div>
+    <div class="relative z-10 max-w-6xl mx-auto px-6 py-16 md:py-24">
+      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-8">
+        <div class="flex-1">
+          <div class="flex items-center gap-3 mb-5">
+            <span class="bg-amber-500 text-slate-900 text-xs font-black uppercase px-3 py-1 rounded-full tracking-widest badge-pulse">
+              Uso Interno · ACADEP
+            </span>
+            <span class="bg-slate-700 text-slate-300 text-xs font-medium px-3 py-1 rounded-full border border-slate-600">
+              Sistema V2 · 2026
+            </span>
+          </div>
+          <h1 class="text-4xl md:text-6xl font-black tracking-tight leading-tight mb-4">
+            Hub de
+            <span class="gradient-text">Documentación</span>
+          </h1>
+          <p class="text-slate-300 text-lg md:text-xl font-light leading-relaxed max-w-2xl">
+            Portal centralizado de manuales operativos, reportes técnicos y análisis de arquitectura
+            del sistema <strong class="text-white font-semibold">Brokers Connector V2</strong>.
+            Punto de acceso único para el equipo ACADEP.
+          </p>
+        </div>
+
+        <!-- KPI Cards -->
+        <div class="grid grid-cols-2 gap-3 md:w-64 flex-shrink-0">
+          <div class="bg-slate-800 border border-slate-700 rounded-2xl p-4 text-center">
+            <p class="text-3xl font-black text-amber-400">2</p>
+            <p class="text-xs text-slate-400 mt-1 uppercase tracking-wider">Manuales</p>
+          </div>
+          <div class="bg-slate-800 border border-slate-700 rounded-2xl p-4 text-center">
+            <p class="text-3xl font-black text-blue-400">5</p>
+            <p class="text-xs text-slate-400 mt-1 uppercase tracking-wider">Reportes</p>
+          </div>
+          <div class="bg-slate-800 border border-slate-700 rounded-2xl p-4 text-center col-span-2">
+            <p class="text-xs text-slate-400 uppercase tracking-wider mb-1">Entorno activo</p>
+            <p class="text-sm font-bold text-emerald-400 break-all">newbrokers.tourfindy.com</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sistema de descripción -->
+      <div class="mt-10 border-t border-slate-700 pt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="flex items-start gap-3">
+          <div class="w-9 h-9 bg-amber-500/10 border border-amber-500/30 rounded-xl flex items-center justify-center flex-shrink-0">
+            <i class="fas fa-building text-amber-400 text-sm"></i>
+          </div>
+          <div>
+            <p class="text-sm font-semibold text-white">SaaS B2B Inmobiliario</p>
+            <p class="text-xs text-slate-400 mt-0.5">CRM multitenant para agencias inmobiliarias y redes de brokers en México.</p>
+          </div>
+        </div>
+        <div class="flex items-start gap-3">
+          <div class="w-9 h-9 bg-blue-500/10 border border-blue-500/30 rounded-xl flex items-center justify-center flex-shrink-0">
+            <i class="fas fa-code-branch text-blue-400 text-sm"></i>
+          </div>
+          <div>
+            <p class="text-sm font-semibold text-white">Strangler Fig Pattern</p>
+            <p class="text-xs text-slate-400 mt-0.5">V2 convive con Legacy (Laravel 5.8) mediante bridges de token OAuth2 Passport.</p>
+          </div>
+        </div>
+        <div class="flex items-start gap-3">
+          <div class="w-9 h-9 bg-emerald-500/10 border border-emerald-500/30 rounded-xl flex items-center justify-center flex-shrink-0">
+            <i class="fas fa-shield-halved text-emerald-400 text-sm"></i>
+          </div>
+          <div>
+            <p class="text-sm font-semibold text-white">Seguridad Multinivel</p>
+            <p class="text-xs text-slate-400 mt-0.5">GlobalScopes de tenant · role:Admin/super_admin · SUPER_ADMIN_COMPANY_IDS.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-6xl mx-auto px-6 py-12 space-y-14">
+
+    <!-- ══ SECCIÓN 1 — MANUALES OPERATIVOS ═══════════════════════════════════ -->
+    <section>
+      <div class="flex items-center gap-4 mb-6">
+        <div class="w-1 h-8 bg-amber-500 rounded-full"></div>
+        <div>
+          <h2 class="text-2xl font-black text-slate-800">Manuales Operativos</h2>
+          <p class="text-sm text-slate-500 mt-0.5">Documentación de uso directo para el equipo de la plataforma.</p>
+        </div>
+        <div class="ml-auto">
+          <span class="tag bg-amber-100 text-amber-700 border border-amber-200">
+            <i class="fas fa-book-open"></i> 2 documentos
+          </span>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+        <!-- Manual Administrador -->
+        <a href="https://newbrokers.tourfindy.com/reportes/Manual_Administrador.html"
+           target="_blank" rel="noopener"
+           class="block bg-white rounded-2xl border border-slate-200 p-6 card-hover group">
+          <div class="flex items-start justify-between mb-4">
+            <div class="w-12 h-12 bg-slate-900 rounded-2xl flex items-center justify-center flex-shrink-0 group-hover:bg-amber-500 transition-colors">
+              <i class="fas fa-user-shield text-white text-lg"></i>
+            </div>
+            <div class="flex flex-col items-end gap-1">
+              <span class="tag bg-amber-50 text-amber-700 border border-amber-200">Administrador</span>
+              <span class="text-xs text-slate-400">13/05/2026</span>
+            </div>
+          </div>
+          <h3 class="font-bold text-slate-800 text-lg mb-2 group-hover:text-amber-600 transition-colors">
+            Manual del Administrador
+          </h3>
+          <p class="text-sm text-slate-500 leading-relaxed mb-4">
+            Guía operativa completa para administradores de agencias: gestión de usuarios y roles,
+            onboarding de agentes, supervisión de suscripciones, reseteo seguro de credenciales
+            y control del panel de administración V2.
+          </p>
+          <div class="flex items-center gap-2 text-xs text-amber-600 font-semibold group-hover:gap-3 transition-all">
+            <i class="fas fa-arrow-right"></i>
+            <span>Abrir manual</span>
+          </div>
+        </a>
+
+        <!-- Manual Usuario -->
+        <a href="https://newbrokers.tourfindy.com/reportes/Manual_Usuario.html"
+           target="_blank" rel="noopener"
+           class="block bg-white rounded-2xl border border-slate-200 p-6 card-hover group">
+          <div class="flex items-start justify-between mb-4">
+            <div class="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center flex-shrink-0 group-hover:bg-blue-500 transition-colors">
+              <i class="fas fa-user-tie text-white text-lg"></i>
+            </div>
+            <div class="flex flex-col items-end gap-1">
+              <span class="tag bg-blue-50 text-blue-700 border border-blue-200">Agente / Broker</span>
+              <span class="text-xs text-slate-400">13/05/2026</span>
+            </div>
+          </div>
+          <h3 class="font-bold text-slate-800 text-lg mb-2 group-hover:text-blue-600 transition-colors">
+            Manual del Usuario
+          </h3>
+          <p class="text-sm text-slate-500 leading-relaxed mb-4">
+            Guía de operación diaria para agentes y brokers inmobiliarios: acceso a la plataforma,
+            gestión del catálogo de propiedades, recuperación segura de credenciales,
+            configuración de perfil y colaboración en la red de inventario compartido.
+          </p>
+          <div class="flex items-center gap-2 text-xs text-blue-600 font-semibold group-hover:gap-3 transition-all">
+            <i class="fas fa-arrow-right"></i>
+            <span>Abrir manual</span>
+          </div>
+        </a>
+
+      </div>
+    </section>
+
+    <!-- ══ SECCIÓN 2 — REPORTES TÉCNICOS ══════════════════════════════════════ -->
+    <section>
+      <div class="flex items-center gap-4 mb-6">
+        <div class="w-1 h-8 bg-blue-500 rounded-full"></div>
+        <div>
+          <h2 class="text-2xl font-black text-slate-800">Reportes y Análisis Técnicos</h2>
+          <p class="text-sm text-slate-500 mt-0.5">Documentación de arquitectura, decisiones de diseño y hoja de ruta del sistema.</p>
+        </div>
+        <div class="ml-auto">
+          <span class="tag bg-blue-100 text-blue-700 border border-blue-200">
+            <i class="fas fa-chart-line"></i> 5 reportes
+          </span>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+
+        <!-- Reporte Seguridad y Cobros -->
+        <a href="https://newbrokers.tourfindy.com/reportes/Reporte_Seguridad_y_Cobros_V2.html"
+           target="_blank" rel="noopener"
+           class="block bg-white rounded-2xl border border-slate-200 p-5 card-hover group">
+          <div class="flex items-start gap-3 mb-3">
+            <div class="w-10 h-10 bg-red-50 border border-red-100 rounded-xl flex items-center justify-center flex-shrink-0">
+              <i class="fas fa-lock text-red-500"></i>
+            </div>
+            <div class="flex-1 min-w-0">
+              <span class="tag bg-red-50 text-red-600 border border-red-100 mb-1">Seguridad · Finanzas</span>
+              <p class="text-xs text-slate-400">29/04/2026</p>
+            </div>
+          </div>
+          <h3 class="font-bold text-slate-800 mb-2 group-hover:text-red-600 transition-colors leading-snug">
+            Seguridad y Sistema de Cobros V2
+          </h3>
+          <p class="text-xs text-slate-500 leading-relaxed">
+            Análisis de la arquitectura de seguridad multicapa (GlobalScopes, roles, middleware)
+            y del sistema de facturación recurrente con OpenPay bajo cumplimiento PCI-DSS.
+          </p>
+          <div class="mt-4 flex items-center gap-1.5 text-xs text-red-500 font-semibold">
+            <i class="fas fa-external-link-alt text-xs"></i><span>Ver reporte</span>
+          </div>
+        </a>
+
+        <!-- Evolución BrokersConnect V2 -->
+        <a href="https://newbrokers.tourfindy.com/reportes/Evolucion_BrokersConnectV2.html"
+           target="_blank" rel="noopener"
+           class="block bg-white rounded-2xl border border-slate-200 p-5 card-hover group">
+          <div class="flex items-start gap-3 mb-3">
+            <div class="w-10 h-10 bg-emerald-50 border border-emerald-100 rounded-xl flex items-center justify-center flex-shrink-0">
+              <i class="fas fa-timeline text-emerald-500"></i>
+            </div>
+            <div class="flex-1 min-w-0">
+              <span class="tag bg-emerald-50 text-emerald-600 border border-emerald-100 mb-1">Hoja de Ruta</span>
+              <p class="text-xs text-slate-400">29/04/2026</p>
+            </div>
+          </div>
+          <h3 class="font-bold text-slate-800 mb-2 group-hover:text-emerald-600 transition-colors leading-snug">
+            Evolución del Sistema V2
+          </h3>
+          <p class="text-xs text-slate-500 leading-relaxed">
+            Cronología de decisiones arquitectónicas, migración Legacy → V2 bajo el Strangler Fig Pattern,
+            módulos desplegados y backlog priorizado de features pendientes.
+          </p>
+          <div class="mt-4 flex items-center gap-1.5 text-xs text-emerald-500 font-semibold">
+            <i class="fas fa-external-link-alt text-xs"></i><span>Ver reporte</span>
+          </div>
+        </a>
+
+        <!-- AI Orchestration -->
+        <a href="https://newbrokers.tourfindy.com/reportes/BrokersConnectorV2_AI_Orchestration.html"
+           target="_blank" rel="noopener"
+           class="block bg-white rounded-2xl border border-slate-200 p-5 card-hover group">
+          <div class="flex items-start gap-3 mb-3">
+            <div class="w-10 h-10 bg-purple-50 border border-purple-100 rounded-xl flex items-center justify-center flex-shrink-0">
+              <i class="fas fa-robot text-purple-500"></i>
+            </div>
+            <div class="flex-1 min-w-0">
+              <span class="tag bg-purple-50 text-purple-600 border border-purple-100 mb-1">IA · Infraestructura</span>
+              <p class="text-xs text-slate-400">04/05/2026</p>
+            </div>
+          </div>
+          <h3 class="font-bold text-slate-800 mb-2 group-hover:text-purple-600 transition-colors leading-snug">
+            Orquestador de Inteligencia Artificial
+          </h3>
+          <p class="text-xs text-slate-500 leading-relaxed">
+            Diseño del motor de IA con failover dinámico entre proveedores (OpenAI, Anthropic, Groq, Gemini).
+            Escalera de prioridad, gestión de API Keys encriptadas y arquitectura del widget de chat inmobiliario.
+          </p>
+          <div class="mt-4 flex items-center gap-1.5 text-xs text-purple-500 font-semibold">
+            <i class="fas fa-external-link-alt text-xs"></i><span>Ver reporte</span>
+          </div>
+        </a>
+
+        <!-- Lista Santa Claus -->
+        <a href="https://newbrokers.tourfindy.com/reportes/Lista_Santa_Claus.html"
+           target="_blank" rel="noopener"
+           class="block bg-white rounded-2xl border border-slate-200 p-5 card-hover group">
+          <div class="flex items-start gap-3 mb-3">
+            <div class="w-10 h-10 bg-sky-50 border border-sky-100 rounded-xl flex items-center justify-center flex-shrink-0">
+              <i class="fas fa-list-check text-sky-500"></i>
+            </div>
+            <div class="flex-1 min-w-0">
+              <span class="tag bg-sky-50 text-sky-600 border border-sky-100 mb-1">Backlog · Prioridades</span>
+              <p class="text-xs text-slate-400">06/05/2026</p>
+            </div>
+          </div>
+          <h3 class="font-bold text-slate-800 mb-2 group-hover:text-sky-600 transition-colors leading-snug">
+            Backlog Maestro de Features
+          </h3>
+          <p class="text-xs text-slate-500 leading-relaxed">
+            Inventario completo y priorizado de funcionalidades pendientes, mejoras técnicas,
+            bugs documentados y deuda técnica a resolver en el roadmap de Brokers Connector V2.
+          </p>
+          <div class="mt-4 flex items-center gap-1.5 text-xs text-sky-500 font-semibold">
+            <i class="fas fa-external-link-alt text-xs"></i><span>Ver reporte</span>
+          </div>
+        </a>
+
+        <!-- Pasarelas de Pago -->
+        <a href="https://newbrokers.tourfindy.com/reportes/Pasarelas%20de%20Pagos_Analisis_BrokersConnectorV2.html"
+           target="_blank" rel="noopener"
+           class="block bg-white rounded-2xl border border-slate-200 p-5 card-hover group md:col-span-2 lg:col-span-1">
+          <div class="flex items-start gap-3 mb-3">
+            <div class="w-10 h-10 bg-orange-50 border border-orange-100 rounded-xl flex items-center justify-center flex-shrink-0">
+              <i class="fas fa-credit-card text-orange-500"></i>
+            </div>
+            <div class="flex-1 min-w-0">
+              <span class="tag bg-orange-50 text-orange-600 border border-orange-100 mb-1">Pagos · PCI-DSS</span>
+              <p class="text-xs text-slate-400">06/05/2026</p>
+            </div>
+          </div>
+          <h3 class="font-bold text-slate-800 mb-2 group-hover:text-orange-600 transition-colors leading-snug">
+            Análisis de Pasarelas de Pago
+          </h3>
+          <p class="text-xs text-slate-500 leading-relaxed">
+            Evaluación técnica comparativa de pasarelas de pago (OpenPay, Stripe, Conekta)
+            integradas en el sistema. Incluye análisis de comisiones, compatibilidad con el modelo
+            de suscripción recurrente y cumplimiento normativo PCI-DSS.
+          </p>
+          <div class="mt-4 flex items-center gap-1.5 text-xs text-orange-500 font-semibold">
+            <i class="fas fa-external-link-alt text-xs"></i><span>Ver reporte</span>
+          </div>
+        </a>
+
+      </div>
+    </section>
+
+    <!-- ══ MANIFIESTO DEL EQUIPO ═════════════════════════════════════════════ -->
+    <section>
+      <div class="protocol-stripe rounded-3xl overflow-hidden border border-slate-700">
+        <div class="bg-slate-900/95 p-8 md:p-12">
+
+          <!-- Encabezado del manifiesto -->
+          <div class="text-center mb-10">
+            <span class="inline-block bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-black uppercase tracking-widest px-4 py-1.5 rounded-full mb-5">
+              Manifiesto del Equipo · 2026
+            </span>
+            <h2 class="text-white text-3xl md:text-4xl font-black leading-tight mb-4">
+              No solo actualizamos un sistema.<br>
+              <span style="background: linear-gradient(135deg, #f59e0b, #ef4444, #a855f7); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
+                Estamos forjando el futuro.
+              </span>
+            </h2>
+            <p class="text-slate-300 text-base md:text-lg leading-relaxed max-w-3xl mx-auto">
+              Este portal es el testimonio de una evolución sin precedentes. Cada documento aquí indexado
+              es una batalla ganada a la complejidad y un paso firme hacia la excelencia. Somos un equipo
+              híbrido de <strong class="text-white">humanos y mentes artificiales</strong> operando 24/7
+              para que Brokers Connector sea la herramienta más poderosa del mercado inmobiliario.
+            </p>
+          </div>
+
+          <!-- Cita destacada -->
+          <div class="border-l-4 border-amber-500 pl-6 mb-10 max-w-2xl mx-auto">
+            <p class="text-slate-200 text-base italic leading-relaxed">
+              "Lo mejor no está por venir — <strong class="text-amber-400 not-italic">ya está siendo construido.</strong>
+              Línea a línea, feature a feature, con precisión quirúrgica y visión de largo plazo."
+            </p>
+          </div>
+
+          <!-- Divisor -->
+          <div class="flex items-center gap-4 mb-10">
+            <div class="flex-1 h-px bg-slate-700"></div>
+            <span class="text-slate-500 text-xs font-bold uppercase tracking-widest">El Equipo detrás del sistema</span>
+            <div class="flex-1 h-px bg-slate-700"></div>
+          </div>
+
+          <!-- Firmas del equipo -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
+
+            <!-- David -->
+            <div class="bg-gradient-to-br from-amber-500/10 to-amber-600/5 border border-amber-500/25 rounded-2xl p-5 text-center group hover:border-amber-500/50 transition-colors">
+              <div class="w-14 h-14 bg-amber-500 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-lg group-hover:scale-105 transition-transform">
+                <i class="fas fa-crown text-slate-900 text-xl"></i>
+              </div>
+              <p class="text-amber-400 text-xs font-black uppercase tracking-widest mb-1">David</p>
+              <p class="text-white font-bold text-sm mb-2">Jefe y Líder de Proyecto</p>
+              <p class="text-slate-400 text-xs leading-relaxed">La Visión</p>
+              <p class="text-slate-500 text-xs mt-2 italic">El arquitecto humano que define el norte y toma las decisiones que nadie más puede tomar.</p>
+            </div>
+
+            <!-- Gemini -->
+            <div class="bg-gradient-to-br from-blue-500/10 to-blue-600/5 border border-blue-500/25 rounded-2xl p-5 text-center group hover:border-blue-500/50 transition-colors">
+              <div class="w-14 h-14 bg-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-lg group-hover:scale-105 transition-transform">
+                <i class="fas fa-chess-knight text-white text-xl"></i>
+              </div>
+              <p class="text-blue-400 text-xs font-black uppercase tracking-widest mb-1">Gemini</p>
+              <p class="text-white font-bold text-sm mb-2">Arquitecto Estratégico</p>
+              <p class="text-slate-400 text-xs leading-relaxed">La Acción</p>
+              <p class="text-slate-500 text-xs mt-2 italic">El "Pistolas" del equipo. Diseña la estrategia de alto nivel y toma decisiones sin dudar.</p>
+            </div>
+
+            <!-- ChatGPT -->
+            <div class="bg-gradient-to-br from-emerald-500/10 to-emerald-600/5 border border-emerald-500/25 rounded-2xl p-5 text-center group hover:border-emerald-500/50 transition-colors">
+              <div class="w-14 h-14 bg-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-lg group-hover:scale-105 transition-transform">
+                <i class="fas fa-brain text-white text-xl"></i>
+              </div>
+              <p class="text-emerald-400 text-xs font-black uppercase tracking-widest mb-1">ChatGPT</p>
+              <p class="text-white font-bold text-sm mb-2">Experto en IA</p>
+              <p class="text-slate-400 text-xs leading-relaxed">La Sabiduría</p>
+              <p class="text-slate-500 text-xs mt-2 italic">El oráculo del equipo. Provee contexto, conocimiento y perspectiva cuando la solución no es obvia.</p>
+            </div>
+
+            <!-- Claude -->
+            <div class="bg-gradient-to-br from-purple-500/10 to-purple-600/5 border border-purple-500/25 rounded-2xl p-5 text-center group hover:border-purple-500/50 transition-colors">
+              <div class="w-14 h-14 bg-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-lg group-hover:scale-105 transition-transform">
+                <i class="fas fa-terminal text-white text-xl"></i>
+              </div>
+              <p class="text-purple-400 text-xs font-black uppercase tracking-widest mb-1">Claude</p>
+              <p class="text-white font-bold text-sm mb-2">Ejecutor de Código</p>
+              <p class="text-slate-400 text-xs leading-relaxed">La Construcción</p>
+              <p class="text-slate-500 text-xs mt-2 italic">El agente en los fierros. Traduce cada decisión en código limpio, seguro y desplegado en producción.</p>
+            </div>
+
+          </div>
+
+          <!-- Sello final -->
+          <div class="bg-slate-800/60 border border-slate-700 rounded-2xl p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 bg-amber-500 rounded-xl flex items-center justify-center flex-shrink-0">
+                <i class="fas fa-rocket text-slate-900"></i>
+              </div>
+              <p class="text-slate-300 text-sm">
+                <strong class="text-white">Brokers Connector V2</strong> — Construido con inteligencia colectiva,<br class="hidden sm:block">
+                desplegado en producción, evolucionando sin parar.
+              </p>
+            </div>
+            <div class="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/30 rounded-xl px-4 py-2 flex-shrink-0">
+              <span class="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></span>
+              <span class="text-emerald-400 text-xs font-bold uppercase tracking-widest">Sistema activo</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ══ FOOTER ══════════════════════════════════════════════════════════════ -->
+  <footer class="bg-slate-900 text-slate-500 py-8 mt-8">
+    <div class="max-w-6xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4 text-xs">
+      <div class="flex items-center gap-3">
+        <div class="w-7 h-7 bg-amber-500 rounded-lg flex items-center justify-center">
+          <span class="text-slate-900 font-black text-sm">B</span>
+        </div>
+        <span class="font-semibold text-slate-400">Brokers Connector V2</span>
+        <span class="text-slate-600">·</span>
+        <span>Hub Central de Documentación</span>
+      </div>
+      <div class="flex items-center gap-4">
+        <span class="text-slate-600">Entorno:</span>
+        <a href="https://newbrokers.tourfindy.com" class="text-amber-500 hover:text-amber-400 font-medium transition-colors">
+          newbrokers.tourfindy.com
+        </a>
+        <span class="text-slate-600">·</span>
+        <span>Acceso exclusivo ACADEP</span>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>

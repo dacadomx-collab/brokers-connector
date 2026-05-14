@@ -4,9 +4,16 @@ namespace App;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use App\Service;
+use App\Http\Scopes\TenantCompanyScope;
 class Company extends Model
 {
    protected $fillable=['name', 'phone', 'logo', 'dominio' ,'email', 'address','rfc','colony','zipcode', 'plan', 'active','owner', 'about','package','cutoff_date'];
+
+   protected static function boot(): void
+   {
+       parent::boot();
+       static::addGlobalScope(new TenantCompanyScope());
+   }
 
    //consigue todas las propiedades que le pertenecesn a la compañia
    public function properties()

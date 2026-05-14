@@ -99,8 +99,13 @@ Route::prefix('v2')->group(function () {
     Route::get('/bridge/validate',  'Api\V2BridgeController@bridgeValidate');
     Route::post('/subscriptions',   'Api\V2BridgeController@subscribe');
 
-    // ── Panel Super Admin — Passport OAuth2 nativo (auth:api + role:super_admin) ──
-    Route::prefix('admin')->middleware(['auth:api', 'role:super_admin', 'throttle:30,1'])->group(function () {
+    // Regla de monetización — accesible por Admins (auth:api)
+    Route::middleware(['auth:api'])->group(function () {
+        Route::get('/my-company/user-quota', 'Api\UserQuotaController@check');
+    });
+
+    // ── Panel Super Admin — Passport OAuth2 nativo (auth:api + role:super_admin + empresa autorizada) ──
+    Route::prefix('admin')->middleware(['auth:api', 'role:super_admin', 'super_admin_company', 'throttle:30,1'])->group(function () {
         // Gestión de usuarios Admin / super_admin
         Route::get('/users',                          'Api\SuperAdminController@listAdmins');
         Route::post('/users/{id}/toggle-role',        'Api\SuperAdminController@toggleRole');
@@ -120,6 +125,15 @@ Route::prefix('v2')->group(function () {
         Route::delete('/payment-gateways/{id}',               'Api\PaymentGatewayController@destroy');
         Route::patch('/payment-gateways/{id}/toggle',         'Api\PaymentGatewayController@toggle');
         Route::patch('/payment-gateways/{id}/toggle-sandbox', 'Api\PaymentGatewayController@toggleSandbox');
+
+        // Gestión de Empresas — SaaS CRM del Super Admin
+        Route::get('/companies',                                    'Api\SuperAdminController@listCompanies');
+        Route::patch('/companies/{id}/toggle-status',               'Api\SuperAdminController@toggleCompanyStatus');
+        Route::delete('/companies/{id}',                            'Api\SuperAdminController@deleteCompany');
+        Route::get('/companies/{id}/validate-user-quota',           'Api\SuperAdminController@validateUserQuota');
+
+        // Audit Trail
+        Route::get('/audit-logs',                                   'Api\SuperAdminController@listAuditLogs');
     });
 });
 

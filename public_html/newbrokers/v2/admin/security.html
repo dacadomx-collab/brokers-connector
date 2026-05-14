@@ -78,6 +78,14 @@
                 aria-selected="false" aria-controls="panel-payments">
           Pasarelas de Pago
         </button>
+        <button id="tab-companies" class="sa-tab" role="tab"
+                aria-selected="false" aria-controls="panel-companies">
+          Empresas
+        </button>
+        <button id="tab-audit" class="sa-tab" role="tab"
+                aria-selected="false" aria-controls="panel-audit">
+          Audit Trail
+        </button>
       </nav>
 
       <!-- ══ PANEL: ADMINISTRADORES ══════════════════════════════════ -->
@@ -324,6 +332,113 @@
 
       </div><!-- /panel-payments -->
 
+      <!-- ══ PANEL: EMPRESAS ═══════════════════════════════════════════ -->
+      <div id="panel-companies" class="sa-panel hidden" role="tabpanel" aria-labelledby="tab-companies">
+
+        <div class="sa-section-head">
+          <h1 class="sa-section-title">Gestión de Empresas</h1>
+          <p class="sa-section-sub">Estatus de suscripción, fechas de pago y acciones sobre cada tenant.</p>
+        </div>
+
+        <!-- Barra de búsqueda -->
+        <div class="sa-card" style="padding:.8rem 1.2rem;margin-bottom:.8rem;">
+          <div style="display:flex;gap:.8rem;align-items:center;flex-wrap:wrap;">
+            <input id="co-search" type="text" placeholder="Buscar por nombre o email…"
+              class="v2-input" style="flex:1;min-width:220px;max-width:420px;">
+            <button id="co-search-btn" class="v2-btn v2-btn-primary">Buscar</button>
+            <button id="co-clear-btn" class="v2-btn v2-btn-ghost">Limpiar</button>
+          </div>
+        </div>
+
+        <!-- Tabla de empresas -->
+        <div class="sa-card">
+          <div class="sa-card-header">
+            <span>Empresas registradas</span>
+            <span id="co-count" class="sa-count-badge">—</span>
+          </div>
+          <div id="co-loading" class="sa-table-placeholder">
+            <div class="v2-spinner sa-spinner-sm"></div>
+            <span>Cargando empresas&hellip;</span>
+          </div>
+          <div id="co-empty" class="sa-table-placeholder hidden">Sin empresas registradas.</div>
+          <div id="co-wrapper" class="sa-table-wrapper hidden">
+            <table class="sa-table" role="grid">
+              <thead id="co-thead">
+                <tr>
+                  <th scope="col" class="co-sortable" data-field="id">ID <span class="co-sort-icon"></span></th>
+                  <th scope="col" class="co-sortable" data-field="name">Empresa <span class="co-sort-icon"></span></th>
+                  <th scope="col" class="co-sortable" data-field="email">Email <span class="co-sort-icon"></span></th>
+                  <th scope="col" class="co-sortable" data-field="package">Plan <span class="co-sort-icon"></span></th>
+                  <th scope="col" class="co-sortable" data-field="status_label">Estatus <span class="co-sort-icon"></span></th>
+                  <th scope="col" class="co-sortable" data-field="last_payment">Último Pago <span class="co-sort-icon"></span></th>
+                  <th scope="col" class="co-sortable" data-field="due_date">Vence <span class="co-sort-icon"></span></th>
+                  <th scope="col" class="sa-col-actions">Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="co-tbody"></tbody>
+            </table>
+            <div id="co-pager" style="margin-top:.8rem;display:flex;gap:.5rem;align-items:center;"></div>
+          </div>
+        </div>
+
+        <!-- Modal confirmación de acción -->
+        <div id="co-modal" class="sa-modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="co-modal-title">
+          <div class="sa-modal-card">
+            <div class="sa-modal-icon" id="co-modal-icon">⚠️</div>
+            <h3 id="co-modal-title" class="sa-modal-title"></h3>
+            <p id="co-modal-body" class="sa-modal-body"></p>
+            <div class="sa-modal-actions">
+              <button id="co-modal-cancel" class="v2-btn v2-btn-ghost">Cancelar</button>
+              <button id="co-modal-confirm" class="v2-btn v2-btn-danger">Confirmar</button>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /panel-companies -->
+
+      <!-- ══ PANEL: AUDIT TRAIL ════════════════════════════════════════ -->
+      <div id="panel-audit" class="sa-panel hidden" role="tabpanel" aria-labelledby="tab-audit">
+
+        <div class="sa-section-head">
+          <h1 class="sa-section-title">Audit Trail</h1>
+          <p class="sa-section-sub">Registro de todas las acciones de Super Administrador sobre empresas.</p>
+        </div>
+
+        <!-- Acciones globales -->
+        <div style="display:flex;gap:.8rem;margin-bottom:1rem;flex-wrap:wrap;align-items:center;">
+          <button id="audit-refresh" class="v2-btn v2-btn-ghost">↺ Actualizar</button>
+          <button id="audit-export-pdf" class="v2-btn v2-btn-primary">⬇ Exportar PDF</button>
+          <span id="audit-count" class="sa-count-badge" style="margin-left:auto;">—</span>
+        </div>
+
+        <!-- Tabla de logs -->
+        <div class="sa-card">
+          <div id="audit-loading" class="sa-table-placeholder">
+            <div class="v2-spinner sa-spinner-sm"></div>
+            <span>Cargando logs&hellip;</span>
+          </div>
+          <div id="audit-empty" class="sa-table-placeholder hidden">Sin acciones registradas.</div>
+          <div id="audit-wrapper" class="sa-table-wrapper hidden">
+            <table class="sa-table" id="audit-table" role="grid">
+              <thead>
+                <tr>
+                  <th scope="col">#</th>
+                  <th scope="col">Fecha / Hora</th>
+                  <th scope="col">Super Admin</th>
+                  <th scope="col">Acción</th>
+                  <th scope="col">Empresa</th>
+                  <th scope="col">De</th>
+                  <th scope="col">A</th>
+                </tr>
+              </thead>
+              <tbody id="audit-tbody"></tbody>
+            </table>
+            <div id="audit-pager" style="margin-top:.8rem;display:flex;gap:.5rem;align-items:center;"></div>
+          </div>
+        </div>
+
+      </div><!-- /panel-audit -->
+
     </main>
 
     <footer class="sa-footer">
@@ -332,6 +447,10 @@
 
   </div><!-- /screen-main -->
 
+  <!-- jsPDF para exportación de Audit Trail -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"
+          integrity="sha512-wDjF5W99jD8CWhLy4cv7wHFZHbHlLEuBP+YAoNXoSC7obzPVArGCEkfHdyW0NO5O+7EM+Bw2HDLGPF9Baz9g=="
+          crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="security.js"></script>
 </body>
 </html>

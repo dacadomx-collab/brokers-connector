@@ -187,37 +187,41 @@ Route::middleware(['auth', 'company','companyPayment'])->group(function () {
     });
 
 
-    //Usuarios
-    Route::get('/home/users', 'UserController@index')->name('users.index');
-    // Route::get('/home/users/profile/{id}', 'UserController@showProfile')->name('users.profile');
-    Route::get('/home/users/showcreate', 'UserController@showCreate')->name('users');
-    Route::get('/home/users/showedit/{id}', 'UserController@showEdit')->name('users.showEdit');
-    Route::post('/home/users/create', 'UserController@create')->name('create.users');
-    Route::post('/home/users/delete', 'UserController@delete')->name('delete.users');
-    Route::post('/home/users/update', 'UserController@update')->name('update.users');
-    Route::post('/home/users/upload-avatar', 'UserController@upload_avatar')->name('upload-avatar.users');
+    // ── ZONA EXCLUSIVA ADMIN — Agentes bloqueados definitivamente ────────────
+    // Mandamiento #2: Seguridad Nivel Militar. Cualquier rol distinto a Admin
+    // recibe un 403 automático por el middleware de Spatie.
+    Route::middleware(['role:Admin'])->group(function () {
 
+        //Usuarios
+        Route::get('/home/users', 'UserController@index')->name('users.index');
+        // Route::get('/home/users/profile/{id}', 'UserController@showProfile')->name('users.profile');
+        Route::get('/home/users/showcreate', 'UserController@showCreate')->name('users');
+        Route::get('/home/users/showedit/{id}', 'UserController@showEdit')->name('users.showEdit');
+        Route::post('/home/users/create', 'UserController@create')->name('create.users');
+        Route::post('/home/users/delete', 'UserController@delete')->name('delete.users');
+        Route::post('/home/users/update', 'UserController@update')->name('update.users');
+        Route::post('/home/users/upload-avatar', 'UserController@upload_avatar')->name('upload-avatar.users');
 
-    //Configuración
+        //Configuración de cuenta
+        Route::get('/home/settings/account', 'HomeController@account')->name('account');
 
-    Route::get('/home/settings/account', 'HomeController@account')->name('account');
+        //Sitio web corporativo
+        Route::get('/home/website', 'settingController@settingWeb')->name('setting.web');
+        Route::post('/home/website', 'settingController@websiteUpdate')->name('website.update');
 
+        //Facturación
+        Route::get('/home/invoices', 'InvoicesController@invoices')->name('invoices');
+        Route::get('/home/invoices/{invoice}', 'InvoicesController@invoice')->name('invoices.view');
+        Route::get('/home/invoices/{invoice}/pay', 'InvoicesController@openPay_pay')->name('invoices.pay');
+        Route::post('/home/invoices/{invoice}/payment', 'InvoicesController@openPay_payment')->name('invoices.payment');
+        Route::get('/home/invoices/{invoice}/paynet', 'InvoicesController@openPay_paynet')->name('invoices.paynet');
+        Route::get('/home/invoices/{invoice}/spei', 'InvoicesController@openPay_spei')->name('invoices.spei');
 
-    //website
-    Route::get('/home/website', 'settingController@settingWeb')->name('setting.web');
-    Route::post('/home/website', 'settingController@websiteUpdate')->name('website.update');
+        //Planes
+        Route::get('/home/plans', 'CompanyController@plans')->name('view.plans');
+        Route::post('/home/plans/edit', 'CompanyController@editPlan')->name('edit.plans');
 
-     //Invoices
-     Route::get('/home/invoices', 'InvoicesController@invoices')->name('invoices');
-     Route::get('/home/invoices/{invoice}', 'InvoicesController@invoice')->name('invoices.view');
-     //Route::get('/home/robot', 'InvoicesController@createInvoice')->name('invoices.robot');
-     Route::get('/home/invoices/{invoice}/pay', 'InvoicesController@openPay_pay')->name('invoices.pay');
-     Route::post('/home/invoices/{invoice}/payment', 'InvoicesController@openPay_payment')->name('invoices.payment');
-     Route::get('/home/invoices/{invoice}/paynet', 'InvoicesController@openPay_paynet')->name('invoices.paynet');
-     Route::get('/home/invoices/{invoice}/spei', 'InvoicesController@openPay_spei')->name('invoices.spei');
-     //Plans
-     Route::get('/home/plans', 'CompanyController@plans')->name('view.plans');
-     Route::post('/home/plans/edit', 'CompanyController@editPlan')->name('edit.plans');
+    }); // END zona exclusiva Admin
 
      // IA / Widget de chat del panel (sesión web + CSRF — no requiere Bearer Token)
      Route::post('/home/ai/chat', 'AiChatController@sendMessage')
@@ -248,9 +252,9 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/home/v2/subscription-bridge', 'BridgeController@subscriptionBridge')
         ->name('v2.subscription.bridge');
 
-    // Panel Super Admin V2 — solo super_admin puede cruzar el puente
+    // Panel Super Admin V2 — rol super_admin + empresa autorizada en SUPER_ADMIN_COMPANY_IDS
     Route::get('/home/v2/admin-bridge', 'BridgeController@adminBridge')
-        ->middleware('role:super_admin')
+        ->middleware(['role:super_admin', 'super_admin_company'])
         ->name('v2.admin.bridge');
 
     // Logout para la SPA V2 (GET — evita necesidad de CSRF desde HTML estático)

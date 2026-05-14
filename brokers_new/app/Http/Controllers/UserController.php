@@ -53,8 +53,15 @@ class UserController extends Controller
         return view("users.edit", compact('user','roles'));
     }
 
+    /** Roles que solo el sistema puede asignar — nunca desde un request externo. */
+    private const FORBIDDEN_ROLES = ['Admin', 'super_admin'];
+
     public function create(ValidateUser $request)
-    {    
+    {
+        if (in_array($request->user_a, self::FORBIDDEN_ROLES, true)) {
+            abort(403, 'No está permitido asignar ese rol desde este panel.');
+        }
+
         if(auth()->user()->company->package == 1)
         {
             return back()->with('error', 'El plan contratado no permite más de 1 usuario.');
@@ -96,8 +103,10 @@ class UserController extends Controller
 
     public function update(ValidateUser $request)
     {
+        if (in_array($request->user_a, self::FORBIDDEN_ROLES, true)) {
+            abort(403, 'No está permitido asignar ese rol desde este panel.');
+        }
 
-        
         $user=auth()->user()->company->users()->find($request->id);
 
         if(!$user)
