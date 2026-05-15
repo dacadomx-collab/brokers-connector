@@ -140,6 +140,7 @@
               <thead>
                 <tr>
                   <th scope="col">Usuario</th>
+                  <th scope="col">Empresa</th>
                   <th scope="col">Email</th>
                   <th scope="col">Rol actual</th>
                   <th scope="col">Estado</th>
@@ -381,7 +382,7 @@
           </div>
         </div>
 
-        <!-- Modal confirmación de acción -->
+        <!-- Modal: confirmación de acción (toggle / eliminar) -->
         <div id="co-modal" class="sa-modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="co-modal-title">
           <div class="sa-modal-card">
             <div class="sa-modal-icon" id="co-modal-icon">⚠️</div>
@@ -390,6 +391,97 @@
             <div class="sa-modal-actions">
               <button id="co-modal-cancel" class="v2-btn v2-btn-ghost">Cancelar</button>
               <button id="co-modal-confirm" class="v2-btn v2-btn-danger">Confirmar</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Modal: edición de empresa -->
+        <div id="co-edit-modal" class="sa-modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="co-edit-title">
+          <div class="sa-modal-box" style="max-width:520px;width:100%;">
+            <div class="sa-modal-header">
+              <div>
+                <h3 id="co-edit-title" class="sa-modal-title">Editar Empresa</h3>
+                <p id="co-edit-subtitle" class="sa-modal-subtitle" style="font-size:.8rem;color:var(--v2-text-muted);margin-top:.2rem;"></p>
+              </div>
+              <button id="co-edit-close" class="sa-modal-close" aria-label="Cerrar">&#10005;</button>
+            </div>
+            <div class="sa-modal-body" style="padding:1.2rem 1.5rem;">
+              <!-- Campos de identidad — inmutables -->
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:.8rem;margin-bottom:1rem;">
+                <div>
+                  <label class="co-edit-label">ID <span class="co-edit-locked">bloqueado</span></label>
+                  <input id="co-edit-id" type="text" class="v2-input" disabled style="opacity:.5;">
+                </div>
+                <div>
+                  <label class="co-edit-label">Nombre <span class="co-edit-locked">bloqueado</span></label>
+                  <input id="co-edit-name" type="text" class="v2-input" disabled style="opacity:.5;">
+                </div>
+              </div>
+
+              <!-- Bloque informativo de suscripción + acceso a Override Financiero -->
+              <div id="co-edit-subscription" style="background:var(--v2-surface-alt);border:1px solid var(--v2-border);border-radius:var(--v2-radius-sm);padding:.75rem 1rem;margin-bottom:1rem;">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.6rem;">
+                  <p style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--v2-text-muted);margin:0;">
+                    <i class="fas fa-info-circle" style="margin-right:.3rem;"></i>Datos de suscripción
+                  </p>
+                  <button id="co-btn-override" type="button"
+                    style="font-size:.7rem;padding:.25rem .6rem;display:inline-flex;align-items:center;gap:.3rem;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.35);color:#b45309;border-radius:.35rem;cursor:pointer;font-weight:600;transition:background .15s;">
+                    <i class="fas fa-sliders-h" style="font-size:.65rem;"></i> Ajuste Manual
+                  </button>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem .8rem;">
+                  <div>
+                    <p class="co-edit-label" style="margin-bottom:.15rem;">Plan</p>
+                    <p id="co-edit-plan" style="font-size:.875rem;font-weight:600;color:var(--v2-text);margin:0;">—</p>
+                  </div>
+                  <div>
+                    <p class="co-edit-label" style="margin-bottom:.15rem;">Estatus</p>
+                    <p id="co-edit-status" style="margin:0;"></p>
+                  </div>
+                  <div>
+                    <p class="co-edit-label" style="margin-bottom:.15rem;">Último Pago</p>
+                    <p id="co-edit-last-payment" style="font-size:.875rem;color:var(--v2-text);margin:0;">—</p>
+                  </div>
+                  <div>
+                    <p class="co-edit-label" style="margin-bottom:.15rem;">Vence</p>
+                    <p id="co-edit-due-date" style="font-size:.875rem;color:var(--v2-text);margin:0;">—</p>
+                  </div>
+                </div>
+              </div>
+              <!-- Campos editables -->
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:.8rem;">
+                <div style="grid-column:span 2;">
+                  <label class="co-edit-label" for="co-edit-email">Email corporativo</label>
+                  <input id="co-edit-email" type="email" class="v2-input" placeholder="contacto@empresa.com">
+                </div>
+                <div>
+                  <label class="co-edit-label" for="co-edit-phone">Teléfono</label>
+                  <input id="co-edit-phone" type="text" class="v2-input" placeholder="55 1234 5678">
+                </div>
+                <div>
+                  <label class="co-edit-label" for="co-edit-rfc">RFC</label>
+                  <input id="co-edit-rfc" type="text" class="v2-input" placeholder="ABC123456XY0">
+                </div>
+                <div style="grid-column:span 2;">
+                  <label class="co-edit-label" for="co-edit-address">Dirección</label>
+                  <input id="co-edit-address" type="text" class="v2-input" placeholder="Calle, número, colonia">
+                </div>
+                <div>
+                  <label class="co-edit-label" for="co-edit-colony">Colonia</label>
+                  <input id="co-edit-colony" type="text" class="v2-input" placeholder="Col. Centro">
+                </div>
+                <div>
+                  <label class="co-edit-label" for="co-edit-zipcode">Código Postal</label>
+                  <input id="co-edit-zipcode" type="text" class="v2-input" placeholder="06600">
+                </div>
+              </div>
+              <p id="co-edit-error" class="co-edit-error hidden"></p>
+            </div>
+            <div class="sa-modal-footer">
+              <button id="co-edit-cancel" class="v2-btn v2-btn-ghost">Cancelar</button>
+              <button id="co-edit-save"   class="v2-btn v2-btn-primary">
+                <i class="fas fa-save" style="margin-right:.4rem;font-size:.8rem;"></i>Guardar cambios
+              </button>
             </div>
           </div>
         </div>
@@ -451,6 +543,71 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"
           integrity="sha512-wDjF5W99jD8CWhLy4cv7wHFZHbHlLEuBP+YAoNXoSC7obzPVArGCEkfHdyW0NO5O+7EM+Bw2HDLGPF9Baz9g=="
           crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <!-- Sub-modal: Override Financiero de Suscripción -->
+  <div id="co-override-modal" class="sa-modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="co-override-title">
+    <div class="sa-modal-box" style="max-width:480px;width:100%;">
+      <div class="sa-modal-header">
+        <div>
+          <h3 id="co-override-title" class="sa-modal-title" style="color:#b45309;">
+            <i class="fas fa-sliders-h" style="font-size:.9rem;margin-right:.4rem;"></i>Ajuste Manual de Suscripción
+          </h3>
+          <p id="co-override-subtitle" style="font-size:.78rem;color:var(--v2-text-muted);margin:.15rem 0 0;"></p>
+        </div>
+        <button id="co-override-close" class="sa-modal-close" aria-label="Cerrar">&#10005;</button>
+      </div>
+      <div class="sa-modal-body" style="padding:1.1rem 1.5rem;">
+
+        <!-- Aviso de auditoría -->
+        <div style="background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.3);border-radius:.45rem;padding:.6rem .8rem;margin-bottom:1rem;display:flex;gap:.5rem;align-items:flex-start;">
+          <i class="fas fa-exclamation-triangle" style="color:#b45309;font-size:.8rem;margin-top:.1rem;flex-shrink:0;"></i>
+          <p style="font-size:.75rem;color:#92400e;margin:0;line-height:1.45;">
+            Esta acción generará un <strong>registro en el Audit Trail</strong>. Se creará una factura de pago manual y se actualizarán los datos de suscripción en el dashboard.
+          </p>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:.8rem;">
+          <div>
+            <label class="co-edit-label" for="co-ov-plan">Plan (ID numérico)</label>
+            <input id="co-ov-plan" type="number" min="1" max="99" class="v2-input" placeholder="Ej: 1, 2, 3">
+          </div>
+          <div>
+            <label class="co-edit-label" for="co-ov-payday">Fecha de Pago Recibido</label>
+            <input id="co-ov-payday" type="date" class="v2-input">
+          </div>
+          <div style="grid-column:span 2;">
+            <label class="co-edit-label" for="co-ov-due-date">Nueva Fecha de Vencimiento <span style="color:var(--v2-error);margin-left:.2rem;">*</span></label>
+            <input id="co-ov-due-date" type="date" class="v2-input" required>
+          </div>
+          <div style="grid-column:span 2;">
+            <label class="co-edit-label" for="co-ov-reason">Motivo del ajuste <span style="color:var(--v2-error);margin-left:.2rem;">*</span></label>
+            <textarea id="co-ov-reason" class="v2-input" rows="2"
+              style="resize:vertical;font-family:inherit;font-size:.875rem;"
+              placeholder="Ej: Cliente pagó por transferencia SPEI el 14/05/2026. Referencia: 12345"></textarea>
+          </div>
+        </div>
+        <p id="co-override-error" class="co-edit-error hidden" style="margin-top:.6rem;"></p>
+      </div>
+      <div class="sa-modal-footer">
+        <button id="co-override-cancel" class="v2-btn v2-btn-ghost">Cancelar</button>
+        <button id="co-override-save" class="v2-btn" style="background:rgba(245,158,11,.9);color:#fff;font-weight:700;">
+          <i class="fas fa-check" style="margin-right:.4rem;font-size:.8rem;"></i>Aplicar Ajuste
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!--
+    Dropdown de acciones de Empresas — vive en <body> como hijo directo.
+    Fuera de cualquier <table> o wrapper con overflow/transform para que
+    position:fixed funcione correctamente anclado al viewport.
+  -->
+  <div id="co-dropdown" class="co-dropdown hidden" role="menu" aria-label="Acciones de empresa">
+    <button id="co-dd-edit"   class="co-dd-item"            role="menuitem"><i class="fas fa-pen co-dd-icon"></i> Editar</button>
+    <button id="co-dd-toggle" class="co-dd-item"            role="menuitem" aria-live="polite"></button>
+    <div class="co-dd-divider"></div>
+    <button id="co-dd-delete" class="co-dd-item co-dd-danger" role="menuitem"><i class="fas fa-trash co-dd-icon"></i> Eliminar</button>
+  </div>
+
   <script src="security.js"></script>
 </body>
 </html>

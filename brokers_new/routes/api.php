@@ -128,7 +128,9 @@ Route::prefix('v2')->group(function () {
 
         // Gestión de Empresas — SaaS CRM del Super Admin
         Route::get('/companies',                                    'Api\SuperAdminController@listCompanies');
+        Route::put('/companies/{id}',                               'Api\SuperAdminController@updateCompany');
         Route::patch('/companies/{id}/toggle-status',               'Api\SuperAdminController@toggleCompanyStatus');
+        Route::patch('/companies/{id}/subscription-override',       'Api\SuperAdminController@subscriptionOverride');
         Route::delete('/companies/{id}',                            'Api\SuperAdminController@deleteCompany');
         Route::get('/companies/{id}/validate-user-quota',           'Api\SuperAdminController@validateUserQuota');
 

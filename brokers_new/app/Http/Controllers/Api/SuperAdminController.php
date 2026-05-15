@@ -34,15 +34,15 @@ class SuperAdminController extends Controller
         $allowedCompIds = $this->resolveAllowedCompanyIds();
 
         $query = User::withoutGlobalScope(\App\Http\Scopes\TenantUserScope::class)
-            ->with('roles')
+            ->with(['roles', 'company'])                       // ← eager load empresa
             ->whereIn('company_id', $allowedCompIds)          // ← FILTRO CRÍTICO
             ->whereHas('roles', fn ($q) => $q->whereIn('name', ['Admin', 'super_admin']));
 
         if ($search !== '') {
             $query->where(function ($q) use ($search) {
-                $q->where('email',     'like', "%{$search}%")
-                  ->orWhere('full_name', 'like', "%{$search}%")
-                  ->orWhere('last_name', 'like', "%{$search}%");
+                $q->where('users.email',     'like', "%{$search}%")
+                  ->orWhere('users.full_name', 'like', "%{$search}%")
+                  ->orWhere('users.last_name', 'like', "%{$search}%");
             });
         }
 
@@ -51,14 +51,15 @@ class SuperAdminController extends Controller
         $data = collect($paginated->items())->map(function (User $u) {
             $roleNames = $u->roles->pluck('name');
             return [
-                'id'         => $u->id,
-                'full_name'  => trim("{$u->full_name} {$u->last_name}"),
-                'email'      => $u->email,
-                'company_id' => $u->company_id,
-                'active'     => (bool) $u->active,
-                'roles'      => $roleNames,
-                'is_super'   => $roleNames->contains('super_admin'),
-                'created_at' => $u->created_at?->toDateString(),
+                'id'           => $u->id,
+                'full_name'    => trim("{$u->full_name} {$u->last_name}"),
+                'email'        => $u->email,
+                'company_id'   => $u->company_id,
+                'company_name' => $u->company?->name ?? '—',  // ← nombre de empresa
+                'active'       => (bool) $u->active,
+                'roles'        => $roleNames,
+                'is_super'     => $roleNames->contains('super_admin'),
+                'created_at'   => $u->created_at?->toDateString(),
             ];
         });
 
@@ -287,21 +288,28 @@ class SuperAdminController extends Controller
      * Claves: data-field del <th> en la SPA.
      * Valor 'raw' → se aplica orderByRaw con subquery; resto → orderBy directo.
      */
+    /**
+     * status=1 → pago vía OpenPay (charge_id); status=2 → pago manual (payday set).
+     * Ambos son facturas pagadas válidas. El filtro anterior solo usaba status=1.
+     */
+    private const PAID_STATUSES = [1, 2];
+
     private const COMPANY_SORT_MAP = [
         'id'           => ['type' => 'column', 'col' => 'companies.id'],
         'name'         => ['type' => 'column', 'col' => 'companies.name'],
         'email'        => ['type' => 'column', 'col' => 'companies.email'],
         'package'      => ['type' => 'column', 'col' => 'companies.package'],
         'active'       => ['type' => 'column', 'col' => 'companies.active'],
-        'status_label' => ['type' => 'column', 'col' => 'companies.active'],   // activo=1 → Activa
+        'status_label' => ['type' => 'column', 'col' => 'companies.active'],
         'created_at'   => ['type' => 'column', 'col' => 'companies.created_at'],
+        // Ordenar por payday real (pago efectuado); NULL last
         'last_payment' => [
             'type' => 'raw',
-            'sql'  => '(SELECT MAX(i.created_at) FROM invoices i WHERE i.company_id = companies.id AND i.status = 1)',
+            'sql'  => '(SELECT MAX(i.payday) FROM invoices i WHERE i.company_id = companies.id AND i.status IN (1,2) AND i.deleted_at IS NULL)',
         ],
-        'due_date'     => [
+        'due_date' => [
             'type' => 'raw',
-            'sql'  => '(SELECT MAX(i.due_date) FROM invoices i WHERE i.company_id = companies.id AND i.status = 1)',
+            'sql'  => '(SELECT MAX(i.due_date) FROM invoices i WHERE i.company_id = companies.id AND i.status IN (1,2) AND i.deleted_at IS NULL)',
         ],
     ];
 
@@ -312,18 +320,19 @@ class SuperAdminController extends Controller
         $sortKey = $request->query('sort_by', 'id');
         $sortDir = strtolower($request->query('sort_dir', 'asc')) === 'desc' ? 'desc' : 'asc';
 
-        // Resolve sort definition — unknown key → fallback seguro a id
         $sortDef = self::COMPANY_SORT_MAP[$sortKey] ?? self::COMPANY_SORT_MAP['id'];
 
         $query = Company::withoutGlobalScopes()
-            ->select(['id', 'name', 'email', 'phone', 'active', 'package', 'created_at'])
+            ->select(['id', 'name', 'email', 'phone', 'address', 'rfc', 'colony', 'zipcode', 'active', 'package', 'created_at'])
             ->with(['invoices' => function ($q) {
-                $q->where('status', 1)->latest()->limit(1);
+                // Trae la factura pagada más reciente (ambos métodos de pago)
+                $q->whereIn('status', self::PAID_STATUSES)
+                  ->whereNotNull('due_date')
+                  ->orderByDesc('due_date')
+                  ->limit(1);
             }]);
 
-        // Aplicar ordenamiento según tipo: columna directa o subquery calculada
         if ($sortDef['type'] === 'raw') {
-            // $sortDir ya está sanitizado a 'asc'|'desc' — seguro en raw
             $query->orderByRaw("{$sortDef['sql']} {$sortDir}");
         } else {
             $query->orderBy($sortDef['col'], $sortDir);
@@ -347,7 +356,17 @@ class SuperAdminController extends Controller
                 $dueDate = $lastInvoice->due_date instanceof Carbon
                     ? $lastInvoice->due_date
                     : Carbon::parse($lastInvoice->due_date);
-                $isPaid  = $dueDate->greaterThan(Carbon::now());
+                $isPaid = $dueDate->greaterThan(Carbon::now());
+            }
+
+            // payday = fecha real del cobro; si nula (pago OpenPay sin payday), usa created_at de la factura
+            $paymentDate = null;
+            if ($lastInvoice) {
+                $paymentDate = $lastInvoice->payday
+                    ? (is_string($lastInvoice->payday)
+                        ? Carbon::parse($lastInvoice->payday)->toDateString()
+                        : $lastInvoice->payday->toDateString())
+                    : $lastInvoice->created_at?->toDateString();
             }
 
             return [
@@ -355,10 +374,14 @@ class SuperAdminController extends Controller
                 'name'         => $c->name,
                 'email'        => $c->email,
                 'phone'        => $c->phone,
+                'address'      => $c->address,
+                'rfc'          => $c->rfc,
+                'colony'       => $c->colony,
+                'zipcode'      => $c->zipcode,
                 'active'       => (bool) $c->active,
                 'package'      => $c->package,
                 'is_paid'      => $isPaid,
-                'last_payment' => $lastInvoice ? $lastInvoice->created_at?->toDateString() : null,
+                'last_payment' => $paymentDate,
                 'due_date'     => $dueDate ? $dueDate->toDateString() : null,
                 'status_label' => $this->resolveCompanyStatus($c->active, $isPaid),
                 'created_at'   => $c->created_at?->toDateString(),
@@ -391,23 +414,18 @@ class SuperAdminController extends Controller
             return response()->json(['success' => false, 'error' => 'Empresa no encontrada.'], 404);
         }
 
-        $previousStatus = (bool) $company->active;
+        $previousStatus  = (bool) $company->active;
         $company->active = !$previousStatus;
         $company->save();
 
-        $action = $company->active ? 'activate' : 'suspend';
+        $actionLabel = $company->active ? 'Empresa Activada' : 'Empresa Suspendida';
 
         DB::table('audit_logs')->insert([
-            'actor_id'     => $actor->id,
-            'actor_email'  => $actor->email,
-            'action'       => $action,
-            'target_type'  => 'company',
-            'target_id'    => $company->id,
-            'target_name'  => $company->name,
-            'from_status'  => $previousStatus ? 'active' : 'suspended',
-            'to_status'    => $company->active ? 'active' : 'suspended',
-            'created_at'   => now(),
-            'updated_at'   => now(),
+            'company_id'     => $company->id,
+            'super_admin_id' => $actor->id,
+            'action'         => $actionLabel,
+            'created_at'     => now(),
+            'updated_at'     => now(),
         ]);
 
         return response()->json([
@@ -439,16 +457,11 @@ class SuperAdminController extends Controller
         }
 
         DB::table('audit_logs')->insert([
-            'actor_id'    => $actor->id,
-            'actor_email' => $actor->email,
-            'action'      => 'delete',
-            'target_type' => 'company',
-            'target_id'   => $company->id,
-            'target_name' => $company->name,
-            'from_status' => $company->active ? 'active' : 'suspended',
-            'to_status'   => 'deleted',
-            'created_at'  => now(),
-            'updated_at'  => now(),
+            'company_id'     => $company->id,
+            'super_admin_id' => $actor->id,
+            'action'         => 'Empresa Eliminada',
+            'created_at'     => now(),
+            'updated_at'     => now(),
         ]);
 
         $company->active = 0;
@@ -457,6 +470,149 @@ class SuperAdminController extends Controller
         return response()->json([
             'success' => true,
             'message' => "Empresa {$company->name} marcada como eliminada.",
+        ]);
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // ENDPOINT J2 — PUT /api/v2/admin/companies/{id}
+    // Edita datos de la empresa. ID y nombre son inmutables.
+    // Genera registro en audit_logs con los campos modificados.
+    // ══════════════════════════════════════════════════════════════════════════
+
+    public function updateCompany(Request $request, int $id)
+    {
+        $actor   = $request->user();
+        $company = Company::withoutGlobalScopes()->find($id);
+
+        if (!$company) {
+            return response()->json(['success' => false, 'error' => 'Empresa no encontrada.'], 404);
+        }
+
+        $data = $request->validate([
+            'email'   => 'sometimes|nullable|string|email|max:191',
+            'phone'   => 'sometimes|nullable|string|max:50',
+            'address' => 'sometimes|nullable|string|max:255',
+            'rfc'     => 'sometimes|nullable|string|max:30',
+            'colony'  => 'sometimes|nullable|string|max:100',
+            'zipcode' => 'sometimes|nullable|string|max:10',
+        ]);
+
+        // Construir resumen de cambios para el audit trail
+        $changes = [];
+        foreach ($data as $field => $newValue) {
+            $oldValue = $company->$field;
+            if ((string) $oldValue !== (string) $newValue) {
+                $changes[$field] = ['de' => $oldValue, 'a' => $newValue];
+            }
+        }
+
+        $company->fill($data);
+        $company->save();
+
+        DB::table('audit_logs')->insert([
+            'company_id'     => $company->id,
+            'super_admin_id' => $actor->id,
+            'action'         => 'Empresa Editada' . (empty($changes) ? ' (sin cambios)' : ': ' . implode(', ', array_keys($changes))),
+            'created_at'     => now(),
+            'updated_at'     => now(),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => "Datos de {$company->name} actualizados.",
+            'changes' => $changes,
+        ]);
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // ENDPOINT J3 — PATCH /api/v2/admin/companies/{id}/subscription-override
+    //
+    // Override Financiero: permite al Super Admin registrar un pago manual
+    // (transferencia SPEI, depósito, acuerdo comercial) sin pasar por OpenPay.
+    //
+    // Estrategia de datos:
+    //  1. Crea un nuevo invoice con status=2 (pago manual) y los datos proporcionados.
+    //  2. Si se indica un nuevo plan, actualiza companies.package.
+    //  3. Escribe en audit_logs con el detalle exacto de cada cambio (before/after).
+    //
+    // El dashboard V2 (listCompanies) consulta el invoice de mayor due_date con
+    // status IN(1,2), por lo que el nuevo invoice se reflejará de inmediato.
+    // ══════════════════════════════════════════════════════════════════════════
+
+    public function subscriptionOverride(Request $request, int $id)
+    {
+        $actor   = $request->user();
+        $company = Company::withoutGlobalScopes()->find($id);
+
+        if (!$company) {
+            return response()->json(['success' => false, 'error' => 'Empresa no encontrada.'], 404);
+        }
+
+        $data = $request->validate([
+            'due_date' => 'required|date',
+            'payday'   => 'nullable|date',
+            'plan'     => 'nullable|integer|min:1|max:99',
+            'reason'   => 'required|string|max:500',
+        ]);
+
+        $changes = [];
+
+        // ── 1. Registrar la nueva factura de pago manual ──────────────────────
+        $invoiceData = [
+            'name'         => 'Ajuste manual — Super Admin',
+            'cost_package' => 0,
+            'cost_user'    => 0,
+            'users'        => 0,
+            'status'       => 2,                        // 2 = pago manual confirmado
+            'charge_id'    => null,
+            'payday'       => $data['payday'] ? Carbon::parse($data['payday']) : Carbon::now(),
+            'due_date'     => Carbon::parse($data['due_date']),
+            'company_id'   => $company->id,
+        ];
+
+        DB::table('invoices')->insert(array_merge($invoiceData, [
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]));
+
+        $changes['due_date'] = [
+            'de' => 'anterior',
+            'a'  => $data['due_date'],
+        ];
+        $changes['payday'] = [
+            'de' => 'anterior',
+            'a'  => $data['payday'] ?? Carbon::now()->toDateString(),
+        ];
+
+        // ── 2. Cambiar el plan si se indicó uno diferente ─────────────────────
+        if (!empty($data['plan']) && (int) $data['plan'] !== (int) $company->package) {
+            $changes['plan'] = [
+                'de' => $company->package,
+                'a'  => $data['plan'],
+            ];
+            $company->package = $data['plan'];
+            $company->save();
+        }
+
+        // ── 3. Audit Trail detallado ──────────────────────────────────────────
+        $changesSummary = collect($changes)->map(function ($v, $k) {
+            return "{$k}: \"{$v['de']}\" → \"{$v['a']}\"";
+        })->implode(' | ');
+
+        $actionText = "Ajuste Financiero Manual: {$changesSummary} — Motivo: {$data['reason']}";
+
+        DB::table('audit_logs')->insert([
+            'company_id'     => $company->id,
+            'super_admin_id' => $actor->id,
+            'action'         => mb_substr($actionText, 0, 500), // protege el límite de la columna
+            'created_at'     => now(),
+            'updated_at'     => now(),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Ajuste financiero aplicado. Factura manual registrada.',
+            'changes' => $changes,
         ]);
     }
 

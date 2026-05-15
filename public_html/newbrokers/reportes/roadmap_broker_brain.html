@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Roadmap de Despliegue: Broker Brain IA</title>
+    
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Tailwind CSS (CDN) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#eff6ff',
+                            100: '#dbeafe',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            900: '#1e3a8a',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Sutil efecto glassmorphism para el nav superior si es necesario, y transiciones suaves */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+        
+        @keyframes progress-stripes {
+            from { background-position: 1rem 0; }
+            to { background-position: 0 0; }
+        }
+        .progress-animated {
+            background-image: linear-gradient(45deg, rgba(255, 255, 255, 0.25) 25%, transparent 25%, transparent 50%, rgba(255, 255, 255, 0.25) 50%, rgba(255, 255, 255, 0.25) 75%, transparent 75%, transparent);
+            background-size: 1rem 1rem;
+            animation: progress-stripes 1s linear infinite;
+        }
+        
+        .glow-active {
+            box-shadow: 0 0 20px rgba(245, 158, 11, 0.15);
+        }
+    </style>
+</head>
+<body class="bg-slate-50 font-sans text-slate-800 antialiased min-h-screen flex flex-col">
+
+    <!-- Top Navigation Simple (Contexto Brokers Connector V2) -->
+    <nav class="bg-white border-b border-slate-200 shadow-sm sticky top-0 z-50 glass-card">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16 items-center">
+                <div class="flex items-center space-x-3">
+                    <div class="w-8 h-8 bg-brand-600 rounded-lg flex items-center justify-center text-white font-bold shadow-sm">
+                        <i class="fa-solid fa-cube"></i>
+                    </div>
+                    <span class="font-bold text-lg tracking-tight text-slate-900">Brokers Connector <span class="text-brand-600">V2</span></span>
+                </div>
+                <div class="flex items-center space-x-2 sm:space-x-4">
+                    <!-- Botones de Acción -->
+                    <a href="index.html" class="hidden sm:inline-flex items-center px-3 py-1.5 border border-slate-300 shadow-sm text-sm font-medium rounded-lg text-slate-700 bg-white hover:bg-slate-50 transition-colors">
+                        <i class="fa-solid fa-house mr-2"></i> Panel Principal
+                    </a>
+                    <a href="https://newbrokers.tourfindy.com/" target="_blank" class="inline-flex items-center px-3 py-1.5 border border-transparent shadow-sm text-sm font-medium rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 transition-colors">
+                        <i class="fa-solid fa-flask mr-2"></i> Entorno de Pruebas
+                    </a>
+                    <a href="https://brokersconnector.com/login" target="_blank" class="inline-flex items-center px-3 py-1.5 border border-transparent shadow-sm text-sm font-medium rounded-lg text-white bg-slate-900 hover:bg-slate-800 transition-colors">
+                        <i class="fa-solid fa-rocket text-brand-500 mr-2"></i> Producción
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 w-full">
+        
+        <!-- Header -->
+        <header class="mb-10">
+            <h1 class="text-3xl md:text-4xl font-extrabold tracking-tight text-slate-900">
+                Roadmap de Despliegue: Broker Brain IA
+            </h1>
+            <p class="mt-3 text-lg text-slate-500 max-w-3xl">
+                Centro de comando y seguimiento de hitos de desarrollo.
+            </p>
+
+            <!-- Banner Informativo -->
+            <div class="mt-6 bg-indigo-50/80 border border-indigo-100 rounded-xl p-4 sm:p-5 flex items-start space-x-4 shadow-sm">
+                <div class="flex-shrink-0 text-indigo-500 mt-0.5">
+                    <i class="fa-solid fa-circle-info text-xl"></i>
+                </div>
+                <div class="flex-1">
+                    <p class="text-sm sm:text-base text-indigo-900 font-medium leading-relaxed">
+                        Este Roadmap de ejecución está fundamentado arquitectónicamente en el 
+                        <a href="informe_estrategico_broker_brain.html" class="font-bold text-indigo-700 hover:text-indigo-800 underline decoration-indigo-300 hover:decoration-indigo-500 transition-colors">
+                            [Informe Estratégico Broker Brain IA]
+                        </a>.
+                    </p>
+                </div>
+            </div>
+        </header>
+
+        <!-- Barra de Progreso Global -->
+        <section class="mb-10 bg-white rounded-2xl p-6 shadow-sm border border-slate-200 relative overflow-hidden">
+            <!-- Efecto de fondo sutil -->
+            <div class="absolute top-0 right-0 w-64 h-64 bg-brand-50 rounded-full mix-blend-multiply filter blur-3xl opacity-50 -translate-y-1/2 translate-x-1/2"></div>
+            
+            <div class="relative z-10">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-end mb-4 gap-2">
+                    <div>
+                        <h2 class="text-lg font-bold text-slate-900 flex items-center">
+                            <i class="fa-solid fa-timeline text-brand-500 mr-2"></i> Timeline Global del Proyecto
+                        </h2>
+                        <p class="text-sm text-slate-500 mt-1">Estimación de despliegue progresivo</p>
+                    </div>
+                    <div class="text-right">
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                            <span class="w-2 h-2 rounded-full bg-amber-500 mr-2 animate-pulse"></span>
+                            FASE 1 ACTIVA
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Labels del Timeline -->
+                <div class="flex justify-between text-xs font-medium text-slate-500 mb-2 px-1">
+                    <div class="text-left w-1/4">
+                        <span class="block text-slate-800 font-bold">Inicio</span>
+                        14 May 2026
+                    </div>
+                    <div class="text-center w-1/4">
+                        <span class="block text-slate-800 font-bold">Fase 2</span>
+                        1 Jun 2026
+                    </div>
+                    <div class="text-center w-1/4">
+                        <span class="block text-slate-800 font-bold">Fase 3</span>
+                        1 Jul 2026
+                    </div>
+                    <div class="text-right w-1/4">
+                        <span class="block text-slate-800 font-bold">Cierre Estimado</span>
+                        31 Jul 2026
+                    </div>
+                </div>
+
+                <!-- Track de la barra -->
+                <div class="w-full bg-slate-100 rounded-full h-4 shadow-inner relative overflow-hidden flex">
+                    <!-- Segmento Fase 1 (Animado y Activo) -->
+                    <div class="bg-gradient-to-r from-amber-400 to-amber-500 h-full progress-animated transition-all duration-1000 ease-out relative" style="width: 15%;">
+                        <!-- Indicador de "Hoy" -->
+                        <div class="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-4 h-4 bg-white border-4 border-amber-500 rounded-full shadow-md z-20"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Grid de Seguimiento (3 Fases) -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+
+            <!-- FASE 1: El Gancho de Cierre -->
+            <section class="bg-white rounded-2xl shadow-md border-2 border-amber-200 overflow-hidden transition-all duration-300 relative glow-active ring-4 ring-amber-50">
+                <!-- Acento superior -->
+                <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-amber-400 to-orange-500"></div>
+                
+                <div class="p-6 border-b border-amber-100 bg-amber-50/30">
+                    <div class="flex justify-between items-start mb-2">
+                        <h2 class="text-xl font-bold text-slate-900">Fase 1</h2>
+                        
+                        <!-- CLAUDE: MODIFICAR ESTADO DE FASE AQUÍ -->
+                        <!-- Para Completado: bg-emerald-100 text-emerald-800. Para En Desarrollo: bg-amber-100 text-amber-800. Para Pendiente: bg-slate-100 text-slate-700 -->
+                        <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-200/50 shadow-sm">
+                            <span class="w-1.5 h-1.5 rounded-full bg-amber-500 mr-1.5 animate-pulse"></span>
+                            EN DESARROLLO
+                        </span>
+                    </div>
+                    <h3 class="text-base font-semibold text-brand-600 mb-1">"El Gancho de Cierre"</h3>
+                    <p class="text-sm text-slate-600">Impacto Comercial Inmediato</p>
+                    <div class="mt-3 flex items-center text-xs font-bold text-amber-700 bg-amber-100/50 py-1.5 px-3 rounded-lg border border-amber-200/50 inline-block">
+                        <i class="fa-regular fa-calendar-check mr-2"></i> Deadline: Sáb, 23 Mayo 2026
+                    </div>
+                </div>
+                
+                <ul class="divide-y divide-slate-100">
+                    <!-- Tarea 1 -->
+                    <li class="p-5 flex flex-col sm:flex-row sm:items-start justify-between gap-3 group hover:bg-amber-50/30 transition-colors">
+                        <div class="flex items-start space-x-3 w-full sm:w-3/4">
+                            <div class="mt-0.5 text-amber-500 transition-colors shrink-0">
+                                <i class="fa-solid fa-chart-line w-5 text-center"></i>
+                            </div>
+                            <div>
+                                <span class="text-sm font-bold text-slate-800 leading-snug block">Valuador Inteligente de Mercado (CMA IA)</span>
+                                <!-- Descripción y Diferenciador -->
+                                <p class="text-xs text-slate-600 mt-1 leading-relaxed">
+                                    <span class="font-medium text-slate-700">Qué es:</span> Análisis Comparativo de Mercado automatizado. <br>
+                                    <span class="font-medium text-amber-700">El Diferenciador:</span> No solo arroja un precio; escupe un argumento de venta irrefutable basado en datos hiper-locales en segundos.
+                                </p>
+                                <span class="text-xs font-semibold text-slate-500 flex items-center mt-2 bg-white px-2 py-1 rounded border border-slate-200 inline-block w-fit">
+                                    <i class="fa-regular fa-clock mr-1 text-slate-400"></i> Entrega: 16 Mayo 2026
+                                </span>
+                            </div>
+                        </div>
+                        <!-- CLAUDE: MODIFICAR ESTADO DE TAREA AQUÍ -->
+                        <!-- Cambiar a: bg-emerald-100 text-emerald-700 ring-emerald-500/20 y texto 'Completado' -->
+                        <div class="shrink-0 pt-1 sm:pt-0 text-right sm:text-left">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-700 ring-1 ring-inset ring-amber-500/30 shadow-sm">
+                                En Desarrollo
+                            </span>
+                        </div>
+                    </li>
+
+                    <!-- Tarea 2 -->
+                    <li class="p-5 flex flex-col sm:flex-row sm:items-start justify-between gap-3 group hover:bg-amber-50/30 transition-colors">
+                        <div class="flex items-start space-x-3 w-full sm:w-3/4">
+                            <div class="mt-0.5 text-slate-400 group-hover:text-amber-500 transition-colors shrink-0">
+                                <i class="fa-solid fa-map-location-dot w-5 text-center"></i>
+                            </div>
+                            <div>
+                                <span class="text-sm font-bold text-slate-700 leading-snug block">Radar de Plusvalía y Crecimiento Urbano</span>
+                                <!-- Descripción y Diferenciador -->
+                                <p class="text-xs text-slate-600 mt-1 leading-relaxed">
+                                    <span class="font-medium text-slate-700">Qué es:</span> Detector de tendencias de valorización de zonas. <br>
+                                    <span class="font-medium text-amber-700">El Diferenciador:</span> Transforma al broker de un simple "mostrador de casas" a un asesor de inversiones patrimoniales con visión a futuro.
+                                </p>
+                                <span class="text-xs font-semibold text-slate-500 flex items-center mt-2 bg-white px-2 py-1 rounded border border-slate-200 inline-block w-fit">
+                                    <i class="fa-regular fa-clock mr-1 text-slate-400"></i> Entrega: 20 Mayo 2026
+                                </span>
+                            </div>
+                        </div>
+                        <!-- CLAUDE: MODIFICAR ESTADO DE TAREA AQUÍ -->
+                        <div class="shrink-0 pt-1 sm:pt-0 text-right sm:text-left">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-600 ring-1 ring-inset ring-slate-500/20">
+                                Pendiente
+                            </span>
+                        </div>
+                    </li>
+
+                    <!-- Tarea 3 -->
+                    <li class="p-5 flex flex-col sm:flex-row sm:items-start justify-between gap-3 group hover:bg-amber-50/30 transition-colors">
+                        <div class="flex items-start space-x-3 w-full sm:w-3/4">
+                            <div class="mt-0.5 text-slate-400 group-hover:text-amber-500 transition-colors shrink-0">
+                                <i class="fa-solid fa-magnifying-glass-chart w-5 text-center"></i>
+                            </div>
+                            <div>
+                                <span class="text-sm font-bold text-slate-700 leading-snug block">Detector de Oportunidades de Captación</span>
+                                <!-- Descripción y Diferenciador -->
+                                <p class="text-xs text-slate-600 mt-1 leading-relaxed">
+                                    <span class="font-medium text-slate-700">Qué es:</span> Filtro inteligente de propiedades infravaloradas o con alto potencial. <br>
+                                    <span class="font-medium text-amber-700">El Diferenciador:</span> Automatiza la prospección pasiva. Le dice al broker *exactamente* a quién llamar hoy para engrosar su inventario.
+                                </p>
+                                <span class="text-xs font-semibold text-slate-500 flex items-center mt-2 bg-white px-2 py-1 rounded border border-slate-200 inline-block w-fit">
+                                    <i class="fa-regular fa-clock mr-1 text-slate-400"></i> Entrega: 23 Mayo 2026
+                                </span>
+                            </div>
+                        </div>
+                        <!-- CLAUDE: MODIFICAR ESTADO DE TAREA AQUÍ -->
+                        <div class="shrink-0 pt-1 sm:pt-0 text-right sm:text-left">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-600 ring-1 ring-inset ring-slate-500/20">
+                                Pendiente
+                            </span>
+                        </div>
+                    </li>
+                </ul>
+            </section>
+
+            <!-- FASE 2: El Asesor Experto -->
+            <section class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden hover:shadow-md transition-shadow duration-300 opacity-90 hover:opacity-100">
+                <div class="p-6 border-b border-slate-100 bg-slate-50/50">
+                    <div class="flex justify-between items-start mb-2">
+                        <h2 class="text-xl font-bold text-slate-900">Fase 2</h2>
+                        
+                        <!-- CLAUDE: MODIFICAR ESTADO DE FASE AQUÍ -->
+                        <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-600 border border-slate-200 shadow-sm">
+                            <i class="fa-solid fa-hourglass-half mr-1.5 opacity-70"></i>
+                            EN ESPERA
+                        </span>
+                    </div>
+                    <h3 class="text-base font-semibold text-slate-700 mb-1">"El Asesor Experto"</h3>
+                    <p class="text-sm text-slate-500">Fidelización y Due Diligence</p>
+                    <div class="mt-3 text-xs font-medium text-slate-500 bg-white py-1.5 px-3 rounded-lg border border-slate-200 inline-block">
+                        <i class="fa-regular fa-calendar-plus mr-1"></i> Inicio: Lun, 1 Junio 2026
+                    </div>
+                </div>
+                
+                <ul class="divide-y divide-slate-100">
+                    <!-- Tarea 4 -->
+                    <li class="p-5 flex flex-col sm:flex-row sm:items-start justify-between gap-3 group hover:bg-slate-50/50 transition-colors">
+                        <div class="flex items-start space-x-3 w-full sm:w-3/4">
+                            <div class="mt-0.5 text-slate-400 shrink-0">
+                                <i class="fa-solid fa-chart-pie w-5 text-center"></i>
+                            </div>
+                            <div>
+                                <span class="text-sm font-bold text-slate-700 leading-snug block">Análisis Integral de Zona y Calidad de Vida</span>
+                                <!-- Descripción y Diferenciador -->
+                                <p class="text-xs text-slate-600 mt-1 leading-relaxed">
+                                    <span class="font-medium text-slate-700">Qué es:</span> Perfil demográfico y de servicios del entorno de una propiedad. <br>
+                                    <span class="font-medium text-brand-600">El Diferenciador:</span> Vende un "estilo de vida", no solo metros cuadrados. Anticipa objeciones sobre escuelas, seguridad y movilidad.
+                                </p>
+                            </div>
+                        </div>
+                        <!-- CLAUDE: MODIFICAR ESTADO DE TAREA AQUÍ -->
+                        <div class="shrink-0 pt-1 sm:pt-0 text-right sm:text-left">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-600 ring-1 ring-inset ring-slate-500/20">
+                                Pendiente
+                            </span>
+                        </div>
+                    </li>
+
+                    <!-- Tarea 5 -->
+                    <li class="p-5 flex flex-col sm:flex-row sm:items-start justify-between gap-3 group hover:bg-slate-50/50 transition-colors">
+                        <div class="flex items-start space-x-3 w-full sm:w-3/4">
+                            <div class="mt-0.5 text-slate-400 shrink-0">
+                                <i class="fa-solid fa-scale-balanced w-5 text-center"></i>
+                            </div>
+                            <div>
+                                <span class="text-sm font-bold text-slate-700 leading-snug block">Analizador Forense de Riesgo Legal y Urbano</span>
+                                <!-- Descripción y Diferenciador -->
+                                <p class="text-xs text-slate-600 mt-1 leading-relaxed">
+                                    <span class="font-medium text-slate-700">Qué es:</span> Pre-evaluación de estatus legal y viabilidad de uso de suelo. <br>
+                                    <span class="font-medium text-brand-600">El Diferenciador:</span> Ahorra semanas de dolores de cabeza evitando captaciones "inviables" y blindando la transacción desde el día 1.
+                                </p>
+                            </div>
+                        </div>
+                        <!-- CLAUDE: MODIFICAR ESTADO DE TAREA AQUÍ -->
+                        <div class="shrink-0 pt-1 sm:pt-0 text-right sm:text-left">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-600 ring-1 ring-inset ring-slate-500/20">
+                                Pendiente
+                            </span>
+                        </div>
+                    </li>
+
+                    <!-- Tarea 6 -->
+                    <li class="p-5 flex flex-col sm:flex-row sm:items-start justify-between gap-3 group hover:bg-slate-50/50 transition-colors">
+                        <div class="flex items-start space-x-3 w-full sm:w-3/4">
+                            <div class="mt-0.5 text-slate-400 shrink-0">
+                                <i class="fa-solid fa-users-viewfinder w-5 text-center"></i>
+                            </div>
+                            <div>
+                                <span class="text-sm font-bold text-slate-700 leading-snug block">Perfilador de Comprador Ideal + Match de Zona</span>
+                                <!-- Descripción y Diferenciador -->
+                                <p class="text-xs text-slate-600 mt-1 leading-relaxed">
+                                    <span class="font-medium text-slate-700">Qué es:</span> Emparejamiento conductual entre propiedad y posibles targets. <br>
+                                    <span class="font-medium text-brand-600">El Diferenciador:</span> Micro-segmentación publicitaria. Evita gastar pauta en prospectos que jamás comprarían esa propiedad específica.
+                                </p>
+                            </div>
+                        </div>
+                        <!-- CLAUDE: MODIFICAR ESTADO DE TAREA AQUÍ -->
+                        <div class="shrink-0 pt-1 sm:pt-0 text-right sm:text-left">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-600 ring-1 ring-inset ring-slate-500/20">
+                                Pendiente
+                            </span>
+                        </div>
+                    </li>
+                </ul>
+            </section>
+
+            <!-- FASE 3: La Máquina Autónoma -->
+            <section class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden hover:shadow-md transition-shadow duration-300 opacity-90 hover:opacity-100">
+                <div class="p-6 border-b border-slate-100 bg-slate-50/50">
+                    <div class="flex justify-between items-start mb-2">
+                        <h2 class="text-xl font-bold text-slate-900">Fase 3</h2>
+                        
+                        <!-- CLAUDE: MODIFICAR ESTADO DE FASE AQUÍ -->
+                        <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-600 border border-slate-200 shadow-sm">
+                            <i class="fa-solid fa-hourglass-half mr-1.5 opacity-70"></i>
+                            EN ESPERA
+                        </span>
+                    </div>
+                    <h3 class="text-base font-semibold text-slate-700 mb-1">"La Máquina Autónoma"</h3>
+                    <p class="text-sm text-slate-500">Automatización CRM total</p>
+                    <div class="mt-3 text-xs font-medium text-slate-500 bg-white py-1.5 px-3 rounded-lg border border-slate-200 inline-block">
+                        <i class="fa-regular fa-calendar-plus mr-1"></i> Inicio: Mié, 1 Julio 2026
+                    </div>
+                </div>
+                
+                <ul class="divide-y divide-slate-100">
+                    <!-- Tarea 7 -->
+                    <li class="p-5 flex flex-col sm:flex-row sm:items-start justify-between gap-3 group hover:bg-slate-50/50 transition-colors">
+                        <div class="flex items-start space-x-3 w-full sm:w-3/4">
+                            <div class="mt-0.5 text-slate-400 shrink-0">
+                                <i class="fa-solid fa-pen-nib w-5 text-center"></i>
+                            </div>
+                            <div>
+                                <span class="text-sm font-bold text-slate-700 leading-snug block">Generador Predictivo de Copywriting y Activos</span>
+                                <!-- Descripción y Diferenciador -->
+                                <p class="text-xs text-slate-600 mt-1 leading-relaxed">
+                                    <span class="font-medium text-slate-700">Qué es:</span> Creación automática de descripciones y copies para redes. <br>
+                                    <span class="font-medium text-emerald-600">El Diferenciador:</span> Genera múltiples variantes (emocional, técnico, inversor) asegurando que el listado no sea uno más del montón.
+                                </p>
+                            </div>
+                        </div>
+                        <!-- CLAUDE: MODIFICAR ESTADO DE TAREA AQUÍ -->
+                        <div class="shrink-0 pt-1 sm:pt-0 text-right sm:text-left">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-600 ring-1 ring-inset ring-slate-500/20">
+                                Pendiente
+                            </span>
+                        </div>
+                    </li>
+
+                    <!-- Tarea 8 -->
+                    <li class="p-5 flex flex-col sm:flex-row sm:items-start justify-between gap-3 group hover:bg-slate-50/50 transition-colors">
+                        <div class="flex items-start space-x-3 w-full sm:w-3/4">
+                            <div class="mt-0.5 text-slate-400 shrink-0">
+                                <i class="fa-solid fa-calculator w-5 text-center"></i>
+                            </div>
+                            <div>
+                                <span class="text-sm font-bold text-slate-700 leading-snug block">Calculadora Inteligente de Retorno de Inversión (ROI)</span>
+                                <!-- Descripción y Diferenciador -->
+                                <p class="text-xs text-slate-600 mt-1 leading-relaxed">
+                                    <span class="font-medium text-slate-700">Qué es:</span> Proyecciones financieras dinámicas para inversores. <br>
+                                    <span class="font-medium text-emerald-600">El Diferenciador:</span> Cierra ventas "frías" demostrando matemáticamente por qué comprar esa propiedad es una decisión financieramente irrefutable.
+                                </p>
+                            </div>
+                        </div>
+                        <!-- CLAUDE: MODIFICAR ESTADO DE TAREA AQUÍ -->
+                        <div class="shrink-0 pt-1 sm:pt-0 text-right sm:text-left">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-600 ring-1 ring-inset ring-slate-500/20">
+                                Pendiente
+                            </span>
+                        </div>
+                    </li>
+
+                    <!-- Tarea 9 -->
+                    <li class="p-5 flex flex-col sm:flex-row sm:items-start justify-between gap-3 group hover:bg-slate-50/50 transition-colors">
+                        <div class="flex items-start space-x-3 w-full sm:w-3/4">
+                            <div class="mt-0.5 text-slate-400 shrink-0">
+                                <i class="fa-solid fa-sitemap w-5 text-center"></i>
+                            </div>
+                            <div>
+                                <span class="text-sm font-bold text-slate-700 leading-snug block">Orquestador Autónomo de Cualificación (Lead Scoring)</span>
+                                <!-- Descripción y Diferenciador -->
+                                <p class="text-xs text-slate-600 mt-1 leading-relaxed">
+                                    <span class="font-medium text-slate-700">Qué es:</span> Clasificación automatizada del nivel de interés de los leads. <br>
+                                    <span class="font-medium text-emerald-600">El Diferenciador:</span> El broker deja de perder tiempo persiguiendo curiosos; el sistema prioriza a los clientes listos para comprar.
+                                </p>
+                            </div>
+                        </div>
+                        <!-- CLAUDE: MODIFICAR ESTADO DE TAREA AQUÍ -->
+                        <div class="shrink-0 pt-1 sm:pt-0 text-right sm:text-left">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-600 ring-1 ring-inset ring-slate-500/20">
+                                Pendiente
+                            </span>
+                        </div>
+                    </li>
+
+                    <!-- Tarea 10 -->
+                    <li class="p-5 flex flex-col sm:flex-row sm:items-start justify-between gap-3 group hover:bg-slate-50/50 transition-colors">
+                        <div class="flex items-start space-x-3 w-full sm:w-3/4">
+                            <div class="mt-0.5 text-slate-400 shrink-0">
+                                <i class="fa-solid fa-robot w-5 text-center"></i>
+                            </div>
+                            <div>
+                                <span class="text-sm font-bold text-slate-700 leading-snug block">Asistente Operativo Transaccional (Copiloto CRM)</span>
+                                <!-- Descripción y Diferenciador -->
+                                <p class="text-xs text-slate-600 mt-1 leading-relaxed">
+                                    <span class="font-medium text-slate-700">Qué es:</span> Guía paso a paso durante el proceso de cierre y escrituración. <br>
+                                    <span class="font-medium text-emerald-600">El Diferenciador:</span> Estandariza la excelencia. Asegura que ningún broker olvide un documento crucial, bajando drásticamente las caídas de firmas.
+                                </p>
+                            </div>
+                        </div>
+                        <!-- CLAUDE: MODIFICAR ESTADO DE TAREA AQUÍ -->
+                        <div class="shrink-0 pt-1 sm:pt-0 text-right sm:text-left">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-600 ring-1 ring-inset ring-slate-500/20">
+                                Pendiente
+                            </span>
+                        </div>
+                    </li>
+                </ul>
+            </section>
+
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200 mt-auto py-6">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center text-sm text-slate-500">
+            <p>&copy; 2026 Brokers Connector V2. Todos los derechos reservados.</p>
+            <p class="mt-2 md:mt-0 flex items-center">
+                Desplegado por el Equipo IA <i class="fa-solid fa-bolt text-amber-500 ml-2"></i>
+            </p>
+        </div>
+    </footer>
+
+</body>
+</html>

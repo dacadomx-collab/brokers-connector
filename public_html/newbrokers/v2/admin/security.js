@@ -186,6 +186,8 @@ function renderAdmins(admins, meta) {
     const toggleLabel  = isSuper ? 'Degradar a Admin' : 'Promover';
     const toggleClass  = isSuper ? 'v2-btn-warning' : 'v2-btn-promote';
 
+    const companyName = u.company_name || '—';
+
     const tr = document.createElement('tr');
     tr.dataset.userId = u.id;
     tr.innerHTML =
@@ -197,6 +199,12 @@ function renderAdmins(admins, meta) {
             '<p class="sa-user-id">ID #' + u.id + '</p>' +
           '</div>' +
         '</div>' +
+      '</td>' +
+      '<td>' +
+        '<span style="display:inline-flex;align-items:center;gap:.4rem;font-size:.8rem;">' +
+          '<i class="fas fa-building" style="color:var(--v2-text-muted);font-size:.7rem;"></i>' +
+          escHtml(companyName) +
+        '</span>' +
       '</td>' +
       '<td><span class="sa-email">' + escHtml(u.email) + '</span></td>' +
       '<td><span class="sa-role-badge ' + roleBadge + '">' + roleLabel + '</span></td>' +
@@ -803,12 +811,18 @@ var STATUS_CLASS = {
   'Suspendida': 'sa-badge-red',
 };
 
+// ── Dropdown de acciones: estado del contexto activo ──────────────────────────
+var coDropCtx = { id: null, name: null, active: null, data: null };
+
 function renderCompanies(rows) {
   var tbody = $('co-tbody');
   tbody.innerHTML = '';
   rows.forEach(function (c) {
     var cls = STATUS_CLASS[c.status_label] || 'sa-badge-gray';
     var tr = document.createElement('tr');
+    tr.dataset.companyId = c.id;
+    // Guardamos el objeto completo en dataset para el modal de edición
+    tr.dataset.companyJson = JSON.stringify(c);
     tr.innerHTML =
       '<td>' + escHtml(c.id) + '</td>' +
       '<td><strong>' + escHtml(c.name) + '</strong></td>' +
@@ -818,39 +832,102 @@ function renderCompanies(rows) {
       '<td>' + escHtml(c.last_payment || '—') + '</td>' +
       '<td>' + escHtml(c.due_date || '—') + '</td>' +
       '<td class="sa-col-actions">' +
-        '<button class="v2-btn v2-btn-ghost" style="font-size:.75rem;padding:.3rem .6rem;" ' +
-          'onclick="coToggle(' + c.id + ',\'' + escAttr(c.name) + '\',' + c.active + ')">' +
-          (c.active ? 'Suspender' : 'Activar') +
-        '</button> ' +
-        '<button class="v2-btn v2-btn-danger" style="font-size:.75rem;padding:.3rem .6rem;" ' +
-          'onclick="coDelete(' + c.id + ',\'' + escAttr(c.name) + '\')">' +
-          'Eliminar' +
+        '<button class="v2-btn v2-btn-ghost co-dd-trigger" ' +
+                'style="font-size:.75rem;padding:.3rem .8rem;display:inline-flex;align-items:center;gap:.35rem;" ' +
+                'data-id="' + c.id + '" data-name="' + escAttr(c.name) + '" data-active="' + (c.active ? '1' : '0') + '" ' +
+                'title="Opciones de esta empresa">' +
+          'Acciones <i class="fas fa-chevron-down" style="font-size:.6rem;"></i>' +
         '</button>' +
       '</td>';
     tbody.appendChild(tr);
   });
+
+  // Registrar click handlers en los botones de trigger
+  tbody.querySelectorAll('.co-dd-trigger').forEach(function (btn) {
+    btn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      var tr     = btn.closest('tr');
+      var data   = JSON.parse(tr.dataset.companyJson);
+      coOpenDropdown(btn, data);
+    });
+  });
 }
 
-function renderCoPager(meta) {
-  var pager = $('co-pager');
-  pager.innerHTML = '';
-  if (meta.last_page <= 1) return;
-  for (var p = 1; p <= meta.last_page; p++) {
-    var btn = document.createElement('button');
-    btn.textContent = p;
-    btn.className = 'v2-btn ' + (p === meta.current_page ? 'v2-btn-primary' : 'v2-btn-ghost');
-    btn.style.padding = '.3rem .7rem';
-    (function (pg) { btn.addEventListener('click', function () { loadCompanies(pg); }); }(p));
-    pager.appendChild(btn);
+// ── Apertura del dropdown posicionado sobre el botón ─────────────────────────
+// Se reconstruye el botón toggle en CADA apertura según el estado de la fila.
+// Esto elimina cualquier posibilidad de mostrar la opción incorrecta por
+// estado residual del DOM o renderizados anteriores.
+function coOpenDropdown(triggerBtn, data) {
+  // Normalización defensiva: la API puede devolver true/false, 1/0 o "1"/"0".
+  // Boolean(Number("0")) === false  →  "0" string ya no es truthy por error.
+  var isActive = Boolean(Number(data.active));
+
+  coDropCtx = { id: data.id, name: data.name, active: isActive, data: data };
+
+  var toggleBtn = $('co-dd-toggle');
+
+  // Renderizado condicional estricto — solo una opción visible por apertura.
+  if (isActive) {
+    // Empresa ACTIVA → única opción: Suspender
+    toggleBtn.className = 'co-dd-item co-dd-warn';
+    toggleBtn.innerHTML =
+      '<i class="fas fa-pause co-dd-icon"></i> Suspender';
+  } else {
+    // Empresa SUSPENDIDA / INACTIVA → única opción: Activar
+    toggleBtn.className = 'co-dd-item co-dd-ok';
+    toggleBtn.innerHTML =
+      '<i class="fas fa-play co-dd-icon"></i> Activar';
   }
+
+  var dd   = $('co-dropdown');
+  var rect = triggerBtn.getBoundingClientRect();
+  dd.style.display = ''; // limpia el inline display:none aplicado por coCloseDropdown
+  dd.style.top  = (rect.bottom + window.scrollY + 4) + 'px';
+  dd.style.left = Math.min(rect.left + window.scrollX, window.innerWidth - 180) + 'px';
+  dd.classList.remove('hidden');
 }
 
-// Modal confirmación
+function coCloseDropdown() {
+  var dd = $('co-dropdown');
+  dd.classList.add('hidden');
+  dd.style.display = 'none'; // fuerza ocultamiento; previene conflictos de especificidad CSS
+}
+
+// Cerrar al hacer clic fuera del dropdown
+document.addEventListener('click', function (e) {
+  var dd = $('co-dropdown');
+  if (!dd.classList.contains('hidden') && !dd.contains(e.target)) {
+    coCloseDropdown();
+  }
+});
+
+// ── Acciones del dropdown ─────────────────────────────────────────────────────
+// stopPropagation en cada acción: evita que el evento alcance el document-handler
+// (que al ver e.target dentro de co-dropdown lo dejaría abierto en algunos navegadores).
+$('co-dd-edit').addEventListener('click', function (e) {
+  e.stopPropagation();
+  coCloseDropdown();
+  coOpenEditModal(coDropCtx.data);
+});
+
+$('co-dd-toggle').addEventListener('click', function (e) {
+  e.stopPropagation();
+  coCloseDropdown();
+  coToggle(coDropCtx.id, coDropCtx.name, coDropCtx.active);
+});
+
+$('co-dd-delete').addEventListener('click', function (e) {
+  e.stopPropagation();
+  coCloseDropdown();
+  coDelete(coDropCtx.id, coDropCtx.name);
+});
+
+// ── Modal de confirmación (toggle / eliminar) ─────────────────────────────────
 function coToggle(id, name, currentActive) {
-  var action = currentActive ? 'suspender' : 'activar';
   $('co-modal-icon').textContent = currentActive ? '⏸️' : '▶️';
   $('co-modal-title').textContent = (currentActive ? 'Suspender' : 'Activar') + ' empresa';
-  $('co-modal-body').textContent = '¿Confirmas ' + action + ' la empresa "' + name + '"?';
+  $('co-modal-body').textContent  = '¿Confirmas ' + (currentActive ? 'suspender' : 'activar') + ' la empresa "' + name + '"?';
+  $('co-modal-confirm').className = 'v2-btn ' + (currentActive ? 'v2-btn-warning' : 'v2-btn-promote');
   coState.pendingAction = function () {
     apiFetch('/api/v2/admin/companies/' + id + '/toggle-status', { method: 'PATCH' })
       .then(function (d) {
@@ -864,9 +941,10 @@ function coToggle(id, name, currentActive) {
 }
 
 function coDelete(id, name) {
-  $('co-modal-icon').textContent = '🗑️';
+  $('co-modal-icon').textContent  = '🗑️';
   $('co-modal-title').textContent = 'Eliminar empresa';
-  $('co-modal-body').textContent = 'Esta acción suspenderá y marcará como eliminada la empresa "' + name + '". No se puede deshacer.';
+  $('co-modal-body').textContent  = 'Esta acción suspenderá y marcará como eliminada la empresa "' + name + '". No se puede deshacer.';
+  $('co-modal-confirm').className = 'v2-btn v2-btn-danger';
   coState.pendingAction = function () {
     apiFetch('/api/v2/admin/companies/' + id, { method: 'DELETE' })
       .then(function (d) {
@@ -887,6 +965,162 @@ $('co-modal-confirm').addEventListener('click', function () {
   $('co-modal').classList.add('hidden');
   if (coState.pendingAction) { coState.pendingAction(); coState.pendingAction = null; }
 });
+
+// ── Modal de edición ──────────────────────────────────────────────────────────
+function coOpenEditModal(c) {
+  // Campos inmutables
+  $('co-edit-id').value   = c.id;
+  $('co-edit-name').value = c.name || '';
+
+  // Campos editables
+  $('co-edit-email').value   = c.email   || '';
+  $('co-edit-phone').value   = c.phone   || '';
+  $('co-edit-rfc').value     = c.rfc     || '';
+  $('co-edit-address').value = c.address || '';
+  $('co-edit-colony').value  = c.colony  || '';
+  $('co-edit-zipcode').value = c.zipcode || '';
+
+  // Bloque informativo de suscripción (solo lectura)
+  $('co-edit-plan').textContent         = c.package      || 'Sin plan';
+  $('co-edit-last-payment').textContent = c.last_payment || 'Sin registro';
+  $('co-edit-due-date').textContent     = c.due_date     || 'Sin registro';
+
+  // Badge de estatus con color
+  var statusBadgeClass = { 'Activa': 'sa-badge-green', 'Vencida': 'sa-badge-yellow', 'Suspendida': 'sa-badge-red' };
+  var cls = statusBadgeClass[c.status_label] || 'sa-badge-gray';
+  $('co-edit-status').innerHTML = '<span class="sa-badge ' + cls + '">' + escHtml(c.status_label || '—') + '</span>';
+
+  $('co-edit-subtitle').textContent = 'ID #' + c.id + ' · ' + c.name;
+  $('co-edit-error').classList.add('hidden');
+  $('co-edit-modal').classList.remove('hidden');
+  $('co-edit-email').focus();
+}
+
+function coCloseEditModal() {
+  $('co-edit-modal').classList.add('hidden');
+}
+
+$('co-edit-close').addEventListener('click', coCloseEditModal);
+$('co-edit-cancel').addEventListener('click', coCloseEditModal);
+$('co-edit-modal').addEventListener('click', function (e) {
+  if (e.target === $('co-edit-modal')) coCloseEditModal();
+});
+
+// ── Botón "Ajuste Manual de Suscripción" dentro del modal de edición ──────────
+$('co-btn-override').addEventListener('click', function () {
+  var c = coDropCtx.data;
+  // Pre-poblar campos con valores actuales de la empresa
+  $('co-ov-plan').value     = c.package   || '';
+  $('co-ov-payday').value   = c.last_payment || '';
+  $('co-ov-due-date').value = c.due_date   || '';
+  $('co-ov-reason').value   = '';
+  $('co-override-error').classList.add('hidden');
+  $('co-override-subtitle').textContent = 'ID #' + c.id + ' · ' + c.name;
+  $('co-override-modal').classList.remove('hidden');
+  $('co-ov-due-date').focus();
+});
+
+// ── Sub-modal Override Financiero ────────────────────────────────────────────
+function coCloseOverrideModal() {
+  $('co-override-modal').classList.add('hidden');
+}
+
+$('co-override-close').addEventListener('click', coCloseOverrideModal);
+$('co-override-cancel').addEventListener('click', coCloseOverrideModal);
+$('co-override-modal').addEventListener('click', function (e) {
+  if (e.target === $('co-override-modal')) coCloseOverrideModal();
+});
+
+$('co-override-save').addEventListener('click', function () {
+  var companyId = coDropCtx.id;
+  var dueDate   = $('co-ov-due-date').value.trim();
+  var reason    = $('co-ov-reason').value.trim();
+  var errEl     = $('co-override-error');
+  var saveBtn   = $('co-override-save');
+
+  errEl.classList.add('hidden');
+
+  if (!dueDate) {
+    errEl.textContent = 'La nueva fecha de vencimiento es obligatoria.';
+    errEl.classList.remove('hidden');
+    return;
+  }
+  if (!reason) {
+    errEl.textContent = 'Debes ingresar el motivo del ajuste para el Audit Trail.';
+    errEl.classList.remove('hidden');
+    return;
+  }
+
+  saveBtn.disabled = true;
+  saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin" style="margin-right:.4rem;font-size:.8rem;"></i>Aplicando…';
+
+  var payload = {
+    due_date: dueDate,
+    reason:   reason,
+  };
+  var plan   = $('co-ov-plan').value.trim();
+  var payday = $('co-ov-payday').value.trim();
+  if (plan)   payload.plan   = parseInt(plan, 10);
+  if (payday) payload.payday = payday;
+
+  apiFetch('/api/v2/admin/companies/' + companyId + '/subscription-override', {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  })
+    .then(function (d) {
+      if (!d.success) throw new Error(d.error || 'Error en el servidor.');
+      showToast('Ajuste aplicado. Audit Trail actualizado.');
+      coCloseOverrideModal();
+      coCloseEditModal();
+      loadCompanies(coState.page); // recarga la tabla con los nuevos datos de suscripción
+    })
+    .catch(function (e) {
+      errEl.textContent = e.message;
+      errEl.classList.remove('hidden');
+    })
+    .finally(function () {
+      saveBtn.disabled = false;
+      saveBtn.innerHTML = '<i class="fas fa-check" style="margin-right:.4rem;font-size:.8rem;"></i>Aplicar Ajuste';
+    });
+});
+
+$('co-edit-save').addEventListener('click', function () {
+  var id      = $('co-edit-id').value;
+  var errEl   = $('co-edit-error');
+  var saveBtn = $('co-edit-save');
+
+  errEl.classList.add('hidden');
+  saveBtn.disabled = true;
+  saveBtn.textContent = 'Guardando…';
+
+  apiFetch('/api/v2/admin/companies/' + id, {
+    method: 'PUT',
+    body: JSON.stringify({
+      email:   $('co-edit-email').value.trim()   || null,
+      phone:   $('co-edit-phone').value.trim()   || null,
+      rfc:     $('co-edit-rfc').value.trim()     || null,
+      address: $('co-edit-address').value.trim() || null,
+      colony:  $('co-edit-colony').value.trim()  || null,
+      zipcode: $('co-edit-zipcode').value.trim() || null,
+    }),
+  })
+    .then(function (d) {
+      if (!d.success) throw new Error(d.error || 'Error al guardar.');
+      showToast(d.message);
+      coCloseEditModal();
+      loadCompanies(coState.page);
+    })
+    .catch(function (e) {
+      errEl.textContent = e.message;
+      errEl.classList.remove('hidden');
+    })
+    .finally(function () {
+      saveBtn.disabled = false;
+      saveBtn.innerHTML = '<i class="fas fa-save" style="margin-right:.4rem;font-size:.8rem;"></i>Guardar cambios';
+    });
+});
+
+// ── Búsqueda ──────────────────────────────────────────────────────────────────
 $('co-search-btn').addEventListener('click', function () {
   coState.search = $('co-search').value.trim();
   loadCompanies(1);
@@ -899,6 +1133,20 @@ $('co-clear-btn').addEventListener('click', function () {
 $('co-search').addEventListener('keydown', function (e) {
   if (e.key === 'Enter') { coState.search = e.target.value.trim(); loadCompanies(1); }
 });
+
+function renderCoPager(meta) {
+  var pager = $('co-pager');
+  pager.innerHTML = '';
+  if (meta.last_page <= 1) return;
+  for (var p = 1; p <= meta.last_page; p++) {
+    var btn = document.createElement('button');
+    btn.textContent = p;
+    btn.className = 'v2-btn ' + (p === meta.current_page ? 'v2-btn-primary' : 'v2-btn-ghost');
+    btn.style.padding = '.3rem .7rem';
+    (function (pg) { btn.addEventListener('click', function () { loadCompanies(pg); }); }(p));
+    pager.appendChild(btn);
+  }
+}
 
 // ══════════════════════════════════════════════════════════════════════════════
 // MÓDULO E — AUDIT TRAIL + EXPORTACIÓN PDF
