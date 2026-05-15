@@ -46,6 +46,28 @@ class BridgeController extends Controller
     }
 
     /**
+     * Genera bridge token y redirige al Motor de Tasación Broker Brain IA (V2 SPA).
+     *
+     * GET /home/v2/broker-brain-bridge
+     * Middleware: auth + company + companyPayment
+     * (A diferencia del admin-bridge, este módulo SÍ requiere suscripción activa)
+     */
+    public function brokerBrainBridge(Request $request)
+    {
+        $token        = $this->generateBridgeToken();
+        $frontendBase = rtrim(env('V2_FRONTEND_BASE', ''), '/');
+        $apiBase      = rtrim(env('V2_API_BASE', ''), '/');
+
+        $url = $frontendBase . '/v2/broker-brain/index.html?token=' . $token;
+
+        if ($apiBase !== '') {
+            $url .= '&api=' . urlencode($apiBase);
+        }
+
+        return redirect($url);
+    }
+
+    /**
      * Genera un Personal Access Token de Passport y redirige al panel Super Admin V2.
      * Arquitectura: OAuth2 nativo — sin Cache, sin bridge token efímero.
      *

@@ -21,17 +21,28 @@ class GroqProvider implements AIProviderInterface
 
         try {
             $client   = new Client(['timeout' => self::TIMEOUT]);
+            $body = [
+                'model'       => $model,
+                'messages'    => $payload['messages'],
+                'temperature' => $payload['temperature'] ?? 0.7,
+            ];
+
+            // Groq soporta response_format json_object desde 2024 (OpenAI-compatible)
+            if (isset($payload['response_format'])) {
+                $body['response_format'] = $payload['response_format'];
+            }
+
+            if (isset($payload['max_tokens'])) {
+                $body['max_tokens'] = $payload['max_tokens'];
+            }
+
             $response = $client->post(self::ENDPOINT, [
                 'headers' => [
                     'Authorization' => 'Bearer ' . $config['api_key'],
                     'Content-Type'  => 'application/json',
                     'Accept'        => 'application/json',
                 ],
-                'json' => [
-                    'model'       => $model,
-                    'messages'    => $payload['messages'],
-                    'temperature' => $payload['temperature'] ?? 0.7,
-                ],
+                'json' => $body,
             ]);
 
             $body    = json_decode($response->getBody()->getContents(), true);

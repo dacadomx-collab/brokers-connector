@@ -495,6 +495,47 @@
 
 ---
 
+### 🔍 Tabla: `audit_logs`
+> Registro de auditoría inmutable de todas las acciones del Super Admin. Fuente de verdad para trazabilidad.
+>
+> **REGLA INQUEBRANTABLE:** Todo endpoint de escritura del `SuperAdminController` DEBE insertar un registro aquí ANTES de retornar éxito. Sin log = operación incompleta.
+>
+> **REGLA DE SEGURIDAD:** JAMÁS registrar `api_key`, contraseñas ni tokens en ningún campo, ni siquiera en `extra`.
+
+| Columna | Tipo | Notas |
+| :--- | :--- | :--- |
+| `id` | BIGINT UNSIGNED PK | Auto-increment |
+| `actor_id` | BIGINT UNSIGNED NULL | FK implícita → `users.id` del Super Admin que ejecutó la acción |
+| `actor_email` | VARCHAR(191) NULL | Email del actor — snapshot para trazabilidad sin JOIN |
+| `action` | VARCHAR(50) | Código de acción (ver catálogo abajo). Nunca texto libre. |
+| `target_type` | VARCHAR(50) DEFAULT 'company' | Tabla afectada: `company`, `users`, `ai_settings` |
+| `target_id` | BIGINT UNSIGNED NULL | ID del registro afectado |
+| `target_name` | VARCHAR(191) NULL | Nombre legible del registro (empresa, email, proveedor) |
+| `from_status` | VARCHAR(50) NULL | Estado anterior del target |
+| `to_status` | VARCHAR(50) NULL | Estado posterior del target |
+| `extra` | JSON NULL | Detalles adicionales de la operación. Sin credenciales. |
+| `created_at` / `updated_at` | TIMESTAMP NULL | Timestamps Laravel |
+
+**Índices:** `(target_type, target_id)`, `actor_id`, `created_at`
+
+#### Catálogo de `action` (valores válidos):
+
+| Código | Descripción | target_type |
+| :--- | :--- | :--- |
+| `activate` | Empresa activada | `company` |
+| `suspend` | Empresa suspendida | `company` |
+| `delete` | Empresa eliminada lógicamente | `company` |
+| `update` | Datos de empresa editados | `company` |
+| `subscription_override` | Pago manual / ajuste financiero | `company` |
+| `toggle_role` | Rol de usuario promovido/degradado | `users` |
+| `reset_password` | Contraseña temporal generada | `users` |
+| `CREATE_AI_SETTING` | Proveedor IA creado | `ai_settings` |
+| `UPDATE_AI_SETTING` | Proveedor IA editado | `ai_settings` |
+| `DELETE_AI_SETTING` | Proveedor IA eliminado | `ai_settings` |
+| `TOGGLE_AI_SETTING` | Estado de proveedor IA cambiado | `ai_settings` |
+
+---
+
 ## 🧠 REGISTRO SEMÁNTICO (VOCABULARIO CONTROLADO)
 
 ### ✅ Términos Permitidos

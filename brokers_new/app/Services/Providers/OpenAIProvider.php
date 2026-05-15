@@ -18,17 +18,28 @@ class OpenAIProvider implements AIProviderInterface
 
         try {
             $client   = new Client(['timeout' => self::TIMEOUT]);
+            $body = [
+                'model'       => $model,
+                'messages'    => $payload['messages'],
+                'temperature' => $payload['temperature'] ?? 0.7,
+            ];
+
+            // Reenviar response_format si el caller lo solicita (ej. json_object para AURA)
+            if (isset($payload['response_format'])) {
+                $body['response_format'] = $payload['response_format'];
+            }
+
+            if (isset($payload['max_tokens'])) {
+                $body['max_tokens'] = $payload['max_tokens'];
+            }
+
             $response = $client->post('https://api.openai.com/v1/chat/completions', [
                 'headers' => [
                     'Authorization' => 'Bearer ' . $config['api_key'],
                     'Content-Type'  => 'application/json',
                     'Accept'        => 'application/json',
                 ],
-                'json' => [
-                    'model'       => $model,
-                    'messages'    => $payload['messages'],
-                    'temperature' => $payload['temperature'] ?? 0.7,
-                ],
+                'json' => $body,
             ]);
 
             $body       = json_decode($response->getBody()->getContents(), true);

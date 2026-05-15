@@ -44,9 +44,39 @@ function apiFetch(path, options = {}) {
       'Authorization': 'Bearer ' + state.sessionToken,
       ...(options.headers || {}),
     },
-  }).then((res) => {
-    if (res.status === 401) throw new Error('Sesión expirada. Regresa al panel.');
-    return res.json();
+  }).then(function (res) {
+    if (res.status === 401) {
+      throw new Error('Sesión expirada. Regresa al panel.');
+    }
+
+    // Intentar parsear el cuerpo siempre — incluye respuestas de error
+    return res.text().then(function (text) {
+      var data;
+      try {
+        data = text ? JSON.parse(text) : {};
+      } catch (_) {
+        // El servidor devolvió HTML (ej. error 500 de PHP) en lugar de JSON
+        console.error('[apiFetch] Respuesta no-JSON del servidor:', res.status, text.slice(0, 300));
+        throw new Error('El servidor devolvió un error inesperado (' + res.status + '). Revisa los logs.');
+      }
+
+      if (res.status === 422) {
+        // Laravel Validation: {message, errors: {field: [msgs]}}
+        var firstMsg = '';
+        if (data.errors) {
+          var firstField = Object.values(data.errors)[0];
+          firstMsg = Array.isArray(firstField) ? firstField[0] : String(firstField);
+        }
+        throw new Error(firstMsg || data.message || 'Datos de formulario inválidos.');
+      }
+
+      if (!res.ok) {
+        // 403, 404, 500, etc.
+        throw new Error(data.error || data.message || 'Error del servidor (' + res.status + ').');
+      }
+
+      return data;
+    });
   });
 }
 
@@ -477,36 +507,78 @@ function populateAiForm({ id, provider_name, priority_order, is_active, extra_co
 
 $('ai-btn-cancel').addEventListener('click', resetAiForm);
 
-$('ai-form').addEventListener('submit', (e) => {
+$('ai-form').addEventListener('submit', function (e) {
   e.preventDefault();
 
-  const id       = state.aiEditingId;
-  const isEdit   = id !== null;
-  const url      = isEdit
-    ? '/api/v2/admin/ai-settings/' + id
-    : '/api/v2/admin/ai-settings';
-  const method   = isEdit ? 'PUT' : 'POST';
+  var id     = state.aiEditingId;
+  var isEdit = id !== null;
 
-  const body = {
-    provider_name:  $('ai-provider').value,
-    priority_order: Number($('ai-priority').value),
+  // ── BUG #3 FIX: Validación client-side antes de tocar el servidor ──────────
+  var providerVal  = $('ai-provider').value.trim();
+  var keyVal       = $('ai-key').value.trim();
+  var priorityVal  = $('ai-priority').value.trim();
+  var extraVal     = $('ai-extra').value.trim();
+
+  if (!providerVal) {
+    showToast('Selecciona un proveedor de IA.', 'error');
+    $('ai-provider').focus();
+    return;
+  }
+  if (!isEdit && !keyVal) {
+    showToast('La API Key es obligatoria al crear un proveedor.', 'error');
+    $('ai-key').focus();
+    return;
+  }
+  if (!priorityVal || isNaN(Number(priorityVal)) || Number(priorityVal) < 1) {
+    showToast('La prioridad debe ser un número mayor a 0.', 'error');
+    $('ai-priority').focus();
+    return;
+  }
+
+  // ── BUG #4 FIX: Validar JSON de extra_config antes de enviar ──────────────
+  if (extraVal) {
+    try {
+      JSON.parse(extraVal);
+    } catch (_) {
+      showToast('El campo Config extra no es un JSON válido. Revisa la sintaxis.', 'error');
+      $('ai-extra').focus();
+      return;
+    }
+  }
+
+  // ── BUG #2 FIX: Estado de carga en el botón ───────────────────────────────
+  var submitBtn = $('ai-btn-submit');
+  var prevLabel = submitBtn.textContent;
+  submitBtn.disabled    = true;
+  submitBtn.textContent = 'Guardando…';
+
+  var url    = isEdit ? '/api/v2/admin/ai-settings/' + id : '/api/v2/admin/ai-settings';
+  var method = isEdit ? 'PUT' : 'POST';
+
+  var body = {
+    provider_name:  providerVal,
+    priority_order: Number(priorityVal),
     is_active:      Number($('ai-active').value),
   };
 
-  const key = $('ai-key').value.trim();
-  if (key) body.api_key = key;
+  if (keyVal)   body.api_key      = keyVal;
+  if (extraVal) body.extra_config = extraVal;
 
-  const extra = $('ai-extra').value.trim();
-  if (extra) body.extra_config = extra;
-
-  apiFetch(url, { method, body: JSON.stringify(body) })
-    .then((d) => {
+  apiFetch(url, { method: method, body: JSON.stringify(body) })
+    .then(function (d) {
       if (!d.success) throw new Error(d.error || 'Error al guardar.');
-      showToast(d.message || 'Guardado.');
+      showToast(d.message || (isEdit ? 'Proveedor actualizado.' : 'Proveedor registrado.'));
       resetAiForm();
       loadAiSettings();
     })
-    .catch((e) => showToast(e.message, 'error'));
+    .catch(function (err) {
+      showToast(err.message || 'Error desconocido. Revisa la consola.', 'error');
+      console.error('[AI Settings] Error al guardar:', err);
+    })
+    .finally(function () {
+      submitBtn.disabled    = false;
+      submitBtn.textContent = prevLabel;
+    });
 });
 
 // ── Acciones API: toggle, delete ─────────────────────────────────────────────
@@ -1155,11 +1227,20 @@ function renderCoPager(meta) {
 var auditState = { page: 1, rows: [] };
 
 var ACTION_LABEL = {
-  activate:       'Activar',
-  suspend:        'Suspender',
-  delete:         'Eliminar',
-  toggle_role:    'Cambio de Rol',
-  reset_password: 'Reset Contraseña',
+  // Empresas
+  activate:              'Activar empresa',
+  suspend:               'Suspender empresa',
+  delete:                'Eliminar empresa',
+  update:                'Editar empresa',
+  subscription_override: 'Ajuste financiero manual',
+  // Usuarios
+  toggle_role:           'Cambio de Rol',
+  reset_password:        'Reset Contraseña',
+  // Orquestador IA
+  CREATE_AI_SETTING:     'Crear proveedor IA',
+  UPDATE_AI_SETTING:     'Editar proveedor IA',
+  DELETE_AI_SETTING:     'Eliminar proveedor IA',
+  TOGGLE_AI_SETTING:     'Toggle estado proveedor IA',
 };
 
 function loadAuditLogs(page) {

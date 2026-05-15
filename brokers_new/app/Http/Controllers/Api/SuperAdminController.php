@@ -18,6 +18,16 @@ use Illuminate\Support\Str;
  * Autenticación: Laravel Passport (auth:api middleware en rutas).
  * Autorización:  Spatie role:super_admin middleware en rutas.
  * El controlador no valida tokens manualmente — Passport lo hace.
+ *
+ * REGLA INQUEBRANTABLE (Mandamiento de Seguridad):
+ *   Toda operación de escritura (crear, editar, eliminar, cambiar estado)
+ *   DEBE escribir un registro en audit_logs antes de retornar éxito.
+ *   Sin registro de auditoría → la operación no está completa.
+ *
+ * Compatibilidad: Laravel 5.8 / PHP 8.0+
+ *   - PROHIBIDO usar $request->boolean() → no existe en L5.8.
+ *   - PROHIBIDO usar match() sin default → PHP 8.0 solo.
+ *   - Usar filter_var(..., FILTER_VALIDATE_BOOLEAN) para booleanos de HTTP.
  */
 class SuperAdminController extends Controller
 {
@@ -34,13 +44,13 @@ class SuperAdminController extends Controller
         $allowedCompIds = $this->resolveAllowedCompanyIds();
 
         $query = User::withoutGlobalScope(\App\Http\Scopes\TenantUserScope::class)
-            ->with(['roles', 'company'])                       // ← eager load empresa
-            ->whereIn('company_id', $allowedCompIds)          // ← FILTRO CRÍTICO
+            ->with(['roles', 'company'])
+            ->whereIn('company_id', $allowedCompIds)
             ->whereHas('roles', fn ($q) => $q->whereIn('name', ['Admin', 'super_admin']));
 
         if ($search !== '') {
             $query->where(function ($q) use ($search) {
-                $q->where('users.email',     'like', "%{$search}%")
+                $q->where('users.email',      'like', "%{$search}%")
                   ->orWhere('users.full_name', 'like', "%{$search}%")
                   ->orWhere('users.last_name', 'like', "%{$search}%");
             });
@@ -55,11 +65,11 @@ class SuperAdminController extends Controller
                 'full_name'    => trim("{$u->full_name} {$u->last_name}"),
                 'email'        => $u->email,
                 'company_id'   => $u->company_id,
-                'company_name' => $u->company?->name ?? '—',  // ← nombre de empresa
+                'company_name' => $u->company ? $u->company->name : '—',
                 'active'       => (bool) $u->active,
                 'roles'        => $roleNames,
                 'is_super'     => $roleNames->contains('super_admin'),
-                'created_at'   => $u->created_at?->toDateString(),
+                'created_at'   => $u->created_at ? $u->created_at->toDateString() : null,
             ];
         });
 
@@ -103,21 +113,33 @@ class SuperAdminController extends Controller
             return response()->json(['success' => false, 'error' => 'Solo se puede gestionar Admins y Super Admins.'], 422);
         }
 
+        $previousRole = $target->hasRole('super_admin') ? 'super_admin' : 'Admin';
+
         if ($target->hasRole('super_admin')) {
             $target->removeRole('super_admin');
             $target->assignRole('Admin');
-            $new_role = 'Admin';
+            $newRole = 'Admin';
         } else {
             $target->removeRole('Admin');
             $target->assignRole('super_admin');
-            $new_role = 'super_admin';
+            $newRole = 'super_admin';
         }
+
+        $this->writeAuditLog([
+            'actor'       => $actor,
+            'action'      => 'toggle_role',
+            'target_type' => 'users',
+            'target_id'   => $target->id,
+            'target_name' => trim("{$target->full_name} {$target->last_name}") . " <{$target->email}>",
+            'from_status' => $previousRole,
+            'to_status'   => $newRole,
+        ]);
 
         return response()->json([
             'success'  => true,
-            'message'  => "Rol actualizado a {$new_role}.",
+            'message'  => "Rol actualizado a {$newRole}.",
             'user_id'  => $target->id,
-            'new_role' => $new_role,
+            'new_role' => $newRole,
         ]);
     }
 
@@ -127,6 +149,7 @@ class SuperAdminController extends Controller
 
     public function resetPassword(Request $request, int $id)
     {
+        $actor          = $request->user();
         $allowedCompIds = $this->resolveAllowedCompanyIds();
 
         $target = User::withoutGlobalScope(\App\Http\Scopes\TenantUserScope::class)->find($id);
@@ -150,6 +173,16 @@ class SuperAdminController extends Controller
 
         $target->password = bcrypt($plain);
         $target->save();
+
+        $this->writeAuditLog([
+            'actor'       => $actor,
+            'action'      => 'reset_password',
+            'target_type' => 'users',
+            'target_id'   => $target->id,
+            'target_name' => "{$target->email}",
+            'from_status' => 'activo',
+            'to_status'   => 'contraseña_reseteada',
+        ]);
 
         return response()->json([
             'success'            => true,
@@ -187,6 +220,8 @@ class SuperAdminController extends Controller
 
     public function storeAiSetting(Request $request)
     {
+        $actor = $request->user();
+
         $data = $request->validate([
             'provider_name'  => 'required|string|max:50',
             'api_key'        => 'required|string|max:512',
@@ -196,13 +231,34 @@ class SuperAdminController extends Controller
             'company_id'     => 'nullable|integer|exists:companies,id',
         ]);
 
+        // Laravel 5.8: $request->boolean() no existe.
+        // Usamos filter_var que convierte "1", "true", true, 1 → true.
+        $isActive = filter_var($request->input('is_active', true), FILTER_VALIDATE_BOOLEAN);
+
         $setting = AiSetting::create([
             'provider_name'  => $data['provider_name'],
             'api_key'        => encrypt($data['api_key']),
             'extra_config'   => isset($data['extra_config']) ? json_decode($data['extra_config'], true) : null,
             'priority_order' => $data['priority_order'],
-            'is_active'      => $request->boolean('is_active', true),
+            'is_active'      => $isActive,
             'company_id'     => $data['company_id'] ?? null,
+        ]);
+
+        $this->writeAuditLog([
+            'actor'       => $actor,
+            'action'      => 'CREATE_AI_SETTING',
+            'target_type' => 'ai_settings',
+            'target_id'   => $setting->id,
+            'target_name' => $setting->provider_name,
+            'from_status' => null,
+            'to_status'   => $isActive ? 'activo' : 'inactivo',
+            'extra'       => [
+                'provider_name'  => $setting->provider_name,
+                'priority_order' => $setting->priority_order,
+                'is_active'      => $isActive,
+                'extra_config'   => $setting->extra_config,
+                // NUNCA se registra api_key — ni cifrada ni en claro
+            ],
         ]);
 
         return response()->json(['success' => true, 'message' => 'Proveedor registrado.', 'id' => $setting->id], 201);
@@ -214,6 +270,7 @@ class SuperAdminController extends Controller
 
     public function updateAiSetting(Request $request, int $id)
     {
+        $actor   = $request->user();
         $setting = AiSetting::find($id);
 
         if (!$setting) {
@@ -228,16 +285,51 @@ class SuperAdminController extends Controller
             'is_active'      => 'boolean',
         ]);
 
-        $payload = [];
+        $payload  = [];
+        $changes  = [];
 
-        if (isset($data['provider_name']))  $payload['provider_name']  = $data['provider_name'];
-        if (!empty($data['api_key']))        $payload['api_key']        = encrypt($data['api_key']);
-        if (array_key_exists('extra_config', $data))
-            $payload['extra_config'] = $data['extra_config'] ? json_decode($data['extra_config'], true) : null;
-        if (isset($data['priority_order'])) $payload['priority_order'] = $data['priority_order'];
-        if ($request->has('is_active'))     $payload['is_active']      = $request->boolean('is_active');
+        if (isset($data['provider_name']) && $data['provider_name'] !== $setting->provider_name) {
+            $changes['provider_name'] = ['de' => $setting->provider_name, 'a' => $data['provider_name']];
+            $payload['provider_name'] = $data['provider_name'];
+        }
+
+        if (!empty($data['api_key'])) {
+            $payload['api_key'] = encrypt($data['api_key']);
+            $changes['api_key'] = '*** actualizada ***'; // NUNCA texto plano en el log
+        }
+
+        if (array_key_exists('extra_config', $data)) {
+            $newExtra = $data['extra_config'] ? json_decode($data['extra_config'], true) : null;
+            $payload['extra_config'] = $newExtra;
+            $changes['extra_config'] = $newExtra;
+        }
+
+        if (isset($data['priority_order']) && (int) $data['priority_order'] !== (int) $setting->priority_order) {
+            $changes['priority_order'] = ['de' => $setting->priority_order, 'a' => $data['priority_order']];
+            $payload['priority_order'] = $data['priority_order'];
+        }
+
+        if ($request->has('is_active')) {
+            // Laravel 5.8: filter_var en lugar de $request->boolean()
+            $newActive = filter_var($request->input('is_active'), FILTER_VALIDATE_BOOLEAN);
+            if ($newActive !== (bool) $setting->is_active) {
+                $changes['is_active'] = ['de' => (bool) $setting->is_active, 'a' => $newActive];
+            }
+            $payload['is_active'] = $newActive;
+        }
 
         $setting->update($payload);
+
+        $this->writeAuditLog([
+            'actor'       => $actor,
+            'action'      => 'UPDATE_AI_SETTING',
+            'target_type' => 'ai_settings',
+            'target_id'   => $setting->id,
+            'target_name' => $setting->provider_name,
+            'from_status' => null,
+            'to_status'   => null,
+            'extra'       => empty($changes) ? ['sin_cambios' => true] : $changes,
+        ]);
 
         return response()->json(['success' => true, 'message' => 'Proveedor actualizado.']);
     }
@@ -248,13 +340,34 @@ class SuperAdminController extends Controller
 
     public function destroyAiSetting(Request $request, int $id)
     {
+        $actor   = $request->user();
         $setting = AiSetting::find($id);
 
         if (!$setting) {
             return response()->json(['success' => false, 'error' => 'Proveedor no encontrado.'], 404);
         }
 
+        // Capturar datos ANTES de eliminar para el audit trail
+        $providerName  = $setting->provider_name;
+        $priorityOrder = $setting->priority_order;
+        $wasActive     = (bool) $setting->is_active;
+
         $setting->delete();
+
+        $this->writeAuditLog([
+            'actor'       => $actor,
+            'action'      => 'DELETE_AI_SETTING',
+            'target_type' => 'ai_settings',
+            'target_id'   => $id,
+            'target_name' => $providerName,
+            'from_status' => $wasActive ? 'activo' : 'inactivo',
+            'to_status'   => 'eliminado',
+            'extra'       => [
+                'provider_name'  => $providerName,
+                'priority_order' => $priorityOrder,
+                // api_key NUNCA se registra
+            ],
+        ]);
 
         return response()->json(['success' => true, 'message' => 'Proveedor eliminado.']);
     }
@@ -265,33 +378,38 @@ class SuperAdminController extends Controller
 
     public function toggleAiSetting(Request $request, int $id)
     {
+        $actor   = $request->user();
         $setting = AiSetting::find($id);
 
         if (!$setting) {
             return response()->json(['success' => false, 'error' => 'Proveedor no encontrado.'], 404);
         }
 
-        $setting->is_active = !$setting->is_active;
+        $previousActive = (bool) $setting->is_active;
+        $setting->is_active = !$previousActive;
         $setting->save();
 
-        return response()->json(['success' => true, 'message' => 'Estado actualizado.', 'is_active' => $setting->is_active]);
+        $this->writeAuditLog([
+            'actor'       => $actor,
+            'action'      => 'TOGGLE_AI_SETTING',
+            'target_type' => 'ai_settings',
+            'target_id'   => $setting->id,
+            'target_name' => $setting->provider_name,
+            'from_status' => $previousActive ? 'activo' : 'inactivo',
+            'to_status'   => $setting->is_active ? 'activo' : 'inactivo',
+        ]);
+
+        return response()->json([
+            'success'   => true,
+            'message'   => 'Estado actualizado.',
+            'is_active' => $setting->is_active,
+        ]);
     }
 
     // ══════════════════════════════════════════════════════════════════════════
     // ENDPOINT I — GET /api/v2/admin/companies
-    // Lista todas las empresas con estatus de suscripción y último pago.
-    // Bypass de TenantCompanyScope: super_admin consulta sin filtro de tenant.
     // ══════════════════════════════════════════════════════════════════════════
 
-    /**
-     * Mapa de columnas del frontend → campo real de BD (o subquery especial).
-     * Claves: data-field del <th> en la SPA.
-     * Valor 'raw' → se aplica orderByRaw con subquery; resto → orderBy directo.
-     */
-    /**
-     * status=1 → pago vía OpenPay (charge_id); status=2 → pago manual (payday set).
-     * Ambos son facturas pagadas válidas. El filtro anterior solo usaba status=1.
-     */
     private const PAID_STATUSES = [1, 2];
 
     private const COMPANY_SORT_MAP = [
@@ -302,7 +420,6 @@ class SuperAdminController extends Controller
         'active'       => ['type' => 'column', 'col' => 'companies.active'],
         'status_label' => ['type' => 'column', 'col' => 'companies.active'],
         'created_at'   => ['type' => 'column', 'col' => 'companies.created_at'],
-        // Ordenar por payday real (pago efectuado); NULL last
         'last_payment' => [
             'type' => 'raw',
             'sql'  => '(SELECT MAX(i.payday) FROM invoices i WHERE i.company_id = companies.id AND i.status IN (1,2) AND i.deleted_at IS NULL)',
@@ -325,7 +442,6 @@ class SuperAdminController extends Controller
         $query = Company::withoutGlobalScopes()
             ->select(['id', 'name', 'email', 'phone', 'address', 'rfc', 'colony', 'zipcode', 'active', 'package', 'created_at'])
             ->with(['invoices' => function ($q) {
-                // Trae la factura pagada más reciente (ambos métodos de pago)
                 $q->whereIn('status', self::PAID_STATUSES)
                   ->whereNotNull('due_date')
                   ->orderByDesc('due_date')
@@ -359,14 +475,13 @@ class SuperAdminController extends Controller
                 $isPaid = $dueDate->greaterThan(Carbon::now());
             }
 
-            // payday = fecha real del cobro; si nula (pago OpenPay sin payday), usa created_at de la factura
             $paymentDate = null;
             if ($lastInvoice) {
                 $paymentDate = $lastInvoice->payday
                     ? (is_string($lastInvoice->payday)
                         ? Carbon::parse($lastInvoice->payday)->toDateString()
                         : $lastInvoice->payday->toDateString())
-                    : $lastInvoice->created_at?->toDateString();
+                    : ($lastInvoice->created_at ? $lastInvoice->created_at->toDateString() : null);
             }
 
             return [
@@ -383,8 +498,8 @@ class SuperAdminController extends Controller
                 'is_paid'      => $isPaid,
                 'last_payment' => $paymentDate,
                 'due_date'     => $dueDate ? $dueDate->toDateString() : null,
-                'status_label' => $this->resolveCompanyStatus($c->active, $isPaid),
-                'created_at'   => $c->created_at?->toDateString(),
+                'status_label' => $this->resolveCompanyStatus((bool) $c->active, $isPaid),
+                'created_at'   => $c->created_at ? $c->created_at->toDateString() : null,
             ];
         });
 
@@ -402,7 +517,6 @@ class SuperAdminController extends Controller
 
     // ══════════════════════════════════════════════════════════════════════════
     // ENDPOINT J — PATCH /api/v2/admin/companies/{id}/toggle-status
-    // Suspende o activa una empresa. Genera entrada en audit_logs.
     // ══════════════════════════════════════════════════════════════════════════
 
     public function toggleCompanyStatus(Request $request, int $id)
@@ -414,18 +528,18 @@ class SuperAdminController extends Controller
             return response()->json(['success' => false, 'error' => 'Empresa no encontrada.'], 404);
         }
 
-        $previousStatus  = (bool) $company->active;
-        $company->active = !$previousStatus;
+        $previousActive  = (bool) $company->active;
+        $company->active = !$previousActive;
         $company->save();
 
-        $actionLabel = $company->active ? 'Empresa Activada' : 'Empresa Suspendida';
-
-        DB::table('audit_logs')->insert([
-            'company_id'     => $company->id,
-            'super_admin_id' => $actor->id,
-            'action'         => $actionLabel,
-            'created_at'     => now(),
-            'updated_at'     => now(),
+        $this->writeAuditLog([
+            'actor'       => $actor,
+            'action'      => $company->active ? 'activate' : 'suspend',
+            'target_type' => 'company',
+            'target_id'   => $company->id,
+            'target_name' => $company->name,
+            'from_status' => $previousActive ? 'activa' : 'suspendida',
+            'to_status'   => $company->active ? 'activa' : 'suspendida',
         ]);
 
         return response()->json([
@@ -438,7 +552,6 @@ class SuperAdminController extends Controller
 
     // ══════════════════════════════════════════════════════════════════════════
     // ENDPOINT K — DELETE /api/v2/admin/companies/{id}
-    // Elimina lógicamente una empresa (soft-delete no implementado, marca active=0).
     // ══════════════════════════════════════════════════════════════════════════
 
     public function deleteCompany(Request $request, int $id)
@@ -450,18 +563,21 @@ class SuperAdminController extends Controller
             return response()->json(['success' => false, 'error' => 'Empresa no encontrada.'], 404);
         }
 
-        // Protección: no eliminar la empresa ACADEP
         $acadepId = (int) env('ACADEP_COMPANY_ID', 0);
         if ($acadepId && $company->id === $acadepId) {
             return response()->json(['success' => false, 'error' => 'La empresa ACADEP no puede ser eliminada.'], 403);
         }
 
-        DB::table('audit_logs')->insert([
-            'company_id'     => $company->id,
-            'super_admin_id' => $actor->id,
-            'action'         => 'Empresa Eliminada',
-            'created_at'     => now(),
-            'updated_at'     => now(),
+        $companyName = $company->name;
+
+        $this->writeAuditLog([
+            'actor'       => $actor,
+            'action'      => 'delete',
+            'target_type' => 'company',
+            'target_id'   => $company->id,
+            'target_name' => $companyName,
+            'from_status' => $company->active ? 'activa' : 'suspendida',
+            'to_status'   => 'eliminada',
         ]);
 
         $company->active = 0;
@@ -469,14 +585,12 @@ class SuperAdminController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => "Empresa {$company->name} marcada como eliminada.",
+            'message' => "Empresa {$companyName} marcada como eliminada.",
         ]);
     }
 
     // ══════════════════════════════════════════════════════════════════════════
     // ENDPOINT J2 — PUT /api/v2/admin/companies/{id}
-    // Edita datos de la empresa. ID y nombre son inmutables.
-    // Genera registro en audit_logs con los campos modificados.
     // ══════════════════════════════════════════════════════════════════════════
 
     public function updateCompany(Request $request, int $id)
@@ -497,7 +611,6 @@ class SuperAdminController extends Controller
             'zipcode' => 'sometimes|nullable|string|max:10',
         ]);
 
-        // Construir resumen de cambios para el audit trail
         $changes = [];
         foreach ($data as $field => $newValue) {
             $oldValue = $company->$field;
@@ -509,12 +622,15 @@ class SuperAdminController extends Controller
         $company->fill($data);
         $company->save();
 
-        DB::table('audit_logs')->insert([
-            'company_id'     => $company->id,
-            'super_admin_id' => $actor->id,
-            'action'         => 'Empresa Editada' . (empty($changes) ? ' (sin cambios)' : ': ' . implode(', ', array_keys($changes))),
-            'created_at'     => now(),
-            'updated_at'     => now(),
+        $this->writeAuditLog([
+            'actor'       => $actor,
+            'action'      => 'update',
+            'target_type' => 'company',
+            'target_id'   => $company->id,
+            'target_name' => $company->name,
+            'from_status' => null,
+            'to_status'   => null,
+            'extra'       => empty($changes) ? ['sin_cambios' => true] : $changes,
         ]);
 
         return response()->json([
@@ -526,17 +642,6 @@ class SuperAdminController extends Controller
 
     // ══════════════════════════════════════════════════════════════════════════
     // ENDPOINT J3 — PATCH /api/v2/admin/companies/{id}/subscription-override
-    //
-    // Override Financiero: permite al Super Admin registrar un pago manual
-    // (transferencia SPEI, depósito, acuerdo comercial) sin pasar por OpenPay.
-    //
-    // Estrategia de datos:
-    //  1. Crea un nuevo invoice con status=2 (pago manual) y los datos proporcionados.
-    //  2. Si se indica un nuevo plan, actualiza companies.package.
-    //  3. Escribe en audit_logs con el detalle exacto de cada cambio (before/after).
-    //
-    // El dashboard V2 (listCompanies) consulta el invoice de mayor due_date con
-    // status IN(1,2), por lo que el nuevo invoice se reflejará de inmediato.
     // ══════════════════════════════════════════════════════════════════════════
 
     public function subscriptionOverride(Request $request, int $id)
@@ -557,13 +662,12 @@ class SuperAdminController extends Controller
 
         $changes = [];
 
-        // ── 1. Registrar la nueva factura de pago manual ──────────────────────
         $invoiceData = [
             'name'         => 'Ajuste manual — Super Admin',
             'cost_package' => 0,
             'cost_user'    => 0,
             'users'        => 0,
-            'status'       => 2,                        // 2 = pago manual confirmado
+            'status'       => 2,
             'charge_id'    => null,
             'payday'       => $data['payday'] ? Carbon::parse($data['payday']) : Carbon::now(),
             'due_date'     => Carbon::parse($data['due_date']),
@@ -575,38 +679,24 @@ class SuperAdminController extends Controller
             'updated_at' => now(),
         ]));
 
-        $changes['due_date'] = [
-            'de' => 'anterior',
-            'a'  => $data['due_date'],
-        ];
-        $changes['payday'] = [
-            'de' => 'anterior',
-            'a'  => $data['payday'] ?? Carbon::now()->toDateString(),
-        ];
+        $changes['due_date'] = ['de' => 'anterior', 'a' => $data['due_date']];
+        $changes['payday']   = ['de' => 'anterior', 'a' => $data['payday'] ?? Carbon::now()->toDateString()];
 
-        // ── 2. Cambiar el plan si se indicó uno diferente ─────────────────────
         if (!empty($data['plan']) && (int) $data['plan'] !== (int) $company->package) {
-            $changes['plan'] = [
-                'de' => $company->package,
-                'a'  => $data['plan'],
-            ];
+            $changes['plan'] = ['de' => $company->package, 'a' => $data['plan']];
             $company->package = $data['plan'];
             $company->save();
         }
 
-        // ── 3. Audit Trail detallado ──────────────────────────────────────────
-        $changesSummary = collect($changes)->map(function ($v, $k) {
-            return "{$k}: \"{$v['de']}\" → \"{$v['a']}\"";
-        })->implode(' | ');
-
-        $actionText = "Ajuste Financiero Manual: {$changesSummary} — Motivo: {$data['reason']}";
-
-        DB::table('audit_logs')->insert([
-            'company_id'     => $company->id,
-            'super_admin_id' => $actor->id,
-            'action'         => mb_substr($actionText, 0, 500), // protege el límite de la columna
-            'created_at'     => now(),
-            'updated_at'     => now(),
+        $this->writeAuditLog([
+            'actor'       => $actor,
+            'action'      => 'subscription_override',
+            'target_type' => 'company',
+            'target_id'   => $company->id,
+            'target_name' => $company->name,
+            'from_status' => null,
+            'to_status'   => 'pagada_manual',
+            'extra'       => array_merge($changes, ['motivo' => $data['reason']]),
         ]);
 
         return response()->json([
@@ -618,7 +708,6 @@ class SuperAdminController extends Controller
 
     // ══════════════════════════════════════════════════════════════════════════
     // ENDPOINT L — GET /api/v2/admin/audit-logs
-    // Consulta el Audit Trail de acciones sobre empresas.
     // ══════════════════════════════════════════════════════════════════════════
 
     public function listAuditLogs(Request $request)
@@ -642,9 +731,7 @@ class SuperAdminController extends Controller
     }
 
     // ══════════════════════════════════════════════════════════════════════════
-    // ENDPOINT M — POST /api/v2/admin/companies/{id}/validate-user-quota
-    // Valida la regla de monetización 1+1 antes de crear un usuario adicional.
-    // Retorna si se requiere autorización de cargo de $50 MXN.
+    // ENDPOINT M — GET /api/v2/admin/companies/{id}/validate-user-quota
     // ══════════════════════════════════════════════════════════════════════════
 
     public function validateUserQuota(Request $request, int $id)
@@ -654,7 +741,7 @@ class SuperAdminController extends Controller
             ->findOrFail($id);
 
         $activeUsers  = $company->users->where('active', '!=', 0)->count();
-        $baseIncluded = 2; // 1 Admin + 1 Agente incluidos en el plan base ($850 MXN)
+        $baseIncluded = 2;
         $costPerExtra = 50;
 
         $requiresCharge = $activeUsers >= $baseIncluded;
@@ -676,13 +763,63 @@ class SuperAdminController extends Controller
         ]);
     }
 
+    // ══════════════════════════════════════════════════════════════════════════
+    // HELPER PRIVADO — writeAuditLog()
+    //
+    // Centraliza toda escritura en audit_logs.
+    // REGLA: NUNCA incluir api_key ni contraseñas en $extra.
+    // REGLA: action debe ser un código snake_case o UPPER_SNAKE (no texto libre).
+    //
+    // Parámetros:
+    //   actor        → User autenticado (el super_admin)
+    //   action       → código de acción (ver catálogo en 05_SISTEMA_V2_CORE.md)
+    //   target_type  → tabla afectada: 'company' | 'users' | 'ai_settings' | ...
+    //   target_id    → id del registro afectado
+    //   target_name  → nombre legible del registro (empresa, email, proveedor...)
+    //   from_status  → estado anterior (opcional)
+    //   to_status    → estado posterior (opcional)
+    //   extra        → array con detalles adicionales — se serializa a JSON
+    // ══════════════════════════════════════════════════════════════════════════
+
+    private function writeAuditLog(array $params): void
+    {
+        $actor = $params['actor'];
+
+        try {
+            DB::table('audit_logs')->insert([
+                'actor_id'    => $actor->id,
+                'actor_email' => $actor->email,
+                'action'      => $params['action'],
+                'target_type' => $params['target_type'] ?? 'company',
+                'target_id'   => $params['target_id']   ?? null,
+                'target_name' => isset($params['target_name'])
+                    ? mb_substr((string) $params['target_name'], 0, 191)
+                    : null,
+                'from_status' => isset($params['from_status'])
+                    ? mb_substr((string) $params['from_status'], 0, 50)
+                    : null,
+                'to_status'   => isset($params['to_status'])
+                    ? mb_substr((string) $params['to_status'], 0, 50)
+                    : null,
+                'extra'       => isset($params['extra'])
+                    ? json_encode($params['extra'], JSON_UNESCAPED_UNICODE)
+                    : null,
+                'created_at'  => now(),
+                'updated_at'  => now(),
+            ]);
+        } catch (\Exception $e) {
+            // Audit trail no puede silenciar la operación principal,
+            // pero SÍ debe registrarse en el log de sistema.
+            \Log::error('SuperAdmin: falló writeAuditLog', [
+                'action'    => $params['action'] ?? 'unknown',
+                'target_id' => $params['target_id'] ?? null,
+                'error'     => $e->getMessage(),
+            ]);
+        }
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
-    /**
-     * Lee SUPER_ADMIN_COMPANY_IDS del .env y retorna int[].
-     * Ej: "17,55" → [17, 55]
-     * Lista vacía → fail-secure (ninguna empresa autorizada).
-     */
     private function resolveAllowedCompanyIds(): array
     {
         $raw = env('SUPER_ADMIN_COMPANY_IDS', '');
@@ -701,12 +838,11 @@ class SuperAdminController extends Controller
 
     private function resolveCompanyStatus(bool $active, bool $isPaid): string
     {
-        if (!$active)  return 'Suspendida';
-        if (!$isPaid)  return 'Vencida';
+        if (!$active) return 'Suspendida';
+        if (!$isPaid) return 'Vencida';
         return 'Activa';
     }
 
-    // ── Máscara api_key: ••••••••4o3a ────────────────────────────────────────
     private function maskKey(string $encryptedKey): string
     {
         try {

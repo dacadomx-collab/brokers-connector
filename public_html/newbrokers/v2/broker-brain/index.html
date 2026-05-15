@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Broker Brain IA — Motor de Tasación</title>
+  <link rel="stylesheet" href="../shared/v2.css" />
+  <link rel="stylesheet" href="broker-brain.css" />
+</head>
+<body class="v2-root">
+
+  <!-- ══ PANTALLA: Cargando ══════════════════════════════════════════ -->
+  <div id="screen-loading" class="bb-screen">
+    <div class="bb-screen-spinner"></div>
+    <p class="bb-screen-title">Iniciando Broker Brain IA</p>
+    <p class="bb-screen-sub">Verificando tu sesión…</p>
+  </div>
+
+  <!-- ══ PANTALLA: Error de sesión ══════════════════════════════════ -->
+  <div id="screen-error" class="bb-screen" style="display:none;">
+    <div class="bb-screen-icon">🔐</div>
+    <p class="bb-screen-title">Sesión inválida o expirada</p>
+    <p class="bb-screen-sub" id="error-msg">Regresa al panel e intenta de nuevo.</p>
+    <a href="/home" style="
+      display:inline-block;
+      margin-top:0.5rem;
+      padding:0.625rem 1.25rem;
+      background:#0891b2;
+      color:#fff;
+      border-radius:8px;
+      font-weight:700;
+      text-decoration:none;
+      font-size:0.9375rem;">
+      Volver al Panel
+    </a>
+  </div>
+
+  <!-- ══ PANTALLA: Principal ════════════════════════════════════════ -->
+  <div id="screen-main" style="display:none;">
+
+    <!-- Header -->
+    <header class="bb-header">
+      <div class="bb-header-inner">
+        <div class="bb-brand">
+          <div class="bb-brand-mark">BB</div>
+          <div>
+            <div class="bb-brand-name">
+              Broker Brain IA
+              <span class="bb-badge-beta" style="margin-left:0.375rem;">Beta</span>
+            </div>
+            <div class="bb-brand-role">Motor de Tasación y CMA Dinámico</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap;">
+          <span id="hdr-actor" style="font-size:0.8125rem;color:var(--v2-text-subtle);"></span>
+          <button class="bb-logout-btn" onclick="goBack()" title="Volver al dashboard Legacy">
+            ← Panel de Control
+          </button>
+          <button class="bb-logout-btn" onclick="logout()">Cerrar sesión</button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main -->
+    <main class="bb-main">
+
+      <!-- Panel izquierdo: formulario de tasación -->
+      <aside>
+        <div class="bb-card">
+          <h2 class="bb-card-title">
+            <span class="bb-card-title-icon">🔍</span>
+            Parámetros de Tasación
+          </h2>
+
+          <!-- Selector rápido de inventario -->
+          <div class="bb-form-group" id="inventory-group" style="display:none;">
+            <label class="bb-label" for="f-inventory">Seleccionar de mi inventario (Opcional)</label>
+            <select class="bb-select" id="f-inventory" onchange="onInventorySelect()">
+              <option value="">— Elegir propiedad para auto-completar —</option>
+            </select>
+            <p class="bb-hint">Elige una propiedad para rellenar el formulario automáticamente</p>
+          </div>
+
+          <div id="form-error" class="bb-alert bb-alert-error" style="display:none;"></div>
+
+          <!-- Código Postal -->
+          <div class="bb-form-group">
+            <label class="bb-label" for="f-zipcode">Código postal <span>*</span></label>
+            <input class="bb-input" type="text" id="f-zipcode" maxlength="10"
+                   placeholder="Ej. 11520" inputmode="numeric" />
+            <p class="bb-hint">Zona donde se ubica el inmueble</p>
+          </div>
+
+          <!-- Tipo de propiedad -->
+          <div class="bb-form-group">
+            <label class="bb-label" for="f-prop-type">Tipo de propiedad <span>*</span></label>
+            <select class="bb-select" id="f-prop-type">
+              <option value="">Seleccionar…</option>
+            </select>
+          </div>
+
+          <!-- Estado de operación -->
+          <div class="bb-form-group">
+            <label class="bb-label" for="f-prop-status">Operación <span>*</span></label>
+            <select class="bb-select" id="f-prop-status">
+              <option value="">Seleccionar…</option>
+            </select>
+          </div>
+
+          <!-- Superficie total -->
+          <div class="bb-form-group">
+            <label class="bb-label" for="f-area">Superficie total (m²) <span>*</span></label>
+            <input class="bb-input" type="number" id="f-area" min="1" max="99999"
+                   step="1" placeholder="Ej. 120" />
+          </div>
+
+          <!-- Precio de referencia (opcional) -->
+          <div class="bb-form-group">
+            <label class="bb-label" for="f-price-ref">Precio de lista (MXN, opcional)</label>
+            <input class="bb-input" type="number" id="f-price-ref" min="0" step="1000"
+                   placeholder="Ej. 3500000" />
+            <p class="bb-hint">Si lo tienes, mejora la proyección DOM</p>
+          </div>
+
+          <button class="bb-btn-cta" id="btn-cma" onclick="runCMA()">
+            <span id="btn-cma-text">Calcular Valor de Mercado</span>
+            <span id="btn-cma-spinner" class="bb-spinner" style="display:none;"></span>
+          </button>
+        </div>
+
+        <!-- Disclaimer -->
+        <p style="font-size:0.6875rem;color:var(--v2-text-subtle);margin-top:0.75rem;line-height:1.5;padding:0 0.25rem;">
+          La tasación se basa en propiedades compartidas en la Bolsa Inmobiliaria BBC General.
+          El resultado es orientativo y no constituye una oferta de precio.
+        </p>
+      </aside>
+
+      <!-- Panel derecho: resultados -->
+      <section id="results-panel">
+
+        <!-- Placeholder inicial -->
+        <div id="results-placeholder" class="bb-card bb-placeholder">
+          <div class="bb-placeholder-icon">🧠</div>
+          <p>Completa el formulario y haz clic en <strong>Calcular</strong> para obtener el análisis comparativo de mercado.</p>
+        </div>
+
+        <!-- Resultados CMA (oculto hasta calcular) -->
+        <div id="results-cma" style="display:none;">
+
+          <!-- KPIs -->
+          <div class="bb-card" style="margin-bottom:1.25rem;">
+            <div class="bb-results-grid">
+              <div class="bb-kpi bb-kpi-main">
+                <div class="bb-kpi-label">Valor de Mercado Estimado</div>
+                <div class="bb-kpi-value" id="kpi-value">—</div>
+                <div class="bb-kpi-sub" id="kpi-range">—</div>
+              </div>
+              <div class="bb-kpi">
+                <div class="bb-kpi-label">Precio por m²</div>
+                <div class="bb-kpi-value" id="kpi-psqm">—</div>
+                <div class="bb-kpi-sub">MXN/m²</div>
+              </div>
+              <div class="bb-kpi">
+                <div class="bb-kpi-label">Comparables</div>
+                <div class="bb-kpi-value" id="kpi-comps">—</div>
+                <div class="bb-kpi-sub">propiedades analizadas</div>
+              </div>
+              <div class="bb-kpi">
+                <div class="bb-kpi-label">DOM Proyectado</div>
+                <div class="bb-kpi-value" id="kpi-dom">—</div>
+                <div class="bb-kpi-sub" id="kpi-dom-label">días en mercado</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Proyección DOM -->
+          <div class="bb-card" style="margin-bottom:1.25rem;">
+            <h3 class="bb-card-title">
+              <span class="bb-card-title-icon">📈</span>
+              Proyección de Días en Mercado
+            </h3>
+            <div class="bb-dom-bar-wrap">
+              <div class="bb-dom-title">Escenarios de precio vs. tiempo de venta</div>
+              <div class="bb-dom-scenarios" id="dom-scenarios"></div>
+            </div>
+          </div>
+
+          <!-- Comparables -->
+          <div class="bb-card" style="margin-bottom:1.25rem;">
+            <h3 class="bb-card-title">
+              <span class="bb-card-title-icon">🏠</span>
+              Matriz de Comparables
+            </h3>
+            <p class="bb-comp-title">Propiedades reales de la Bolsa BBC General usadas en el cálculo</p>
+            <div class="bb-table-wrap">
+              <table class="bb-table">
+                <thead>
+                  <tr>
+                    <th>Propiedad</th>
+                    <th>Precio</th>
+                    <th>Sup. total</th>
+                    <th>$/m²</th>
+                    <th>Rec.</th>
+                    <th>Baños</th>
+                    <th>Estac.</th>
+                    <th>C.P.</th>
+                    <th>Ver</th>
+                  </tr>
+                </thead>
+                <tbody id="comp-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- AURA — Análisis IA Estructurado -->
+          <div id="aura-wrap" style="display:none;">
+
+            <!-- Header AURA -->
+            <div class="aura-header">
+              <div class="aura-header-left">
+                <div class="aura-logo">A</div>
+                <div>
+                  <div class="aura-title">AURA · Motor de Inteligencia</div>
+                  <div class="aura-subtitle">Análisis Unificado de Referencia Avanzada</div>
+                </div>
+              </div>
+              <!-- Medidor de confianza -->
+              <div class="aura-confidence">
+                <div class="aura-confidence-label">Nivel de Confianza</div>
+                <div class="aura-confidence-score" id="aura-score-value">—%</div>
+                <div class="aura-confidence-bar-bg">
+                  <div class="aura-confidence-bar-fill" id="aura-score-bar" style="width:0%;"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Resumen de mercado (1 línea) -->
+            <div class="aura-market-summary" id="aura-market-summary"></div>
+
+            <!-- Grid de 4 tarjetas AURA -->
+            <div class="aura-cards-grid">
+
+              <div class="aura-card aura-card-verdict">
+                <div class="aura-card-icon">📊</div>
+                <div class="aura-card-label">Veredicto de Precio</div>
+                <div class="aura-card-body" id="aura-pricing-verdict">—</div>
+              </div>
+
+              <div class="aura-card aura-card-psychology">
+                <div class="aura-card-icon">🧠</div>
+                <div class="aura-card-label">Psicología del Comprador</div>
+                <div class="aura-card-body" id="aura-buyer-psychology">—</div>
+              </div>
+
+              <div class="aura-card aura-card-strategy">
+                <div class="aura-card-icon">🎯</div>
+                <div class="aura-card-label">Estrategia Recomendada</div>
+                <div class="aura-card-body" id="aura-seller-strategy">—</div>
+              </div>
+
+              <!-- Argumento de cierre — tarjeta full-width destacada -->
+              <div class="aura-card aura-card-closing">
+                <div class="aura-card-icon">⚡</div>
+                <div class="aura-card-label">Argumento de Cierre</div>
+                <blockquote class="aura-closing-quote" id="aura-closing-argument">—</blockquote>
+              </div>
+
+            </div><!-- /aura-cards-grid -->
+          </div><!-- /aura-wrap -->
+
+        </div><!-- /results-cma -->
+      </section><!-- /results-panel -->
+    </main>
+  </div><!-- /screen-main -->
+
+  <script src="broker-brain.js"></script>
+</body>
+</html>

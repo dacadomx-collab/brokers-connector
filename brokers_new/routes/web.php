@@ -252,6 +252,11 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/home/v2/subscription-bridge', 'BridgeController@subscriptionBridge')
         ->name('v2.subscription.bridge');
 
+    // Broker Brain IA — Motor de Tasación y CMA. Requiere empresa al corriente (companyPayment).
+    Route::get('/home/v2/broker-brain-bridge', 'BridgeController@brokerBrainBridge')
+        ->middleware(['company', 'companyPayment'])
+        ->name('v2.broker.brain.bridge');
+
     // Panel Super Admin V2 — rol super_admin + empresa autorizada en SUPER_ADMIN_COMPANY_IDS
     Route::get('/home/v2/admin-bridge', 'BridgeController@adminBridge')
         ->middleware(['role:super_admin', 'super_admin_company'])

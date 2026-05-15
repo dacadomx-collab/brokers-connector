@@ -96,6 +96,11 @@ Route::group(['prefix' => 'ai', 'middleware' => ['auth:api', 'throttle:15,1']], 
 
 // V2 Bridge — token de un solo uso como mecanismo de autenticación
 Route::prefix('v2')->group(function () {
+
+    // Broker Brain IA — Motor de Tasación y CMA. Auth: Bearer session_token (Cache, no Passport).
+    Route::get('/broker-brain/my-properties', 'Api\BrokerBrainController@myProperties')->middleware('throttle:30,1');
+    Route::post('/broker-brain/cma',          'Api\BrokerBrainController@cma')->middleware('throttle:10,1');
+
     Route::get('/bridge/validate',  'Api\V2BridgeController@bridgeValidate');
     Route::post('/subscriptions',   'Api\V2BridgeController@subscribe');
 

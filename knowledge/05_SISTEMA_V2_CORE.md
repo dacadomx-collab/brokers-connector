@@ -166,29 +166,99 @@ DELETE /api/v2/admin/companies/{id}
 GET    /api/v2/admin/companies/{id}/validate-user-quota
 ```
 
-### 3.4 Audit Trail
+### 3.4 Módulo Orquestador IA
 
 **Funcionalidades:**
-- Tabla paginada (50/página) con todas las acciones del Super Admin
-- Columnas: #, Fecha/Hora, Super Admin (email), Acción, Empresa, Estado Anterior, Estado Nuevo
-- Botón **"⬇ Exportar PDF"** — genera PDF landscape A4 con jsPDF 2.5.1 UMD
-- Las entradas se escriben automáticamente en `audit_logs` en cada acción de empresa
+- Escalera de failover visual (proveedores activos ordenados por prioridad)
+- Formulario de alta/edición: `provider_name`, `api_key` (cifrada), `priority_order`, `is_active`, `extra_config` (JSON)
+- Tabla con todos los proveedores, toggles inline de activo/inactivo, botones Editar y Eliminar
+- `api_key` NUNCA se expone en el frontend — solo `api_key_masked` (ej. `••••••••4o3a`)
 
-**Tabla `audit_logs` (schema):**
+**Compatibilidad Laravel 5.8:**  
+`$request->boolean()` no existe en L5.8. Se usa `filter_var($request->input('is_active'), FILTER_VALIDATE_BOOLEAN)` en toda la capa API.
+
+**Endpoints:**
+```
+GET    /api/v2/admin/ai-settings
+POST   /api/v2/admin/ai-settings
+PUT    /api/v2/admin/ai-settings/{id}
+DELETE /api/v2/admin/ai-settings/{id}
+PATCH  /api/v2/admin/ai-settings/{id}/toggle
+```
+
+### 3.5 Audit Trail
+
+**REGLA INQUEBRANTABLE:**  
+Todo endpoint de escritura del `SuperAdminController` **DEBE** llamar a `$this->writeAuditLog()` antes de retornar éxito. Sin log = la operación no está completa. Esta regla aplica a: empresas, usuarios, proveedores IA y cualquier módulo futuro.
+
+**REGLA DE SEGURIDAD DEL LOG:**  
+JAMÁS registrar `api_key`, contraseñas, tokens ni credenciales en el campo `extra` ni en ningún campo de `audit_logs`, ni en texto plano ni cifrado.
+
+**Funcionalidades del panel:**
+- Tabla paginada (50/página) con todas las acciones del Super Admin
+- Columnas: #, Fecha/Hora, Super Admin (email), Acción, Target, Estado Anterior, Estado Nuevo
+- Botón **"⬇ Exportar PDF"** — genera PDF landscape A4 con jsPDF 2.5.1 UMD
+- Las entradas se escriben automáticamente vía `writeAuditLog()` en cada acción
+
+**Implementación del helper `writeAuditLog()` en `SuperAdminController`:**
+```php
+private function writeAuditLog(array $params): void
+{
+    // Escribe en audit_logs con los campos correctos del schema.
+    // Envuelto en try/catch: un fallo de log NO debe bloquear la operación.
+    DB::table('audit_logs')->insert([
+        'actor_id'    => $actor->id,
+        'actor_email' => $actor->email,
+        'action'      => $params['action'],      // código del catálogo
+        'target_type' => $params['target_type'],
+        'target_id'   => $params['target_id'],
+        'target_name' => mb_substr($params['target_name'] ?? '', 0, 191),
+        'from_status' => mb_substr($params['from_status'] ?? '', 0, 50),
+        'to_status'   => mb_substr($params['to_status'] ?? '', 0, 50),
+        'extra'       => json_encode($params['extra'] ?? null),
+        'created_at'  => now(),
+        'updated_at'  => now(),
+    ]);
+}
+```
+
+**Tabla `audit_logs` (schema real — migration 2026_05_13_create_audit_logs_table):**
 ```sql
 id            BIGINT PK AUTO_INCREMENT
-actor_id      BIGINT NULL       -- FK implícita a users.id
-actor_email   VARCHAR(191)      -- Snapshot del email al momento de la acción
-action        VARCHAR(50)       -- activate | suspend | delete | toggle_role | reset_password
-target_type   VARCHAR(50)       -- 'company' | 'user'
-target_id     BIGINT NULL       -- ID del objeto afectado
-target_name   VARCHAR(191)      -- Snapshot del nombre
-from_status   VARCHAR(50)       -- Estado anterior
-to_status     VARCHAR(50)       -- Estado nuevo
-extra         JSON NULL         -- Datos adicionales libres
+actor_id      BIGINT NULL           -- ID del super_admin que actuó
+actor_email   VARCHAR(191) NULL     -- Email snapshot (evita JOIN)
+action        VARCHAR(50)           -- Código del catálogo (ver abajo)
+target_type   VARCHAR(50) DEFAULT 'company'  -- Tabla afectada
+target_id     BIGINT NULL           -- ID del registro afectado
+target_name   VARCHAR(191) NULL     -- Nombre legible del target
+from_status   VARCHAR(50) NULL      -- Estado anterior
+to_status     VARCHAR(50) NULL      -- Estado posterior
+extra         JSON NULL             -- Detalles adicionales (SIN credenciales)
 created_at    TIMESTAMP
 updated_at    TIMESTAMP
+
+INDEX (target_type, target_id)
+INDEX actor_id
+INDEX created_at
 ```
+
+**Catálogo de códigos `action` (exhaustivo y obligatorio):**
+
+| Código | Módulo | Descripción |
+|--------|--------|-------------|
+| `activate` | Empresas | Empresa activada |
+| `suspend` | Empresas | Empresa suspendida |
+| `delete` | Empresas | Empresa eliminada lógicamente |
+| `update` | Empresas | Datos editados |
+| `subscription_override` | Empresas | Pago manual / ajuste financiero |
+| `toggle_role` | Usuarios | Rol promovido o degradado |
+| `reset_password` | Usuarios | Contraseña temporal generada |
+| `CREATE_AI_SETTING` | Orquestador IA | Proveedor creado |
+| `UPDATE_AI_SETTING` | Orquestador IA | Proveedor editado |
+| `DELETE_AI_SETTING` | Orquestador IA | Proveedor eliminado |
+| `TOGGLE_AI_SETTING` | Orquestador IA | Estado activo/inactivo cambiado |
+
+> **Para módulos futuros:** agregar el nuevo código a esta tabla Y al mapa `ACTION_LABEL` en `security.js` antes de desplegar.
 
 ---
 

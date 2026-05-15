@@ -60,6 +60,18 @@
                         </li>
                        
                          @role('Admin')
+                        {{-- Broker Brain IA — Motor de Tasación y CMA (Strangler Fig Pattern) --}}
+                        <li>
+                            <a href="{{ route('v2.broker.brain.bridge') }}"
+                               title="Motor de Tasación Automática y CMA Dinámico">
+                                <i class="fa fa-bar-chart fa-icon" aria-hidden="true"></i>&nbsp;
+                                <span class="mini-click-non">
+                                    Broker Brain IA
+                                    <span class="label label-warning pull-right">Beta</span>
+                                </span>
+                            </a>
+                        </li>
+
                         {{-- Acceso al módulo V2 de Suscripciones — Strangler Fig Pattern --}}
                         <li {{ request()->is('home/v2*') ? 'class=active': '' }}>
                             <a href="{{ route('v2.subscription.bridge') }}"

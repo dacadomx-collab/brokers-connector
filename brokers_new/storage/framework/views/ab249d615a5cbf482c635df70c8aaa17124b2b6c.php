@@ -59,6 +59,18 @@
                        
                          <?php if(auth()->check() && auth()->user()->hasRole('Admin')): ?>
                         
+                        <li>
+                            <a href="<?php echo e(route('v2.broker.brain.bridge')); ?>"
+                               title="Motor de Tasación Automática y CMA Dinámico">
+                                <i class="fa fa-bar-chart fa-icon" aria-hidden="true"></i>&nbsp;
+                                <span class="mini-click-non">
+                                    Broker Brain IA
+                                    <span class="label label-warning pull-right">Beta</span>
+                                </span>
+                            </a>
+                        </li>
+
+                        
                         <li <?php echo e(request()->is('home/v2*') ? 'class=active': ''); ?>>
                             <a href="<?php echo e(route('v2.subscription.bridge')); ?>"
                                title="Gestiona tu suscripción en el nuevo sistema">
