@@ -5,13 +5,18 @@ namespace App\Services;
 use App\AiSetting;
 use App\Services\Providers\OpenAIProvider;
 use App\Services\Providers\GroqProvider;
+use App\Services\Providers\MistralProvider;
+use App\Services\Providers\GeminiProvider;
 
 class AIService
 {
     // Mapa provider_name → clase adaptadora
+    // Para añadir un proveedor: crear el adaptador en Providers/ e inscribirlo aquí.
     private const ADAPTERS = [
-        'openai' => OpenAIProvider::class,
-        'groq'   => GroqProvider::class,
+        'openai'  => OpenAIProvider::class,
+        'groq'    => GroqProvider::class,
+        'mistral' => MistralProvider::class,
+        'gemini'  => GeminiProvider::class,
     ];
 
     /**

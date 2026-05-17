@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\AiPrompt;
 use App\AiSetting;
 use App\Company;
 use App\Http\Controllers\Controller;
@@ -201,13 +202,18 @@ class SuperAdminController extends Controller
     {
         $settings = AiSetting::orderBy('priority_order')->get()->map(function (AiSetting $s) {
             return [
-                'id'             => $s->id,
-                'provider_name'  => $s->provider_name,
-                'api_key_masked' => $this->maskKey($s->api_key),
-                'extra_config'   => $s->extra_config,
-                'priority_order' => $s->priority_order,
-                'is_active'      => $s->is_active,
-                'company_id'     => $s->company_id,
+                'id'                   => $s->id,
+                'provider_name'        => $s->provider_name,
+                'api_key_masked'       => $this->maskKey($s->api_key),
+                'extra_config'         => $s->extra_config,
+                'priority_order'       => $s->priority_order,
+                'is_active'            => $s->is_active,
+                'company_id'           => $s->company_id,
+                // Historial de ping — persiste entre sesiones
+                'last_tested_at'       => $s->last_tested_at ? $s->last_tested_at->toIso8601String() : null,
+                'last_test_status'     => $s->last_test_status,
+                'last_test_latency_ms' => $s->last_test_latency_ms,
+                'last_test_error'      => $s->last_test_error,
             ];
         });
 
@@ -404,6 +410,544 @@ class SuperAdminController extends Controller
             'message'   => 'Estado actualizado.',
             'is_active' => $setting->is_active,
         ]);
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // ENDPOINT H2 — POST /api/v2/admin/ai-settings/{id}/test
+    //
+    // Test de Conexión (Ping): envía un prompt mínimo al proveedor específico
+    // para verificar que la API Key es válida y el servicio está disponible.
+    //
+    // Arquitectura: llama DIRECTAMENTE al adaptador del proveedor (NO usa
+    // AIService::dispatch()) para aislar el test a ese proveedor en concreto,
+    // sin activar la escalera de failover ni contaminar otros logs.
+    // ══════════════════════════════════════════════════════════════════════════
+
+    private const AI_TEST_ADAPTERS = [
+        'openai'  => \App\Services\Providers\OpenAIProvider::class,
+        'groq'    => \App\Services\Providers\GroqProvider::class,
+        'mistral' => \App\Services\Providers\MistralProvider::class,
+        'gemini'  => \App\Services\Providers\GeminiProvider::class,
+    ];
+
+    public function testAiSetting(Request $request, int $id)
+    {
+        $actor   = $request->user();
+        $setting = AiSetting::find($id);
+
+        if (!$setting) {
+            return response()->json(['success' => false, 'error' => 'Proveedor no encontrado.'], 404);
+        }
+
+        $adapterClass = self::AI_TEST_ADAPTERS[$setting->provider_name] ?? null;
+
+        if (!$adapterClass) {
+            return response()->json([
+                'success' => false,
+                'error'   => "El adaptador para '{$setting->provider_name}' aún no está implementado en el sistema.",
+            ], 400);
+        }
+
+        // Desencriptar la API Key — puede lanzar DecryptException si la APP_KEY cambió
+        try {
+            $decryptedKey = $setting->decryptedKey();
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error'   => 'No se pudo desencriptar la API Key. La APP_KEY del sistema puede haber cambiado. Reingresa la llave.',
+            ], 400);
+        }
+
+        // Prompt mínimo y económico — sin respuesta larga, sin contexto de negocio
+        $testPayload = [
+            'messages'    => [
+                ['role' => 'user', 'content' => 'Ping. Reply strictly with the single word: pong'],
+            ],
+            'temperature' => 0,
+            'max_tokens'  => 5,
+        ];
+
+        $testConfig = [
+            'api_key'      => $decryptedKey,
+            'extra_config' => $setting->extra_config ?? [],
+        ];
+
+        try {
+            $adapter = new $adapterClass();
+            $result  = $adapter->request($testPayload, $testConfig);
+        } catch (\Exception $e) {
+            // sanitizeErrorMessage() es obligatorio aquí: ConnectException de Guzzle
+            // incluye la URL completa con ?key=... en su mensaje nativo.
+            $errorMsg = 'Excepción al conectar: ' . $this->sanitizeErrorMessage($e->getMessage());
+            $testedAt = now();
+
+            $setting->update([
+                'last_tested_at'       => $testedAt,
+                'last_test_status'     => 'error',
+                'last_test_latency_ms' => null,
+                'last_test_error'      => mb_substr($errorMsg, 0, 65535),
+            ]);
+
+            $this->writeAuditLog([
+                'actor'       => $actor,
+                'action'      => 'TEST_AI_SETTING',
+                'target_type' => 'ai_settings',
+                'target_id'   => $setting->id,
+                'target_name' => $setting->provider_name,
+                'from_status' => null,
+                'to_status'   => 'test_error',
+                'extra'       => ['error' => mb_substr($errorMsg, 0, 300)],
+            ]);
+
+            return response()->json([
+                'success'          => false,
+                'error'            => $errorMsg,
+                'last_tested_at'   => $testedAt->toIso8601String(),
+                'last_test_status' => 'error',
+            ], 400);
+        }
+
+        $testedAt = now();
+
+        if ($result['status'] !== 'ok') {
+            $rawError      = $result['error'] ?? 'El proveedor devolvió un error sin mensaje.';
+            $friendlyError = $this->extractGuzzleError($rawError);
+
+            // Persistir resultado fallido en ai_settings
+            $setting->update([
+                'last_tested_at'       => $testedAt,
+                'last_test_status'     => 'error',
+                'last_test_latency_ms' => $result['latency_ms'] ?? null,
+                'last_test_error'      => mb_substr($friendlyError, 0, 65535),
+            ]);
+
+            $this->writeAuditLog([
+                'actor'       => $actor,
+                'action'      => 'TEST_AI_SETTING',
+                'target_type' => 'ai_settings',
+                'target_id'   => $setting->id,
+                'target_name' => $setting->provider_name,
+                'from_status' => null,
+                'to_status'   => 'test_failed',
+                'extra'       => ['latency_ms' => $result['latency_ms'] ?? null, 'error' => mb_substr($friendlyError, 0, 300)],
+            ]);
+
+            return response()->json([
+                'success'              => false,
+                'error'                => $friendlyError,
+                'latency_ms'           => $result['latency_ms'] ?? null,
+                'last_tested_at'       => $testedAt->toIso8601String(),
+                'last_test_status'     => 'error',
+                'last_test_latency_ms' => $result['latency_ms'] ?? null,
+            ], 400);
+        }
+
+        // Persistir resultado exitoso en ai_settings (limpia error anterior)
+        $setting->update([
+            'last_tested_at'       => $testedAt,
+            'last_test_status'     => 'ok',
+            'last_test_latency_ms' => $result['latency_ms'],
+            'last_test_error'      => null,
+        ]);
+
+        $this->writeAuditLog([
+            'actor'       => $actor,
+            'action'      => 'TEST_AI_SETTING',
+            'target_type' => 'ai_settings',
+            'target_id'   => $setting->id,
+            'target_name' => $setting->provider_name,
+            'from_status' => null,
+            'to_status'   => 'test_ok',
+            'extra'       => ['latency_ms' => $result['latency_ms'], 'response' => mb_substr($result['response'] ?? '', 0, 50)],
+        ]);
+
+        return response()->json([
+            'success'              => true,
+            'message'              => "Conexión exitosa con {$setting->provider_name}. Latencia: {$result['latency_ms']} ms.",
+            'response'             => $result['response'],
+            'latency_ms'           => $result['latency_ms'],
+            'last_tested_at'       => $testedAt->toIso8601String(),
+            'last_test_status'     => 'ok',
+            'last_test_latency_ms' => $result['latency_ms'],
+        ]);
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // sanitizeErrorMessage() — Enmascaramiento de credenciales en mensajes
+    //
+    // REGLA DE SEGURIDAD: Las API Keys NUNCA deben llegar al frontend, ni en
+    // errores ni en logs de auditoría expuestos. Este método sanitiza:
+    //   - Query params: ?key=, &key=, ?api_key=, ?token=, ?access_token=
+    //   - Bearer tokens en headers (leaks de Guzzle en modo verbose)
+    //   - Cualquier parámetro nombrado "secret", "credential" o "password"
+    //
+    // Caso concreto de Gemini: Guzzle embebe la URL completa en su mensaje
+    // de excepción. La URL contiene ?key=AIzaSy... en texto plano.
+    // Esta función reemplaza esas cadenas por [REDACTED] antes de devolver
+    // el error al frontend.
+    // ══════════════════════════════════════════════════════════════════════════
+
+    private function sanitizeErrorMessage(string $msg): string
+    {
+        // Query-param API keys: ?key=XXX, &api_key=XXX, ?token=XXX, etc.
+        $msg = preg_replace(
+            '/([?&](key|api[_\-]?key|token|access[_\-]?token|secret|credential|password)\s*=\s*)[^\s&"\'#>]+/i',
+            '$1[REDACTED]',
+            $msg
+        );
+
+        // Bearer tokens (en caso de leak de cabecera dentro del body de error)
+        $msg = preg_replace(
+            '/\bBearer\s+[A-Za-z0-9\._\-\+\/=]{8,}/i',
+            'Bearer [REDACTED]',
+            $msg
+        );
+
+        // Formato "Authorization: Bearer TOKEN" o "Authorization: token TOKEN"
+        $msg = preg_replace(
+            '/(Authorization\s*:\s*(?:Bearer|token)\s+)[A-Za-z0-9\._\-\+\/=]{8,}/i',
+            '$1[REDACTED]',
+            $msg
+        );
+
+        return $msg;
+    }
+
+    // ── Extrae el cuerpo del error HTTP desde el mensaje de Guzzle ─────────────
+    // Guzzle incluye el body completo de la respuesta en el mensaje de excepción.
+    // Para errores de API (401, 429, 400, 404) el JSON de error está embebido.
+    //
+    // FLUJO OBLIGATORIO:
+    //   1. sanitizeErrorMessage() PRIMERO — quita credenciales de la URL
+    //   2. Extraer JSON del body sanitizado
+    //   3. Parsear el mensaje legible del proveedor
+    private function extractGuzzleError(string $rawError): string
+    {
+        // Paso 1: Sanitizar ANTES de cualquier procesamiento o log
+        $sanitized = $this->sanitizeErrorMessage($rawError);
+
+        // Paso 2: Extraer el JSON del body de la respuesta HTTP
+        if (preg_match('/\{.*\}/s', $sanitized, $matches)) {
+            $body = json_decode($matches[0], true);
+            if (is_array($body)) {
+                // OpenAI / Groq / Mistral: { "error": { "message": "..." } }
+                if (isset($body['error']['message'])) {
+                    return (string) $body['error']['message'];
+                }
+                // Gemini: { "error": { "message": "...", "status": "NOT_FOUND" } }
+                // También: { "message": "..." } como raíz
+                if (isset($body['message'])) {
+                    return (string) $body['message'];
+                }
+            }
+        }
+
+        // Paso 3: Si no hay JSON parseable, devolver el mensaje limpio y truncado
+        $clean = preg_replace('/\s+/', ' ', $sanitized);
+        return mb_substr(trim($clean), 0, 250);
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // ENDPOINT N — GET /api/v2/admin/token-stats
+    //
+    // Registro Maestro de Consumo IA — Agrega tokens_used de ai_messages
+    // por tenant (company). Soporta filtro de período: 7d | 30d | 90d | all.
+    //
+    // Sin audit_log: es una consulta de solo lectura (no modifica datos).
+    // Sin paginación: devuelve los top-50 tenants por consumo (suficiente para SaaS).
+    // ══════════════════════════════════════════════════════════════════════════
+
+    public function tokenStats(Request $request)
+    {
+        $period = $request->query('period', 'all');
+
+        // Validar período — whitelist estricta
+        $validPeriods = ['7d', '30d', '90d', 'all'];
+        if (!in_array($period, $validPeriods, true)) {
+            $period = 'all';
+        }
+
+        $dateFrom = null;
+        if ($period === '7d')  $dateFrom = Carbon::now()->subDays(7)->startOfDay();
+        if ($period === '30d') $dateFrom = Carbon::now()->subDays(30)->startOfDay();
+        if ($period === '90d') $dateFrom = Carbon::now()->subDays(90)->startOfDay();
+
+        // ── Totales globales del sistema ─────────────────────────────────────
+        $globalQuery = DB::table('ai_messages')->where('tokens_used', '>', 0);
+        if ($dateFrom) {
+            $globalQuery->where('created_at', '>=', $dateFrom);
+        }
+
+        $global = $globalQuery->selectRaw('
+            COALESCE(SUM(tokens_used), 0)    AS total_tokens,
+            COUNT(*)                          AS total_messages,
+            COUNT(DISTINCT conversation_id)   AS total_conversations
+        ')->first();
+
+        $totalTokens = (int) ($global->total_tokens ?? 0);
+
+        // ── Agregación por empresa ───────────────────────────────────────────
+        // JOIN: ai_messages → ai_conversations → companies
+        // Se excluyen mensajes con tokens_used = 0 (system prompts sin costo)
+        $companyQuery = DB::table('ai_messages AS am')
+            ->join('ai_conversations AS ac', 'ac.id', '=', 'am.conversation_id')
+            ->join('companies AS c',         'c.id', '=', 'ac.company_id')
+            ->where('am.tokens_used', '>', 0);
+
+        if ($dateFrom) {
+            $companyQuery->where('am.created_at', '>=', $dateFrom);
+        }
+
+        $byCompany = $companyQuery
+            ->selectRaw('
+                c.id                                          AS company_id,
+                c.name                                        AS company_name,
+                COALESCE(SUM(am.tokens_used), 0)             AS total_tokens,
+                COUNT(am.id)                                  AS total_messages,
+                COUNT(DISTINCT ac.id)                         AS total_conversations,
+                ROUND(AVG(NULLIF(am.tokens_used, 0)), 1)      AS avg_tokens_per_msg,
+                MAX(am.created_at)                            AS last_activity
+            ')
+            ->groupBy('c.id', 'c.name')
+            ->orderByDesc('total_tokens')
+            ->limit(50)
+            ->get()
+            ->map(function ($row) use ($totalTokens) {
+                return [
+                    'company_id'          => (int)   $row->company_id,
+                    'company_name'        => (string) $row->company_name,
+                    'total_tokens'        => (int)   $row->total_tokens,
+                    'total_messages'      => (int)   $row->total_messages,
+                    'total_conversations' => (int)   $row->total_conversations,
+                    'avg_tokens_per_msg'  => (float) ($row->avg_tokens_per_msg ?? 0),
+                    'pct_of_total'        => $totalTokens > 0
+                        ? round(($row->total_tokens / $totalTokens) * 100, 1)
+                        : 0.0,
+                    'last_activity'       => $row->last_activity,
+                ];
+            });
+
+        $avgPerMsg = ($global->total_messages > 0)
+            ? round($global->total_tokens / $global->total_messages, 1)
+            : 0;
+
+        return response()->json([
+            'success' => true,
+            'period'  => $period,
+            'global'  => [
+                'total_tokens'           => $totalTokens,
+                'total_messages'         => (int) ($global->total_messages         ?? 0),
+                'total_conversations'    => (int) ($global->total_conversations    ?? 0),
+                'total_companies_active' => $byCompany->count(),
+                'avg_tokens_per_message' => $avgPerMsg,
+            ],
+            'by_company' => $byCompany,
+        ]);
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // ENDPOINT O — GET /api/v2/admin/ai-prompts
+    // Lista todos los Prompts Maestros del Motor Cognitivo AVM.
+    // Solo lectura — no genera audit_log.
+    // ══════════════════════════════════════════════════════════════════════════
+
+    public function listAiPrompts(Request $request)
+    {
+        $prompts = AiPrompt::orderBy('slug')->get([
+            'id', 'slug', 'name', 'prompt_text',
+            'system_role', 'business_context', 'immutable_rules',
+            'tone_profile', 'output_schema', 'variables_schema',
+            'preferred_model', 'version', 'is_active', 'updated_at',
+        ]);
+
+        return response()->json(['success' => true, 'data' => $prompts]);
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // ENDPOINT P — PUT /api/v2/admin/ai-prompts/{slug}
+    // Synaptic Core™: Actualiza todos los módulos del prompt.
+    // Archiva la versión anterior en ai_prompt_versions (Version Control).
+    // MANDAMIENTO: genera audit_log antes de retornar éxito.
+    // ══════════════════════════════════════════════════════════════════════════
+
+    public function updateAiPrompt(Request $request, string $slug)
+    {
+        $actor = $request->user();
+
+        $prompt = AiPrompt::where('slug', $slug)->first();
+
+        if (!$prompt) {
+            return response()->json(['success' => false, 'error' => 'Prompt no encontrado.'], 404);
+        }
+
+        $newSystemRole  = trim($request->input('system_role',  ''));
+        $newPromptText  = trim($request->input('prompt_text',  ''));
+        $newName        = trim($request->input('name', $prompt->name ?? $slug));
+
+        // Al menos system_role o prompt_text deben tener contenido
+        if ($newSystemRole === '' && $newPromptText === '') {
+            return response()->json([
+                'success' => false,
+                'error'   => 'El Rol del Sistema o el Prompt Legacy deben tener contenido.',
+            ], 422);
+        }
+
+        // ── Archivar versión actual antes de sobreescribir ────────────────────
+        // ai_prompt_versions puede no existir aún — try/catch silencioso.
+        try {
+            DB::table('ai_prompt_versions')->insert([
+                'prompt_id'        => $prompt->id,
+                'version'          => $prompt->version ?? 1,
+                'system_role'      => $prompt->system_role,
+                'business_context' => $prompt->business_context,
+                'immutable_rules'  => $prompt->immutable_rules,
+                'tone_profile'     => $prompt->tone_profile
+                    ? json_encode($prompt->tone_profile, JSON_UNESCAPED_UNICODE)
+                    : null,
+                'output_schema'    => $prompt->output_schema
+                    ? json_encode($prompt->output_schema, JSON_UNESCAPED_UNICODE)
+                    : null,
+                'variables_schema' => $prompt->variables_schema
+                    ? json_encode($prompt->variables_schema, JSON_UNESCAPED_UNICODE)
+                    : null,
+                'preferred_model'  => $prompt->preferred_model,
+                'prompt_text'      => $prompt->prompt_text,
+                'changed_by_email' => $actor->email,
+                'change_note'      => mb_substr($request->input('change_note', ''), 0, 255),
+                'created_at'       => now(),
+            ]);
+        } catch (\Throwable $e) {
+            // ai_prompt_versions puede no existir — ignorar, no bloquear el save
+            \Log::info('Synaptic Core: ai_prompt_versions no disponible aún', ['error' => $e->getMessage()]);
+        }
+
+        $newVersion = ($prompt->version ?? 1) + 1;
+
+        // Parsear JSON fields — si viene como string, decodificar; si ya es array, usar directo
+        $parseJson = function ($field) use ($request) {
+            $raw = $request->input($field);
+            if (is_array($raw))   return $raw;
+            if (is_string($raw) && trim($raw) !== '') {
+                $decoded = json_decode($raw, true);
+                return json_last_error() === JSON_ERROR_NONE ? $decoded : null;
+            }
+            return null;
+        };
+
+        $prompt->update([
+            'name'             => $newName !== '' ? $newName : ($prompt->name ?? $slug),
+            'prompt_text'      => $newPromptText !== '' ? $newPromptText : $prompt->prompt_text,
+            'system_role'      => $newSystemRole !== '' ? $newSystemRole : null,
+            'business_context' => trim($request->input('business_context', '')) ?: null,
+            'immutable_rules'  => trim($request->input('immutable_rules',  '')) ?: null,
+            'tone_profile'     => $parseJson('tone_profile'),
+            'output_schema'    => $parseJson('output_schema'),
+            'variables_schema' => $parseJson('variables_schema'),
+            'preferred_model'  => trim($request->input('preferred_model', '')) ?: null,
+            'version'          => $newVersion,
+        ]);
+
+        $this->writeAuditLog([
+            'actor'       => $actor,
+            'action'      => 'UPDATE_AI_PROMPT',
+            'target_type' => 'ai_prompts',
+            'target_id'   => $prompt->id,
+            'target_name' => $slug,
+            'from_status' => 'v' . ($newVersion - 1),
+            'to_status'   => 'v' . $newVersion,
+            'extra'       => [
+                'chars_system_role'  => mb_strlen($newSystemRole),
+                'chars_prompt_text'  => mb_strlen($newPromptText),
+                'has_output_schema'  => $parseJson('output_schema') !== null,
+            ],
+        ]);
+
+        return response()->json([
+            'success'     => true,
+            'message'     => "Synaptic Core '{$slug}' guardado como v{$newVersion}.",
+            'new_version' => $newVersion,
+            'updated_at'  => $prompt->fresh()->updated_at->toIso8601String(),
+        ]);
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // ENDPOINT Q — POST /api/v2/admin/ai-prompts/{slug}/test
+    // Playground del Synaptic Core™: compila y prueba el prompt en tiempo real.
+    // Compila desde el cuerpo del request (no desde DB) — permite probar
+    // ANTES de guardar. Sin audit_log (operación read-only de test).
+    // ══════════════════════════════════════════════════════════════════════════
+
+    public function testAiPrompt(Request $request, string $slug)
+    {
+        $actor = $request->user();
+
+        // Construir un AiPrompt temporal desde el formulario (sin persistir)
+        $parseJson = function ($field) use ($request) {
+            $raw = $request->input($field);
+            if (is_array($raw)) return $raw;
+            if (is_string($raw) && trim($raw) !== '') {
+                $decoded = json_decode($raw, true);
+                return json_last_error() === JSON_ERROR_NONE ? $decoded : null;
+            }
+            return null;
+        };
+
+        $tempPrompt = new AiPrompt([
+            'slug'             => $slug,
+            'system_role'      => trim($request->input('system_role',      '')),
+            'business_context' => trim($request->input('business_context', '')),
+            'immutable_rules'  => trim($request->input('immutable_rules',  '')),
+            'tone_profile'     => $parseJson('tone_profile'),
+            'output_schema'    => $parseJson('output_schema'),
+            'variables_schema' => $parseJson('variables_schema'),
+            'preferred_model'  => trim($request->input('preferred_model', '')),
+            'prompt_text'      => trim($request->input('prompt_text', '')),
+        ]);
+
+        $variables   = $request->input('variables', []);
+        $testMessage = trim($request->input('test_message', 'Ejecuta una prueba de funcionamiento del sistema.'));
+
+        $compiledPrompt = $tempPrompt->compile(is_array($variables) ? $variables : []);
+
+        if (empty(trim($compiledPrompt))) {
+            return response()->json([
+                'success' => false,
+                'error'   => 'El prompt compilado está vacío. Ingresa al menos el Rol del Sistema o el Prompt Legacy.',
+            ], 422);
+        }
+
+        $aiService = new \App\Services\AIService();
+        $companyId = (int) ($actor->company_id ?? 1);
+
+        try {
+            $result = $aiService->dispatch([
+                'messages' => [
+                    ['role' => 'system', 'content' => $compiledPrompt],
+                    ['role' => 'user',   'content' => $testMessage],
+                ],
+                'temperature'     => 0.2,
+                'max_tokens'      => 600,
+                'response_format' => ['type' => 'json_object'],
+            ], $companyId);
+
+            return response()->json([
+                'success'         => true,
+                'compiled_prompt' => $compiledPrompt,
+                'raw_response'    => $result['response']    ?? '',
+                'latency_ms'      => $result['latency_ms']  ?? null,
+            ]);
+
+        } catch (\RuntimeException $e) {
+            return response()->json([
+                'success' => false,
+                'error'   => 'Sin proveedores IA activos: ' . $e->getMessage(),
+            ], 503);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'error'   => 'Error en test: ' . mb_substr($e->getMessage(), 0, 200),
+            ], 500);
+        }
     }
 
     // ══════════════════════════════════════════════════════════════════════════

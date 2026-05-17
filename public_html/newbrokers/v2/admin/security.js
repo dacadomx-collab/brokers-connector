@@ -113,6 +113,8 @@ const TABS = [
   { btn: 'tab-payments',  panel: 'panel-payments'  },
   { btn: 'tab-companies', panel: 'panel-companies' },
   { btn: 'tab-audit',     panel: 'panel-audit'     },
+  { btn: 'tab-tokens',    panel: 'panel-tokens'    },
+  { btn: 'tab-prompts',   panel: 'panel-prompts'   },
 ];
 
 function activateTab(targetBtnId) {
@@ -140,6 +142,14 @@ $('tab-companies').addEventListener('click', () => {
 $('tab-audit').addEventListener('click', () => {
   activateTab('tab-audit');
   loadAuditLogs();
+});
+$('tab-tokens').addEventListener('click', function () {
+  activateTab('tab-tokens');
+  loadTokenStats();
+});
+$('tab-prompts').addEventListener('click', function () {
+  activateTab('tab-prompts');
+  loadAiPrompts();
 });
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -360,12 +370,12 @@ function renderLadder(settings) {
     ladder.appendChild(step);
   });
 
-  // Nodo final: error
+  // Nodo final: representa el caso extremo de fallo total (no es un error activo)
   const end = document.createElement('div');
   end.className = 'ai-ladder-step ai-ladder-end';
   end.innerHTML =
-    '<span class="sa-badge-danger">ERROR</span>' +
-    '<span class="ai-end-label">RuntimeException → log interno</span>';
+    '<span class="sa-badge" style="background:rgba(100,116,139,.15);color:#475569;border:1px solid #cbd5e1;font-size:.7rem;">FALLBACK</span>' +
+    '<span class="ai-end-label" style="color:var(--v2-text-subtle);font-style:italic;">Si todos fallan → RuntimeException (log del sistema)</span>';
   ladder.appendChild(end);
 
   $('ai-loading').classList.add('hidden');
@@ -404,7 +414,13 @@ function renderAiTable(settings) {
         '</label>' +
       '</td>' +
       '<td><span class="ai-tenant">' + (s.company_id ? '#' + s.company_id : 'Global') + '</span></td>' +
+      '<td class="ai-last-test-cell" data-setting-id="' + s.id + '">' + renderLastTestCell(s) + '</td>' +
       '<td class="sa-actions-cell">' +
+        '<button class="v2-btn v2-btn-sm js-ai-test" ' +
+                'data-id="' + s.id + '" ' +
+                'data-provider="' + escAttr(s.provider_name) + '" ' +
+                'title="Probar conexión con la API Key guardada" ' +
+                'style="background:rgba(8,145,178,.08);color:#0891b2;border:1px solid rgba(8,145,178,.25);">&#9889; Test</button>' +
         '<button class="v2-btn v2-btn-sm v2-btn-ghost js-ai-edit" ' +
                 'data-id="' + s.id + '" ' +
                 'data-provider="' + escAttr(s.provider_name) + '" ' +
@@ -445,6 +461,13 @@ function renderAiTable(settings) {
     btn.addEventListener('click', () => {
       if (!confirm('¿Eliminar el proveedor ' + btn.dataset.provider + '?')) return;
       execDestroyAi(Number(btn.dataset.id));
+    });
+  });
+
+  // Botón Test de Conexión (Ping)
+  tbody.querySelectorAll('.js-ai-test').forEach((btn) => {
+    btn.addEventListener('click', function () {
+      execTestAi(Number(btn.dataset.id), btn.dataset.provider, btn);
     });
   });
 
@@ -564,22 +587,305 @@ $('ai-form').addEventListener('submit', function (e) {
   if (keyVal)   body.api_key      = keyVal;
   if (extraVal) body.extra_config = extraVal;
 
+  // restoreBtn(): función local que restaura el botón siempre.
+  // Usamos restore explícito en .then() Y .catch() en lugar de .finally()
+  // para garantizar compatibilidad con entornos que no soporten Promise.finally.
+  function restoreBtn() {
+    submitBtn.disabled    = false;
+    submitBtn.textContent = prevLabel;
+  }
+
   apiFetch(url, { method: method, body: JSON.stringify(body) })
     .then(function (d) {
       if (!d.success) throw new Error(d.error || 'Error al guardar.');
       showToast(d.message || (isEdit ? 'Proveedor actualizado.' : 'Proveedor registrado.'));
+      restoreBtn();
       resetAiForm();
       loadAiSettings();
     })
     .catch(function (err) {
       showToast(err.message || 'Error desconocido. Revisa la consola.', 'error');
       console.error('[AI Settings] Error al guardar:', err);
-    })
-    .finally(function () {
-      submitBtn.disabled    = false;
-      submitBtn.textContent = prevLabel;
+      restoreBtn();
     });
 });
+
+// ══════════════════════════════════════════════════════════════════════════════
+// TEST DE CONEXIÓN (PING) — Diagnóstico Forense
+// ══════════════════════════════════════════════════════════════════════════════
+
+// ── Clasificador de errores ──────────────────────────────────────────────────
+function classifyApiError(errorMsg) {
+  var m = (errorMsg || '').toLowerCase();
+
+  if (m.includes('invalid api key') || m.includes('incorrect api key') ||
+      m.includes('invalid_api_key') || m.includes('401') || m.includes('unauthorized') ||
+      m.includes('authentication') || m.includes('api key') ||
+      m.includes('api_key_invalid') || m.includes('permission_denied') ||
+      m.includes('api key not valid') || m.includes('invalid x-goog')) {
+    return {
+      icon:  '🔑',
+      type:  'API Key inválida o expirada',
+      hint:  'Verifica que hayas copiado la llave completa y sin espacios. Groq: "gsk_…", OpenAI: "sk-…", Mistral: empieza con letras/números, Gemini: AIza… Reingresa la llave si sigue fallando.',
+    };
+  }
+  if (m.includes('rate limit') || m.includes('429') || m.includes('too many requests') ||
+      m.includes('quota') || m.includes('capacity') || m.includes('overloaded')) {
+    return {
+      icon:  '⏱',
+      type:  'Límite de solicitudes excedido (429)',
+      hint:  'Esta API Key alcanzó su cuota de solicitudes. Espera unos minutos y vuelve a probar. Si el error persiste, considera actualizar el plan en el proveedor.',
+    };
+  }
+  if (m.includes('ssl') || m.includes('certificate') || m.includes('curl error 60') ||
+      m.includes('verify') || m.includes('peer') || m.includes('handshake')) {
+    return {
+      icon:  '🔒',
+      type:  'Error de certificado SSL',
+      hint:  'En entorno local (XAMPP), el servidor puede no tener los certificados CA actualizados. Solución: descarga "cacert.pem" de https://curl.se/ca/cacert.pem, ponlo en tu PHP y configura curl.cainfo en php.ini.',
+    };
+  }
+  if (m.includes('timeout') || m.includes('timed out') || m.includes('connection refused') ||
+      m.includes('could not resolve') || m.includes('network') || m.includes('curl error 6') ||
+      m.includes('curl error 7') || m.includes('no route')) {
+    return {
+      icon:  '🌐',
+      type:  'Error de red / timeout',
+      hint:  'El servidor no pudo conectarse a la API externa. Verifica que tengas acceso a internet, que no haya un firewall bloqueando el puerto 443, y que el dominio del proveedor sea accesible.',
+    };
+  }
+  if (m.includes('decrypt') || m.includes('app_key') || m.includes('mac is invalid') ||
+      m.includes('decryptstring') || m.includes('unserialize')) {
+    return {
+      icon:  '🔐',
+      type:  'Error de desencriptado',
+      hint:  'La APP_KEY del sistema puede haber cambiado desde que se guardó la llave. Solución: edita este proveedor y reingresa la API Key para que se cifre con la llave actual.',
+    };
+  }
+  if (m.includes('not implemented') || m.includes('adaptador') || m.includes('no adapter')) {
+    return {
+      icon:  '⚙️',
+      type:  'Proveedor sin adaptador activo',
+      hint:  'Este tipo de proveedor (ej. Anthropic, Gemini) aún no tiene un adaptador implementado en el sistema. Está en el roadmap de la Fase 2 de V2.',
+    };
+  }
+  if (m.includes('insufficient') || m.includes('credits') || m.includes('billing') ||
+      m.includes('payment') || m.includes('saldo')) {
+    return {
+      icon:  '💳',
+      type:  'Saldo insuficiente / Problema de facturación',
+      hint:  'La cuenta del proveedor puede tener créditos agotados. Ingresa al dashboard del proveedor y recarga saldo o verifica el método de pago.',
+    };
+  }
+  return {
+    icon:  '⚠️',
+    type:  'Error desconocido',
+    hint:  'Revisa el log del sistema (storage/logs/laravel-YYYY-MM-DD.log) para obtener el stack trace completo.',
+  };
+}
+
+// ── Formatea fecha ISO a string local legible ────────────────────────────────
+function formatPingDate(isoString) {
+  if (!isoString) return null;
+  try {
+    var d = new Date(isoString);
+    return d.toLocaleString('es-MX', {
+      day:    '2-digit',
+      month:  'long',
+      year:   'numeric',
+      hour:   '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    });
+  } catch (_) {
+    return isoString;
+  }
+}
+
+// ── Tiempo relativo para la columna ─────────────────────────────────────────
+function relativeTime(isoString) {
+  if (!isoString) return null;
+  try {
+    var diff = Math.floor((Date.now() - new Date(isoString)) / 1000);
+    if (diff < 60)    return 'hace menos de 1 min';
+    if (diff < 3600)  return 'hace ' + Math.floor(diff / 60) + ' min';
+    if (diff < 86400) return 'hace ' + Math.floor(diff / 3600) + ' h';
+    if (diff < 604800) return 'hace ' + Math.floor(diff / 86400) + ' días';
+    return formatPingDate(isoString);
+  } catch (_) {
+    return null;
+  }
+}
+
+// ── Render de la celda "Último Test" (columna de la tabla) ───────────────────
+function renderLastTestCell(s) {
+  if (!s.last_tested_at) {
+    return '<span style="color:var(--v2-text-subtle);font-size:.8rem;">Nunca probado</span>';
+  }
+
+  var rel  = relativeTime(s.last_tested_at);
+  var full = formatPingDate(s.last_tested_at);
+
+  if (s.last_test_status === 'ok') {
+    var lat = s.last_test_latency_ms ? ' · ' + s.last_test_latency_ms + ' ms' : '';
+    return '<span title="' + escHtml(full) + '" style="display:flex;flex-direction:column;gap:.1rem;">' +
+      '<span style="font-size:.8rem;font-weight:700;color:#047857;">✓ OK' + escHtml(lat) + '</span>' +
+      '<span style="font-size:.7rem;color:var(--v2-text-subtle);">' + escHtml(rel) + '</span>' +
+    '</span>';
+  }
+
+  return '<span title="' + escHtml(full) + '" style="display:flex;flex-direction:column;gap:.1rem;">' +
+    '<span style="font-size:.8rem;font-weight:700;color:#dc2626;">✗ Error</span>' +
+    '<span style="font-size:.7rem;color:var(--v2-text-subtle);">' + escHtml(rel) + '</span>' +
+  '</span>';
+}
+
+// ── Modal de Diagnóstico Forense ─────────────────────────────────────────────
+
+function openPingModal(providerLabel, isOk, data) {
+  var modal = $('ai-ping-modal');
+
+  // ── RESET COMPLETO antes de repintar ────────────────────────────────────────
+  // Usamos style.display = 'none' EXPLÍCITO en lugar de classList.add('hidden').
+  // Razón: la clase .hidden puede tener problemas de especificidad CSS en ciertos
+  // entornos, dejando los contenedores visibles pero vacíos (estado residual lógico).
+  // style.display anula cualquier regla CSS sin excepción.
+  $('ai-ping-result-block').removeAttribute('style');
+  $('ai-ping-result-icon').textContent  = '';
+  $('ai-ping-result-label').textContent = '';
+  $('ai-ping-result-label').removeAttribute('style');
+  $('ai-ping-result-meta').textContent  = '';
+
+  $('ai-ping-error-block').style.display = 'none';
+  $('ai-ping-ok-block').style.display    = 'none';
+
+  $('ai-ping-error-icon').textContent   = '';
+  $('ai-ping-error-type').textContent   = '';
+  $('ai-ping-error-detail').textContent = '';
+  $('ai-ping-hint').textContent         = '';
+  $('ai-ping-response').textContent     = '';
+
+  // Configurar badge del proveedor
+  var info = aiLabel(data.provider_name || '');
+  $('ai-ping-modal-badge').innerHTML =
+    '<span class="ai-prov-badge ' + info.css + '" style="font-size:.7rem;">' +
+    escHtml(info.label) + '</span>';
+
+  if (isOk) {
+    // ── Resultado exitoso ────────────────────────────────────────────────────
+    var lat  = data.latency_ms ? data.latency_ms + ' ms' : '—';
+    var full = formatPingDate(data.last_tested_at);
+
+    $('ai-ping-result-block').style.background = 'rgba(4,120,87,.05)';
+    $('ai-ping-result-block').style.borderColor = 'rgba(4,120,87,.25)';
+    $('ai-ping-result-icon').textContent = '✅';
+    $('ai-ping-result-label').textContent = 'Conexión exitosa';
+    $('ai-ping-result-label').style.color = '#047857';
+    $('ai-ping-result-meta').textContent = 'Latencia: ' + lat + ' · ' + (full || '');
+
+    $('ai-ping-error-block').style.display = 'none';
+    $('ai-ping-ok-block').style.display    = '';       // restores CSS default (block)
+    $('ai-ping-response').textContent = data.response || '(sin contenido)';
+
+  } else {
+    // ── Resultado con error ──────────────────────────────────────────────────
+    var classification = classifyApiError(data.error || '');
+    var full2 = formatPingDate(data.last_tested_at);
+
+    $('ai-ping-result-block').style.background  = 'rgba(220,38,38,.04)';
+    $('ai-ping-result-block').style.borderColor  = 'rgba(220,38,38,.18)';
+    $('ai-ping-result-icon').textContent  = '❌';
+    $('ai-ping-result-label').textContent = 'Falló la conexión';
+    $('ai-ping-result-label').style.color = '#dc2626';
+    $('ai-ping-result-meta').textContent  = full2 || '';
+
+    $('ai-ping-ok-block').style.display    = 'none';
+    $('ai-ping-error-block').style.display = '';      // restores CSS default (block)
+
+    $('ai-ping-error-icon').textContent  = classification.icon;
+    $('ai-ping-error-type').textContent  = classification.type;
+    $('ai-ping-error-detail').textContent = data.error || 'Sin detalles adicionales.';
+    $('ai-ping-hint').textContent        = classification.hint;
+  }
+
+  modal.classList.remove('hidden');
+  $('ai-ping-modal-close-btn').focus();
+}
+
+function closePingModal() {
+  $('ai-ping-modal').classList.add('hidden');
+}
+
+$('ai-ping-close').addEventListener('click', closePingModal);
+$('ai-ping-modal-close-btn').addEventListener('click', closePingModal);
+$('ai-ping-modal').addEventListener('click', function (e) {
+  if (e.target === $('ai-ping-modal')) closePingModal();
+});
+
+// ── Test de Conexión (Ping) — versión con historial persistente ──────────────
+
+function execTestAi(id, providerLabel, btn) {
+  var prevHTML     = btn.innerHTML;
+  var prevDisabled = btn.disabled;
+
+  btn.disabled      = true;
+  btn.innerHTML     = '&#9203; Probando…';
+  btn.style.opacity = '0.65';
+
+  apiFetch('/api/v2/admin/ai-settings/' + id + '/test', { method: 'POST' })
+    .then(function (d) {
+      if (!d.success) throw Object.assign(new Error(d.error || 'Error de conexión'), { apiData: d });
+      return d;
+    })
+    .then(function (d) {
+      // Actualizar celda "Último Test" inline (sin recargar la tabla)
+      updateLastTestCell(id, d);
+
+      // Restaurar botón
+      btn.innerHTML         = '⚡ Test';
+      btn.style.opacity     = '1';
+      btn.disabled          = prevDisabled;
+      btn.style.background  = '';
+      btn.style.color       = '';
+      btn.style.borderColor = '';
+
+      // Abrir modal de diagnóstico
+      openPingModal(providerLabel, true, Object.assign({ provider_name: btn.dataset.provider }, d));
+    })
+    .catch(function (err) {
+      var apiData = err.apiData || {};
+
+      // Actualizar celda "Último Test" inline si tenemos datos de fecha del backend
+      if (apiData.last_tested_at) {
+        updateLastTestCell(id, apiData);
+      }
+
+      // Restaurar botón
+      btn.innerHTML         = '⚡ Test';
+      btn.style.opacity     = '1';
+      btn.disabled          = prevDisabled;
+      btn.style.background  = '';
+      btn.style.color       = '';
+      btn.style.borderColor = '';
+
+      // Abrir modal de diagnóstico con detalle del error
+      openPingModal(providerLabel, false, Object.assign(
+        { provider_name: btn.dataset.provider, error: err.message },
+        apiData
+      ));
+    });
+}
+
+// ── Actualización inline de la celda "Último Test" ───────────────────────────
+function updateLastTestCell(settingId, pingData) {
+  var cell = document.querySelector('.ai-last-test-cell[data-setting-id="' + settingId + '"]');
+  if (!cell) return;
+  cell.innerHTML = renderLastTestCell({
+    last_tested_at:       pingData.last_tested_at,
+    last_test_status:     pingData.last_test_status,
+    last_test_latency_ms: pingData.last_test_latency_ms || pingData.latency_ms || null,
+  });
+}
 
 // ── Acciones API: toggle, delete ─────────────────────────────────────────────
 
@@ -1241,6 +1547,9 @@ var ACTION_LABEL = {
   UPDATE_AI_SETTING:     'Editar proveedor IA',
   DELETE_AI_SETTING:     'Eliminar proveedor IA',
   TOGGLE_AI_SETTING:     'Toggle estado proveedor IA',
+  TEST_AI_SETTING:       'Test de conexión proveedor IA',
+  // Prompts Maestros
+  UPDATE_AI_PROMPT:      'Editar Prompt Maestro IA',
 };
 
 function loadAuditLogs(page) {
@@ -1358,6 +1667,625 @@ $('audit-export-pdf').addEventListener('click', function () {
 
   doc.save('audit-trail-' + new Date().toISOString().slice(0, 10) + '.pdf');
   showToast('PDF generado correctamente.');
+});
+
+// ══════════════════════════════════════════════════════════════════════════════
+// MÓDULO F — MONITOR DE CONSUMO IA (Tokens)
+// Registro Maestro: agrega tokens_used de ai_messages por tenant.
+// ══════════════════════════════════════════════════════════════════════════════
+
+var tokState = { period: 'all', data: null };
+
+// ── Formateo numérico ────────────────────────────────────────────────────────
+
+function fmtTokens(n) {
+  n = Number(n) || 0;
+  if (n >= 1000000) return (n / 1000000).toFixed(2) + 'M';
+  if (n >= 1000)    return (n / 1000).toFixed(1) + 'K';
+  return n.toLocaleString('es-MX');
+}
+
+function fmtNumInt(n) {
+  return (Number(n) || 0).toLocaleString('es-MX');
+}
+
+function fmtTokDate(isoStr) {
+  if (!isoStr) return '—';
+  try {
+    return new Date(isoStr).toLocaleString('es-MX', {
+      day: '2-digit', month: 'short', year: 'numeric',
+      hour: '2-digit', minute: '2-digit', hour12: false,
+    });
+  } catch (_) { return isoStr; }
+}
+
+// ── Carga de datos ───────────────────────────────────────────────────────────
+
+function loadTokenStats(period) {
+  period = period || tokState.period;
+  tokState.period = period;
+
+  // Actualizar botones de período
+  document.querySelectorAll('.tok-period-btn').forEach(function (btn) {
+    btn.classList.toggle('tok-period-active', btn.dataset.period === period);
+  });
+
+  $('tok-loading').style.display  = '';
+  $('tok-content').style.display  = 'none';
+
+  apiFetch('/api/v2/admin/token-stats?period=' + period)
+    .then(function (d) {
+      if (!d.success) throw new Error(d.error || 'Error al cargar estadísticas.');
+      tokState.data = d;
+      renderTokenStats(d);
+      $('tok-loading').style.display = 'none';
+      $('tok-content').style.display = '';
+    })
+    .catch(function (e) {
+      $('tok-loading').style.display = 'none';
+      showToast(e.message, 'error');
+    });
+}
+
+// ── Render principal ─────────────────────────────────────────────────────────
+
+function renderTokenStats(d) {
+  renderTokKPIs(d.global, d.period);
+  renderTokBarChart(d.by_company);
+  renderTokTable(d.by_company);
+}
+
+// ── KPI Cards ────────────────────────────────────────────────────────────────
+
+function renderTokKPIs(global, period) {
+  var periodLabels = { all: 'de todo el tiempo', '90d': 'últimos 90 días', '30d': 'últimos 30 días', '7d': 'últimos 7 días' };
+  var periodSub    = periodLabels[period] || '';
+
+  var cards = [
+    {
+      icon: '⚡', primary: true,
+      value: fmtTokens(global.total_tokens),
+      label: 'Tokens totales', sub: periodSub,
+    },
+    {
+      icon: '💬', primary: false,
+      value: fmtNumInt(global.total_messages),
+      label: 'Mensajes IA', sub: 'procesados',
+    },
+    {
+      icon: '🔁', primary: false,
+      value: fmtNumInt(global.total_conversations),
+      label: 'Conversaciones', sub: 'abiertas',
+    },
+    {
+      icon: '📊', primary: false,
+      value: fmtNumInt(Math.round(global.avg_tokens_per_message)),
+      label: 'Tokens / mensaje', sub: 'promedio del sistema',
+    },
+    {
+      icon: '🏢', primary: false,
+      value: fmtNumInt(global.total_companies_active),
+      label: 'Empresas activas', sub: 'con uso de IA',
+    },
+  ];
+
+  $('tok-kpi-grid').innerHTML = cards.map(function (c) {
+    return '<div class="tok-kpi' + (c.primary ? ' tok-kpi-primary' : '') + '">' +
+      '<div class="tok-kpi-icon">' + c.icon + '</div>' +
+      '<div class="tok-kpi-value">' + escHtml(c.value) + '</div>' +
+      '<div class="tok-kpi-label">' + escHtml(c.label) + '</div>' +
+      '<div class="tok-kpi-sub">' + escHtml(c.sub) + '</div>' +
+    '</div>';
+  }).join('');
+}
+
+// ── Gráfico de barras CSS ────────────────────────────────────────────────────
+
+function renderTokBarChart(companies) {
+  var list = $('tok-bar-list');
+  var empty = $('tok-no-usage');
+
+  var top = companies.slice(0, 12); // top 12 en el gráfico
+  $('tok-chart-label').textContent = companies.length + ' empresa' + (companies.length !== 1 ? 's' : '');
+
+  if (!top.length) {
+    list.innerHTML  = '';
+    list.style.display  = 'none';
+    empty.classList.remove('hidden');
+    return;
+  }
+
+  empty.classList.add('hidden');
+  list.style.display = '';
+
+  var maxTokens = top[0].total_tokens || 1;
+
+  list.innerHTML = top.map(function (c, i) {
+    var pct = Math.max(2, Math.round((c.total_tokens / maxTokens) * 100));
+
+    // Degradado de color: índigo profundo (#4f46e5) para el #1, más claro hacia abajo
+    var lightness = 50 + Math.round((i / Math.max(top.length - 1, 1)) * 22);
+    var barColor  = 'hsl(244,' + (84 - i * 2) + '%,' + lightness + '%)';
+
+    // Badge de posición
+    var rankBadge = i === 0
+      ? '<span class="tok-rank tok-rank-gold">🥇</span>'
+      : i === 1
+        ? '<span class="tok-rank tok-rank-silver">🥈</span>'
+        : i === 2
+          ? '<span class="tok-rank tok-rank-bronze">🥉</span>'
+          : '<span class="tok-rank tok-rank-plain">' + (i + 1) + '</span>';
+
+    return '<div class="tok-bar-row">' +
+      '<div class="tok-bar-company">' + rankBadge + '<span title="' + escHtml(c.company_name) + '">' + escHtml(c.company_name) + '</span></div>' +
+      '<div class="tok-bar-bg"><div class="tok-bar-fill" data-width="' + pct + '%" style="background:' + barColor + ';width:0%;"></div></div>' +
+      '<div class="tok-bar-tokens">' + escHtml(fmtTokens(c.total_tokens)) + '<span class="tok-bar-pct"> (' + c.pct_of_total + '%)</span></div>' +
+    '</div>';
+  }).join('');
+
+  // Animar barras tras renderizar
+  requestAnimationFrame(function () {
+    list.querySelectorAll('.tok-bar-fill').forEach(function (bar) {
+      bar.style.width = bar.dataset.width;
+    });
+  });
+}
+
+// ── Tabla detallada ──────────────────────────────────────────────────────────
+
+function renderTokTable(companies) {
+  var tbody = $('tok-tbody');
+  $('tok-table-count').textContent = companies.length;
+
+  if (!companies.length) {
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:1.5rem;color:var(--v2-text-subtle);">Sin datos en el período seleccionado.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = companies.map(function (c, i) {
+    // Barra micro-progress en la celda de % Sistema
+    var pctBar = '<div class="tok-micro-bar"><div class="tok-micro-fill" style="width:' + c.pct_of_total + '%"></div></div>';
+
+    return '<tr>' +
+      '<td><span class="tok-rank tok-rank-plain" style="font-size:.7rem;">' + (i + 1) + '</span></td>' +
+      '<td><strong>' + escHtml(c.company_name) + '</strong><br>' +
+        '<span style="font-size:.7rem;color:var(--v2-text-subtle);">ID #' + c.company_id + '</span></td>' +
+      '<td><span class="tok-token-pill">' + escHtml(fmtTokens(c.total_tokens)) + '</span>' +
+        '<span style="font-size:.7rem;color:var(--v2-text-subtle);display:block;">' + fmtNumInt(c.total_tokens) + '</span></td>' +
+      '<td>' + fmtNumInt(c.total_messages) + '</td>' +
+      '<td>' + fmtNumInt(c.total_conversations) + '</td>' +
+      '<td>' + fmtNumInt(Math.round(c.avg_tokens_per_msg)) + '</td>' +
+      '<td>' + pctBar + '<span style="font-size:.75rem;font-weight:600;">' + c.pct_of_total + '%</span></td>' +
+      '<td style="font-size:.8rem;color:var(--v2-text-muted);">' + escHtml(fmtTokDate(c.last_activity)) + '</td>' +
+    '</tr>';
+  }).join('');
+}
+
+// ── Exportar CSV ─────────────────────────────────────────────────────────────
+
+function exportTokCSV() {
+  if (!tokState.data || !tokState.data.by_company.length) {
+    showToast('Sin datos para exportar.', 'error');
+    return;
+  }
+
+  var periodLabel = { all: 'todos', '90d': '90dias', '30d': '30dias', '7d': '7dias' }[tokState.period] || 'todos';
+  var rows = [['#', 'ID Empresa', 'Empresa', 'Tokens', 'Mensajes', 'Conversaciones', 'Avg Tokens/Msg', '% Sistema', 'Última Actividad']];
+
+  tokState.data.by_company.forEach(function (c, i) {
+    rows.push([
+      i + 1,
+      c.company_id,
+      c.company_name,
+      c.total_tokens,
+      c.total_messages,
+      c.total_conversations,
+      c.avg_tokens_per_msg,
+      c.pct_of_total + '%',
+      c.last_activity || '',
+    ]);
+  });
+
+  // Encabezado con resumen global
+  var g = tokState.data.global;
+  rows.unshift(['Sistema', '', 'TOTAL GLOBAL', g.total_tokens, g.total_messages, g.total_conversations, g.avg_tokens_per_message, '100%', '']);
+  rows.unshift(['Período:', tokState.period, '', '', '', '', '', '', '']);
+  rows.unshift(['Brokers Connector — Monitor de Tokens IA', '', '', '', '', '', '', '', '']);
+
+  var csv = rows.map(function (r) {
+    return r.map(function (cell) {
+      return '"' + String(cell).replace(/"/g, '""') + '"';
+    }).join(',');
+  }).join('\r\n');
+
+  var blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' }); // BOM para Excel
+  var url  = URL.createObjectURL(blob);
+  var a    = document.createElement('a');
+  a.href   = url;
+  a.download = 'tokens-ia-' + periodLabel + '-' + new Date().toISOString().slice(0, 10) + '.csv';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('CSV generado correctamente.');
+}
+
+// ── Event listeners del módulo Tokens ────────────────────────────────────────
+
+$('tok-refresh').addEventListener('click', function () { loadTokenStats(tokState.period); });
+$('tok-export-csv').addEventListener('click', exportTokCSV);
+
+document.querySelectorAll('.tok-period-btn').forEach(function (btn) {
+  btn.addEventListener('click', function () { loadTokenStats(btn.dataset.period); });
+});
+
+// ══════════════════════════════════════════════════════════════════════════════
+// MÓDULO G — SYNAPTIC CORE™ (Visual Prompt Architect)
+// Motor Cognitivo AVM — gestión modular de System Prompts en tiempo real.
+// ══════════════════════════════════════════════════════════════════════════════
+
+var scState = { editingSlug: null, editingPrompt: null };
+
+// ── Carga y render de tarjetas ───────────────────────────────────────────────
+
+function loadAiPrompts() {
+  $('prompts-loading').classList.remove('hidden');
+  $('prompts-list').classList.add('hidden');
+
+  apiFetch('/api/v2/admin/ai-prompts')
+    .then(function (d) {
+      $('prompts-loading').classList.add('hidden');
+      if (!d.success || !d.data || !d.data.length) {
+        $('prompts-list').innerHTML =
+          '<p style="color:var(--v2-text-subtle);padding:1rem;">Sin módulos cognitivos registrados. ' +
+          'Ejecuta el INSERT del Synaptic Core en phpMyAdmin para crear el prompt base.</p>';
+        $('prompts-list').classList.remove('hidden');
+        $('prompts-count').textContent = '0';
+        return;
+      }
+      $('prompts-count').textContent = d.data.length + ' módulo' + (d.data.length !== 1 ? 's' : '');
+      renderPromptsCards(d.data);
+      $('prompts-list').classList.remove('hidden');
+    })
+    .catch(function (e) {
+      $('prompts-loading').classList.add('hidden');
+      showToast(e.message, 'error');
+    });
+}
+
+function renderPromptsCards(prompts) {
+  var list = $('prompts-list');
+  list.innerHTML = '';
+
+  prompts.forEach(function (p) {
+    var updatedAt = p.updated_at
+      ? new Date(p.updated_at).toLocaleString('es-MX', { hour12: false })
+      : '—';
+
+    // Mostrar el módulo más representativo del prompt
+    var previewSrc  = p.system_role || p.prompt_text || '';
+    var preview     = previewSrc.slice(0, 220).replace(/\n/g, ' ');
+    var totalChars  = (p.system_role  || '').length
+                    + (p.prompt_text  || '').length
+                    + (p.immutable_rules || '').length;
+    var isModular   = !!(p.system_role);
+    var modeLabel   = isModular ? '🧩 Modular' : '📄 Legacy';
+    var modeClass   = isModular ? 'sc-mode-modular' : 'sc-mode-legacy';
+
+    var card = document.createElement('div');
+    card.className = 'prm-card sa-card';
+    card.innerHTML =
+      '<div class="prm-card-head">' +
+        '<div class="prm-card-meta">' +
+          '<code class="prm-slug-badge">' + escHtml(p.slug) + '</code>' +
+          '<span class="prm-name">' + escHtml(p.name) + '</span>' +
+          '<span class="' + modeClass + '">' + modeLabel + '</span>' +
+          '<span class="sc-version-chip">v' + (p.version || 1) + '</span>' +
+        '</div>' +
+        '<div class="prm-card-actions">' +
+          '<span class="prm-updated">Actualizado: ' + escHtml(updatedAt) + '</span>' +
+          '<button class="v2-btn v2-btn-sm v2-btn-primary sc-open-btn">' +
+            '⚡ Synaptic Core™' +
+          '</button>' +
+        '</div>' +
+      '</div>' +
+      '<div class="prm-preview">' + escHtml(preview) + (previewSrc.length > 220 ? '…' : '') + '</div>' +
+      '<div class="prm-char-count">' + totalChars.toLocaleString('es-MX') + ' caracteres totales</div>';
+
+    card.querySelector('.sc-open-btn').addEventListener('click', function () {
+      openSynapticCore(p);
+    });
+
+    list.appendChild(card);
+  });
+}
+
+// ── Synaptic Core™ Modal ─────────────────────────────────────────────────────
+
+function openSynapticCore(promptData) {
+  scState.editingSlug   = promptData.slug;
+  scState.editingPrompt = promptData;
+
+  // Header
+  $('sc-header-slug').textContent   = promptData.slug;
+  $('sc-header-name').textContent   = promptData.name || promptData.slug;
+  $('sc-version-badge').textContent = 'v' + (promptData.version || 1);
+
+  // Identidad
+  $('sc-name').value            = promptData.name || '';
+  $('sc-system-role').value     = promptData.system_role || '';
+  $('sc-preferred-model').value = promptData.preferred_model || '';
+
+  // Contexto
+  $('sc-business-context').value = promptData.business_context || '';
+  $('sc-tone-profile').value     = promptData.tone_profile
+    ? JSON.stringify(promptData.tone_profile, null, 2) : '';
+
+  // Reglas
+  $('sc-immutable-rules').value = promptData.immutable_rules || '';
+  $('sc-prompt-text').value     = promptData.prompt_text || '';
+
+  // Esquemas
+  $('sc-output-schema').value     = promptData.output_schema
+    ? JSON.stringify(promptData.output_schema, null, 2) : '';
+  $('sc-variables-schema').value  = promptData.variables_schema
+    ? JSON.stringify(promptData.variables_schema, null, 2) : '';
+
+  // Playground
+  renderPlaygroundVars(promptData.variables_schema);
+  $('sc-playground-response').textContent = 'Ejecuta un test para ver la respuesta aquí…';
+  $('sc-playground-response').className   = 'sc-response-pre sc-response-idle';
+  $('sc-playground-meta').style.display   = 'none';
+  $('sc-compiled-prompt').textContent     = '';
+  $('sc-compiled-prompt').className       = 'sc-response-pre sc-compiled-hidden';
+  $('sc-playground-provider').textContent = '';
+
+  // Reset error + activate first tab
+  $('sc-save-error').classList.add('hidden');
+  activateScTab('identity');
+
+  $('synaptic-core-modal').classList.remove('hidden');
+  $('sc-system-role').focus();
+}
+
+function closeSynapticCore() {
+  $('synaptic-core-modal').classList.add('hidden');
+  scState.editingSlug   = null;
+  scState.editingPrompt = null;
+}
+
+// ── Tab navigation ───────────────────────────────────────────────────────────
+
+function activateScTab(tabId) {
+  document.querySelectorAll('.sc-tab').forEach(function (t) {
+    t.classList.toggle('sc-tab-active', t.dataset.scTab === tabId);
+  });
+  document.querySelectorAll('.sc-panel').forEach(function (p) {
+    p.classList.toggle('hidden', p.id !== 'sc-panel-' + tabId);
+  });
+}
+
+document.querySelectorAll('.sc-tab').forEach(function (btn) {
+  btn.addEventListener('click', function () { activateScTab(btn.dataset.scTab); });
+});
+
+// ── Save ─────────────────────────────────────────────────────────────────────
+
+function saveSynapticCore() {
+  var slug    = scState.editingSlug;
+  var saveBtn = $('sc-save-btn');
+  var errEl   = $('sc-save-error');
+  errEl.classList.add('hidden');
+
+  // Validar y parsear campos JSON
+  var toneProfile = null, outputSchema = null, variablesSchema = null;
+
+  try {
+    var toneRaw = $('sc-tone-profile').value.trim();
+    if (toneRaw) toneProfile = JSON.parse(toneRaw);
+  } catch (_) {
+    errEl.textContent = 'Perfil de Tono: JSON inválido. Verifica la sintaxis.';
+    errEl.classList.remove('hidden');
+    activateScTab('context');
+    return;
+  }
+  try {
+    var outputRaw = $('sc-output-schema').value.trim();
+    if (outputRaw) outputSchema = JSON.parse(outputRaw);
+  } catch (_) {
+    errEl.textContent = 'Output Schema: JSON inválido. Verifica la sintaxis.';
+    errEl.classList.remove('hidden');
+    activateScTab('schemas');
+    return;
+  }
+  try {
+    var varsRaw = $('sc-variables-schema').value.trim();
+    if (varsRaw) variablesSchema = JSON.parse(varsRaw);
+  } catch (_) {
+    errEl.textContent = 'Variables Schema: JSON inválido. Verifica la sintaxis.';
+    errEl.classList.remove('hidden');
+    activateScTab('schemas');
+    return;
+  }
+
+  var systemRole  = $('sc-system-role').value.trim();
+  var promptText  = $('sc-prompt-text').value.trim();
+  if (!systemRole && !promptText) {
+    errEl.textContent = 'El Rol del Sistema o el Prompt Legacy deben tener contenido.';
+    errEl.classList.remove('hidden');
+    activateScTab('identity');
+    return;
+  }
+
+  var payload = {
+    name:             $('sc-name').value.trim(),
+    system_role:      systemRole,
+    business_context: $('sc-business-context').value.trim(),
+    immutable_rules:  $('sc-immutable-rules').value.trim(),
+    preferred_model:  $('sc-preferred-model').value.trim(),
+    prompt_text:      promptText,
+    tone_profile:     toneProfile,
+    output_schema:    outputSchema,
+    variables_schema: variablesSchema,
+  };
+
+  saveBtn.disabled    = true;
+  saveBtn.textContent = '⏳ Guardando…';
+
+  apiFetch('/api/v2/admin/ai-prompts/' + encodeURIComponent(slug), {
+    method: 'PUT',
+    body:   JSON.stringify(payload),
+  })
+    .then(function (d) {
+      if (!d.success) throw new Error(d.error || 'Error al guardar.');
+      $('sc-version-badge').textContent = 'v' + (d.new_version || '?');
+      showToast('⚡ Synaptic Core™ "' + slug + '" guardado como ' + $('sc-version-badge').textContent + '. Motor Cognitivo actualizado.');
+      loadAiPrompts();
+    })
+    .catch(function (e) {
+      errEl.textContent = e.message;
+      errEl.classList.remove('hidden');
+    })
+    .finally(function () {
+      saveBtn.disabled    = false;
+      saveBtn.textContent = '💾 Guardar versión';
+    });
+}
+
+// ── Playground ───────────────────────────────────────────────────────────────
+
+function renderPlaygroundVars(schema) {
+  var container = $('sc-playground-vars');
+  container.innerHTML = '';
+
+  var vars = Array.isArray(schema) ? schema : [];
+  if (!vars.length && schema && typeof schema === 'object') {
+    vars = Object.keys(schema).map(function (k) { return { key: k, label: k, type: 'string' }; });
+  }
+
+  vars.forEach(function (v) {
+    container.appendChild(buildVarRow(v.key, v.label || v.key, v.type || 'string', false));
+  });
+}
+
+function buildVarRow(key, label, type, isManual) {
+  var row = document.createElement('div');
+  row.className = 'sc-var-row';
+  if (isManual) row.className += ' sc-var-manual';
+
+  if (isManual) {
+    row.innerHTML =
+      '<input type="text" class="v2-input sc-manual-key" placeholder="{{nombre}}" style="flex:1;min-width:0;">' +
+      '<span style="padding:0 .25rem;color:var(--v2-text-subtle);">=</span>' +
+      '<input type="text" class="v2-input sc-manual-val" placeholder="valor" style="flex:2;min-width:0;">' +
+      '<button class="v2-btn v2-btn-sm v2-btn-ghost sc-rm-var" title="Quitar">✕</button>';
+    row.querySelector('.sc-rm-var').addEventListener('click', function () { row.remove(); });
+  } else {
+    row.innerHTML =
+      '<label class="sc-var-label">' + escHtml(label) +
+      ' <code class="sc-var-key-code">{{' + escHtml(key) + '}}</code></label>' +
+      '<input type="' + (type === 'number' ? 'number' : 'text') + '"' +
+             ' class="v2-input sc-var-input" data-var-key="' + escAttr(key) + '"' +
+             ' placeholder="valor de prueba">';
+  }
+  return row;
+}
+
+function addPlaygroundVar() {
+  $('sc-playground-vars').appendChild(buildVarRow('', '', 'string', true));
+  $('sc-playground-vars').lastElementChild.querySelector('.sc-manual-key').focus();
+}
+
+function runPlayground() {
+  var runBtn     = $('sc-playground-run');
+  var responseEl = $('sc-playground-response');
+  var metaEl     = $('sc-playground-meta');
+  var compEl     = $('sc-compiled-prompt');
+
+  runBtn.disabled      = true;
+  runBtn.textContent   = '⏳ Ejecutando…';
+  responseEl.textContent = 'Consultando al modelo…';
+  responseEl.className   = 'sc-response-pre sc-response-loading';
+  metaEl.style.display   = 'none';
+
+  // Recopilar variables
+  var variables = {};
+  $('sc-playground-vars').querySelectorAll('[data-var-key]').forEach(function (inp) {
+    variables[inp.dataset.varKey] = inp.value;
+  });
+  $('sc-playground-vars').querySelectorAll('.sc-var-manual').forEach(function (row) {
+    var key = (row.querySelector('.sc-manual-key').value || '').replace(/^\{\{|\}\}$/g, '').trim();
+    if (key) variables[key] = row.querySelector('.sc-manual-val').value;
+  });
+
+  // Parsear JSON fields del estado actual del formulario (no guardado)
+  var tp = null, os = null, vs = null;
+  try { var t = $('sc-tone-profile').value.trim();    if (t) tp = JSON.parse(t); } catch (_) {}
+  try { var o = $('sc-output-schema').value.trim();   if (o) os = JSON.parse(o); } catch (_) {}
+  try { var v = $('sc-variables-schema').value.trim(); if (v) vs = JSON.parse(v); } catch (_) {}
+
+  var payload = {
+    system_role:      $('sc-system-role').value.trim(),
+    business_context: $('sc-business-context').value.trim(),
+    immutable_rules:  $('sc-immutable-rules').value.trim(),
+    preferred_model:  $('sc-preferred-model').value.trim(),
+    prompt_text:      $('sc-prompt-text').value.trim(),
+    tone_profile:     tp,
+    output_schema:    os,
+    variables_schema: vs,
+    test_message:     $('sc-playground-msg').value.trim() || 'Prueba del sistema.',
+    variables:        variables,
+  };
+
+  apiFetch('/api/v2/admin/ai-prompts/' + encodeURIComponent(scState.editingSlug) + '/test', {
+    method: 'POST',
+    body:   JSON.stringify(payload),
+  })
+    .then(function (d) {
+      if (!d.success) throw new Error(d.error);
+
+      // Mostrar prompt compilado
+      compEl.textContent = d.compiled_prompt || '';
+
+      // Formatear respuesta JSON
+      var raw = d.raw_response || '';
+      try { raw = JSON.stringify(JSON.parse(raw), null, 2); } catch (_) {}
+      responseEl.textContent = raw;
+      responseEl.className   = 'sc-response-pre sc-response-ok';
+
+      // Meta
+      var lat = d.latency_ms ? d.latency_ms + ' ms' : '';
+      metaEl.textContent   = lat || 'Test completado.';
+      metaEl.style.display = '';
+
+      $('sc-playground-provider').textContent = lat ? '⚡ ' + lat : '';
+    })
+    .catch(function (e) {
+      responseEl.textContent = '❌ ' + e.message;
+      responseEl.className   = 'sc-response-pre sc-response-error';
+    })
+    .finally(function () {
+      runBtn.disabled    = false;
+      runBtn.textContent = '▶ Ejecutar Test en AURA';
+    });
+}
+
+// ── Listeners del Synaptic Core™ ─────────────────────────────────────────────
+
+$('prompts-refresh').addEventListener('click', loadAiPrompts);
+$('sc-close-btn').addEventListener('click', closeSynapticCore);
+$('synaptic-core-modal').addEventListener('click', function (e) {
+  if (e.target === $('synaptic-core-modal')) closeSynapticCore();
+});
+$('sc-save-btn').addEventListener('click', saveSynapticCore);
+$('sc-playground-add-var').addEventListener('click', addPlaygroundVar);
+$('sc-playground-run').addEventListener('click', runPlayground);
+$('sc-toggle-compiled').addEventListener('click', function () {
+  var el  = $('sc-compiled-prompt');
+  var btn = $('sc-toggle-compiled');
+  var isHidden = el.classList.contains('sc-compiled-hidden');
+  el.classList.toggle('sc-compiled-hidden', !isHidden);
+  btn.textContent = isHidden ? 'Ocultar' : 'Mostrar';
 });
 
 // ══════════════════════════════════════════════════════════════════════════════

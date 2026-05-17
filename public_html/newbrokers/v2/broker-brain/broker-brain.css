@@ -443,6 +443,25 @@
   border: 1px solid rgba(220, 38, 38, 0.20);
 }
 
+.bb-alert-warning {
+  background: rgba(180, 83, 9, 0.10);
+  color: #d97706;
+  border: 1px solid rgba(180, 83, 9, 0.25);
+  line-height: 1.55;
+}
+
+.bb-explainability {
+  font-size: 0.8125rem;
+  color: var(--v2-text-subtle);
+  font-style: italic;
+  padding: 0.625rem 0.875rem;
+  border-left: 3px solid var(--v2-accent);
+  background: rgba(99, 102, 241, 0.04);
+  border-radius: 0 var(--v2-radius-sm) var(--v2-radius-sm) 0;
+  margin-bottom: 1rem;
+  line-height: 1.6;
+}
+
 /* ── Loading pantalla completa ───────────────────────────────── */
 .bb-screen {
   min-height: 100dvh;

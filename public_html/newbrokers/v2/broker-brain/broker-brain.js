@@ -210,6 +210,17 @@ function showFormError(msg) {
 // ── Render de resultados ──────────────────────────────────────────────
 
 function renderResults(data) {
+  // Aviso de nivel de búsqueda
+  renderFallbackNotice(data.meta);
+
+  // Explainability — fuente de los datos de valuación
+  const explainEl = qid('result-explainability');
+  if (explainEl) {
+    const exp = data.explainability || '';
+    explainEl.textContent   = exp;
+    explainEl.style.display = exp ? '' : 'none';
+  }
+
   // KPIs
   qid('kpi-value').textContent = fmtCurrency(data.estimated_market_value);
   qid('kpi-range').textContent = `Rango: ${fmtCurrency(data.price_range.min)} – ${fmtCurrency(data.price_range.max)}`;
@@ -296,6 +307,27 @@ function renderComparables(comps) {
     `;
     tbody.appendChild(tr);
   });
+}
+
+// ── Aviso de nivel de búsqueda (Fallback Radius) ─────────────────────
+
+function renderFallbackNotice(meta) {
+  const notice = qid('fallback-notice');
+  const level  = meta?.fallback_level ?? 0;
+
+  if (level === 0) {
+    notice.style.display = 'none';
+    return;
+  }
+
+  const messages = {
+    1: '📍 Zona ampliada (Layer 2): sin suficientes comparables en el CP exacto. Se usó la región postal ampliada (prefijo 3 dígitos). Precisión zonal reducida.',
+    2: '⚠ Datos regionales (Layer 2): sin comparables BBC General en la zona. Se usaron propiedades de la región sin filtro de bolsa. Considera esta tasación como referencia aproximada.',
+    3: '🧠 Valuación por Inteligencia Urbana (Layer 3): sin comparables locales en la base de datos. AURA calculó el valor usando inferencia de mercado y conocimiento de la zona. El Confidence Score refleja la certeza del modelo IA.',
+  };
+
+  notice.textContent = messages[level] || `Búsqueda ampliada nivel ${level}.`;
+  notice.style.display = '';
 }
 
 // ── AURA — Render del análisis IA estructurado ───────────────────────

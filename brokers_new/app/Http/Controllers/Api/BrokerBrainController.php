@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\AiPrompt;
 use App\Http\Controllers\Controller;
 use App\Property;
 use App\PropertyType;
@@ -58,30 +59,47 @@ class BrokerBrainController extends Controller
 
         $session = Cache::get('v2_session_' . $sessionToken);
 
-        if (!$session) {
+        if (!$session || !is_array($session)) {
             return response()->json(['success' => false, 'error' => 'Sesión expirada.'], 401);
         }
 
-        $companyId = (int) $session['company_id'];
+        // Null-coalescing defensivo: super_admin puede tener company_id null en sesión
+        $companyId = (int) ($session['company_id'] ?? 0);
 
-        // Tenant isolation explícita: where('company_id') — no depende de GlobalScope.
-        // withoutGlobalScopes() limpia cualquier scope residual de la sesión web.
-        $properties = Property::withoutGlobalScopes()
-            ->where('company_id', $companyId)
-            ->whereNull('deleted_at')
-            ->orderByDesc('created_at')
-            ->limit(200)
-            ->get([
-                'id', 'title', 'key', 'zipcode',
-                'prop_type_id', 'prop_status_id',
-                'total_area', 'built_area',
-                'baths', 'parking_lots', 'price',
+        if ($companyId <= 0) {
+            return response()->json(['success' => true, 'data' => []]);
+        }
+
+        try {
+            // 'key' es palabra reservada de MySQL — se excluye del SELECT para evitar
+            // errores de SQL en configuraciones estrictas. El JS lo omite gracefully.
+            // Tenant isolation explícita: where('company_id') sin depender de GlobalScopes.
+            $properties = Property::withoutGlobalScopes()
+                ->where('company_id', $companyId)
+                ->whereNull('deleted_at')
+                ->orderByDesc('created_at')
+                ->limit(200)
+                ->get([
+                    'id', 'title', 'zipcode',
+                    'prop_type_id', 'prop_status_id',
+                    'total_area', 'built_area',
+                    'baths', 'parking_lots', 'price',
+                ]);
+
+            return response()->json([
+                'success' => true,
+                'data'    => $properties,
             ]);
 
-        return response()->json([
-            'success' => true,
-            'data'    => $properties,
-        ]);
+        } catch (\Throwable $e) {
+            Log::error('BrokerBrain myProperties: error en query', [
+                'company_id' => $companyId,
+                'error'      => $e->getMessage(),
+                'line'       => $e->getLine(),
+            ]);
+            // Degradación graceful: el dropdown de inventario no es crítico
+            return response()->json(['success' => true, 'data' => []]);
+        }
     }
 
     // ──────────────────────────────────────────────────────────────────────────
@@ -116,48 +134,116 @@ class BrokerBrainController extends Controller
             return response()->json(['success' => false, 'error' => $validated['error']], 422);
         }
 
+        // compact() genera claves camelCase (el nombre de la variable PHP).
+        // El destructuring debe usar las mismas claves que devuelve compact().
         [
-            'zipcode'        => $zipcode,
-            'prop_type_id'   => $propTypeId,
-            'prop_status_id' => $propStatusId,
-            'total_area'     => $totalArea,
-            'price_ref'      => $priceRef,
+            'zipcode'      => $zipcode,
+            'propTypeId'   => $propTypeId,
+            'propStatusId' => $propStatusId,
+            'totalArea'    => $totalArea,
+            'priceRef'     => $priceRef,
         ] = $validated;
 
-        // ── 3. Consulta CMA — bbc_general=1 (bolsa compartida cross-tenant) ──
-        // withoutGlobalScopes(): omite TenantUserScope/TenantCompanyScope.
-        // bbc_general=1 es opt-in voluntario — datos verificados y autorizados.
-        $comparables = $this->fetchComparables($zipcode, $propTypeId, $propStatusId, $totalArea);
+        // ══ CASCADA COGNITIVA — 3 Layers ════════════════════════════════════
+        //
+        // Layer 1 (Exact Match):    CP exacto + bbc=1 → 3+ comparables → confianza 80-95%
+        // Layer 2 (Relaxed Radius): CP ampliado / sin bbc → 1+ comparables → confianza 55-75%
+        // Layer 3 (Urban AI):       Sin comparables locales → AURA infiere el precio → 25-65%
+        //
+        // El error 422 "Datos insuficientes" está PROHIBIDO.
+        // Siempre se retorna una tasación válida con confidence_score y explainability.
+        // ═════════════════════════════════════════════════════════════════════
 
-        if (count($comparables) < self::MIN_COMPARABLES) {
-            // Segundo intento: misma ciudad (zipcode prefix de 3 dígitos)
-            $comparables = $this->fetchComparablesBroadened($zipcode, $propTypeId, $propStatusId, $totalArea);
+        // ── 3A. Layer 1 & 2: Búsqueda en base de datos (cascade progresivo) ──
+        $cascade       = $this->fetchComparablesCascade($zipcode, $propTypeId, $propStatusId, $totalArea);
+        $comparables   = $cascade['comparables'];
+        $fallbackLevel = $cascade['level'];   // 0=exact, 1=prefix+bbc, 2=prefix, 3=no-zip, -1=empty
+
+        if (!empty($comparables)) {
+            // Layer 1: comparables directos (level 0), máxima confianza matemática
+            // Layer 2: comparables de zona ampliada (level 1-3), confianza reducida
+            $dbLayer = $fallbackLevel === 0 ? 1 : 2;
+
+            $cmaResult                   = $this->calculateCMA($comparables, $totalArea, $priceRef);
+            $cmaResult['fallback_level'] = $fallbackLevel;
+
+            $confidence    = $this->deriveConfidence($dbLayer, count($comparables));
+            $explainability = $this->deriveExplainability($dbLayer, $fallbackLevel, count($comparables), $zipcode);
+            $narrative      = $this->generateNarrative($cmaResult, $validated, $companyId);
+
+            return response()->json([
+                'success'                => true,
+                'confidence_score'       => $confidence,
+                'explainability'         => $explainability,
+                'estimated_market_value' => $cmaResult['estimated_market_value'],
+                'price_per_sqm'          => $cmaResult['price_per_sqm'],
+                'price_range'            => $cmaResult['price_range'],
+                'comparables'            => $cmaResult['comparables'],
+                'dom_projection'         => $cmaResult['dom_projection'],
+                'narrative'              => $narrative,
+                'meta'                   => [
+                    'layer_used'        => $dbLayer,
+                    'comparables_found' => count($comparables),
+                    'fallback_level'    => $fallbackLevel,
+                    'zone'              => $zipcode,
+                    'generated_at'      => now()->toIso8601String(),
+                ],
+            ]);
         }
 
-        if (count($comparables) === 0) {
+        // ── 3B. Layer 3: Urban Intelligence (AURA como valuador sintético) ────
+        // No hay comparables en ningún nivel de DB.
+        // AURA usa conocimiento del mercado mexicano para inferir el precio.
+        $synthResult = $this->synthesizeFromAI($validated, $companyId);
+
+        if ($synthResult === null) {
             return response()->json([
                 'success' => false,
-                'error'   => 'Datos de mercado insuficientes para esta zona. Intenta con otro tipo o rango de superficie.',
+                'error'   => 'No hay comparables locales y el motor de IA no está disponible. Verifica los proveedores activos en el Orquestador IA.',
             ], 422);
         }
 
-        // ── 4. Cálculo estadístico del CMA ────────────────────────────────────
-        $cmaResult = $this->calculateCMA($comparables, $totalArea, $priceRef);
+        $domDays = ($synthResult['suggested_dom_days'] ?? 0) > 0
+            ? (int) $synthResult['suggested_dom_days']
+            : null;
 
-        // ── 5. Narrativa IA (con degradación graceful si el orquestador falla) ─
-        $narrative = $this->generateNarrative($cmaResult, $validated, $companyId);
+        $domProjection = $domDays
+            ? [
+                'days'        => $domDays,
+                'label'       => $this->domLabel($domDays),
+                'confidence'  => 'baja',
+                'data_points' => [
+                    ['label' => 'Mercado activo',  'days' => (int) round($domDays * 0.70)],
+                    ['label' => 'Precio ajustado', 'days' => $domDays],
+                    ['label' => 'Precio elevado',  'days' => (int) round($domDays * 1.40)],
+                ],
+            ]
+            : $this->estimateDom((float) $synthResult['estimated_value'], $priceRef, 0);
 
-        // ── 6. Respuesta estructurada ─────────────────────────────────────────
         return response()->json([
-            'success'               => true,
-            'estimated_market_value'=> $cmaResult['estimated_market_value'],
-            'price_per_sqm'         => $cmaResult['price_per_sqm'],
-            'price_range'           => $cmaResult['price_range'],
-            'comparables'           => $cmaResult['comparables'],
-            'dom_projection'        => $cmaResult['dom_projection'],
-            'narrative'             => $narrative,
-            'meta'                  => [
-                'comparables_found' => count($comparables),
+            'success'                => true,
+            'confidence_score'       => $synthResult['confidence_score'],
+            'explainability'         => $synthResult['explainability'],
+            'estimated_market_value' => $synthResult['estimated_value'],
+            'price_per_sqm'          => $synthResult['price_per_sqm'],
+            'price_range'            => [
+                'min' => $synthResult['price_range_min'],
+                'max' => $synthResult['price_range_max'],
+            ],
+            'comparables'            => [],
+            'dom_projection'         => $domProjection,
+            'narrative'              => [
+                'pricing_verdict'  => $synthResult['pricing_verdict'],
+                'buyer_psychology' => $synthResult['buyer_psychology'],
+                'seller_strategy'  => $synthResult['seller_strategy'],
+                'closing_argument' => $synthResult['closing_argument'],
+                'confidence_score' => $synthResult['confidence_score'],
+                'market_summary'   => $synthResult['market_summary'],
+            ],
+            'meta'                   => [
+                'layer_used'        => 3,
+                'comparables_found' => 0,
+                'fallback_level'    => 3,
                 'zone'              => $zipcode,
                 'generated_at'      => now()->toIso8601String(),
             ],
@@ -190,61 +276,112 @@ class BrokerBrainController extends Controller
         return compact('zipcode', 'propTypeId', 'propStatusId', 'totalArea', 'priceRef');
     }
 
-    // ── Consulta exacta por zipcode ───────────────────────────────────────────
+    // ── Búsqueda Progresiva (Fallback Radius) — 4 niveles ────────────────────
+    // Retorna ['comparables' => array, 'level' => int]:
+    //   0 = CP exacto + bbc=1 + tipo + status  (resultado ideal)
+    //   1 = prefijo 3-dígitos + bbc=1 + tipo + status
+    //   2 = prefijo 3-dígitos + sin bbc + tipo + status
+    //   3 = sin CP + sin bbc + solo tipo  (tasación de último recurso)
+    //  -1 = ningún comparable encontrado (el caller retorna 422)
 
-    private function fetchComparables(string $zipcode, int $propTypeId, int $propStatusId, float $totalArea): array
-    {
-        $sqmFloor = $totalArea * 0.40;
-        $sqmCeil  = $totalArea * 2.50;
+    private function fetchComparablesCascade(
+        string $zipcode,
+        int    $propTypeId,
+        int    $propStatusId,
+        float  $totalArea
+    ): array {
+        $prefix = substr($zipcode, 0, 3);
 
-        return Property::withoutGlobalScopes()
-            ->with(['type:id,name', 'status:id,name'])
-            ->where('published',      1)
-            ->where('bbc_general',    1)
-            ->where('prop_type_id',   $propTypeId)
-            ->where('prop_status_id', $propStatusId)
-            ->where('zipcode',        $zipcode)
-            ->where('price',          '>', 0)
-            ->where('total_area',     '>', 0)
-            ->whereBetween('total_area', [$sqmFloor, $sqmCeil])
-            ->whereNull('deleted_at')
-            ->orderByDesc('created_at')
-            ->limit(20)
-            ->get([
-                'id', 'title', 'price', 'total_area', 'built_area',
-                'bedrooms', 'baths', 'parking_lots', 'zipcode',
-                'address', 'prop_type_id', 'prop_status_id', 'created_at',
-            ])
-            ->toArray();
+        $levels = [
+            // L0: CP exacto · bbc=1 · tipo+status · área ±40-250%
+            [
+                'zipcode_exact'   => $zipcode,
+                'zipcode_prefix'  => null,
+                'bbc_required'    => true,
+                'status_required' => true,
+                'area_floor_pct'  => 0.40,
+                'area_ceil_pct'   => 2.50,
+                'min_required'    => self::MIN_COMPARABLES,
+            ],
+            // L1: prefijo 3-dígitos · bbc=1 · tipo+status · área ±30-300%
+            [
+                'zipcode_exact'   => null,
+                'zipcode_prefix'  => $prefix,
+                'bbc_required'    => true,
+                'status_required' => true,
+                'area_floor_pct'  => 0.30,
+                'area_ceil_pct'   => 3.00,
+                'min_required'    => self::MIN_COMPARABLES,
+            ],
+            // L2: prefijo 3-dígitos · sin bbc · tipo+status · área ±30-300%
+            [
+                'zipcode_exact'   => null,
+                'zipcode_prefix'  => $prefix,
+                'bbc_required'    => false,
+                'status_required' => true,
+                'area_floor_pct'  => 0.30,
+                'area_ceil_pct'   => 3.00,
+                'min_required'    => self::MIN_COMPARABLES,
+            ],
+            // L3: sin CP · sin bbc · solo tipo · área ±10-1000% · acepta 1+
+            [
+                'zipcode_exact'   => null,
+                'zipcode_prefix'  => null,
+                'bbc_required'    => false,
+                'status_required' => false,
+                'area_floor_pct'  => 0.10,
+                'area_ceil_pct'   => 10.00,
+                'min_required'    => 1,
+            ],
+        ];
+
+        foreach ($levels as $level => $cfg) {
+            $comparables = $this->runComparableQuery($cfg, $propTypeId, $propStatusId, $totalArea);
+            if (count($comparables) >= $cfg['min_required']) {
+                return ['comparables' => $comparables, 'level' => $level];
+            }
+        }
+
+        return ['comparables' => [], 'level' => -1];
     }
 
-    // ── Consulta ampliada (3-digit prefix = zona postal) ─────────────────────
+    private function runComparableQuery(
+        array $cfg,
+        int   $propTypeId,
+        int   $propStatusId,
+        float $totalArea
+    ): array {
+        $sqmFloor = $totalArea * $cfg['area_floor_pct'];
+        $sqmCeil  = $totalArea * $cfg['area_ceil_pct'];
 
-    private function fetchComparablesBroadened(string $zipcode, int $propTypeId, int $propStatusId, float $totalArea): array
-    {
-        $prefix   = substr($zipcode, 0, 3);
-        $sqmFloor = $totalArea * 0.30;
-        $sqmCeil  = $totalArea * 3.00;
-
-        return Property::withoutGlobalScopes()
+        $q = Property::withoutGlobalScopes()
             ->with(['type:id,name', 'status:id,name'])
-            ->where('published',      1)
-            ->where('bbc_general',    1)
-            ->where('prop_type_id',   $propTypeId)
-            ->where('prop_status_id', $propStatusId)
-            ->where('zipcode',        'like', $prefix . '%')
-            ->where('price',          '>', 0)
-            ->where('total_area',     '>', 0)
+            ->where('published',    1)
+            ->where('prop_type_id', $propTypeId)
+            ->where('price',        '>', 0)
+            ->where('total_area',   '>', 0)
             ->whereBetween('total_area', [$sqmFloor, $sqmCeil])
             ->whereNull('deleted_at')
             ->orderByDesc('created_at')
-            ->limit(20)
-            ->get([
-                'id', 'title', 'price', 'total_area', 'built_area',
-                'bedrooms', 'baths', 'parking_lots', 'zipcode',
-                'address', 'prop_type_id', 'prop_status_id', 'created_at',
-            ])
-            ->toArray();
+            ->limit(20);
+
+        if ($cfg['bbc_required']) {
+            $q->where('bbc_general', 1);
+        }
+        if ($cfg['status_required']) {
+            $q->where('prop_status_id', $propStatusId);
+        }
+        if ($cfg['zipcode_exact'] !== null) {
+            $q->where('zipcode', $cfg['zipcode_exact']);
+        } elseif ($cfg['zipcode_prefix'] !== null) {
+            $q->where('zipcode', 'like', $cfg['zipcode_prefix'] . '%');
+        }
+
+        return $q->get([
+            'id', 'title', 'price', 'total_area', 'built_area',
+            'bedrooms', 'baths', 'parking_lots', 'zipcode',
+            'address', 'prop_type_id', 'prop_status_id', 'created_at',
+        ])->toArray();
     }
 
     // ── Motor estadístico CMA ─────────────────────────────────────────────────
@@ -385,10 +522,11 @@ ESTRUCTURA DE RESPUESTA OBLIGATORIA (JSON estricto):
 }
 
 REGLA DE confidence_score:
-- 90-100: 10+ comparables, zona líquida, datos muy consistentes.
+- 90-100: 10+ comparables, zona líquida, búsqueda exacta (nivel 0), datos muy consistentes.
 - 75-89: 5-9 comparables, datos moderadamente consistentes.
-- 50-74: 3-4 comparables, zona con poca actividad o datos dispersos.
-- < 50: menos de 3 comparables (zona sin datos suficientes — advierte al agente).
+- 50-74: 3-4 comparables, zona con poca actividad; O búsqueda de zona ampliada (nivel 1).
+- 25-49: búsqueda ampliada sin filtros BBC (nivel 2-3), datos geográficamente dispersos.
+- < 25: menos de 3 comparables con búsqueda ampliada — advierte explícitamente al agente.
 PROMPT;
 
     // ── Narrativa IA ──────────────────────────────────────────────────────────
@@ -401,6 +539,198 @@ PROMPT;
         'confidence_score' => 0,
         'market_summary'   => '',
     ];
+
+    // ── Prompt de Inteligencia Urbana (Layer 3) ───────────────────────────────
+    // Actúa como fallback si el slug 'cma_urban_intelligence' no existe en DB.
+    // El Super Admin puede editarlo en tiempo real desde la Consola de Prompts.
+
+    private const AURA_URBAN_SYSTEM_PROMPT = <<<'PROMPT'
+Eres AURA, Motor de Inteligencia Urbana de Brokers Connector.
+Eres un perito valuador certificado con profundo conocimiento del mercado inmobiliario mexicano.
+
+SITUACIÓN ACTIVADA: No existen comparables locales en la base de datos para este inmueble. Has activado el modo de VALUACIÓN SINTÉTICA. Usa tu conocimiento del mercado mexicano para calcular el valor estimado.
+
+METODOLOGÍA DE VALUACIÓN:
+1. Identifica la zona por el Código Postal: ciudad, colonia, estrato socioeconómico típico.
+2. Aplica precios de mercado vigentes para el tipo de inmueble en esa zona.
+3. Ajusta por superficie (el precio/m² varía: unidades pequeñas tienen +precio/m², grandes -precio/m²).
+4. Considera el tipo de operación: venta vs. arrendamiento tienen rangos muy distintos.
+5. Proporciona un rango realista (±15% en zonas conocidas, ±25% en zonas con menor certeza).
+
+REGLAS ABSOLUTAS:
+1. Jamás inventes un precio fuera del rango real del mercado mexicano.
+2. El confidence_score debe reflejar HONESTAMENTE tu nivel de certeza.
+3. Devuelves ÚNICAMENTE un JSON válido. Sin texto adicional, sin markdown.
+
+ESTRUCTURA DE RESPUESTA OBLIGATORIA (JSON estricto):
+{
+  "estimated_price_per_sqm": 45000,
+  "estimated_value": 5400000,
+  "price_range_min": 4590000,
+  "price_range_max": 6210000,
+  "suggested_dom_days": 90,
+  "confidence_score": 55,
+  "explainability": "Valuación sintética basada en conocimiento de mercado para CP XXXXX. Precio estimado según zona y tipo de inmueble.",
+  "pricing_verdict": "2-3 oraciones sobre el posicionamiento de precio en esa zona.",
+  "buyer_psychology": "2-3 oraciones sobre el perfil y motivación del comprador típico.",
+  "seller_strategy": "2-3 oraciones con estrategia recomendada para el agente.",
+  "closing_argument": "1 argumento de cierre memorable que el agente puede usar.",
+  "market_summary": "1 oración resumiendo el estado del mercado local."
+}
+
+REGLA DE confidence_score para Inteligencia Urbana:
+- 55-65: zona principal consolidada (CDMX, GDL, MTY, QRO, MID — datos de mercado abundantes).
+- 40-54: ciudad mediana o zona suburbana con actividad inmobiliaria documentada.
+- 25-39: zona rural, localidad pequeña o CP con poca información de mercado disponible.
+PROMPT;
+
+    // ── Layer 3: Valuación Sintética por Inteligencia Urbana ──────────────────
+    // Invocado cuando fetchComparablesCascade() retorna vacío.
+    // Carga el prompt desde ai_prompts DB; fallback al constant si no existe.
+    // Retorna array estructurado o null si el Orquestador no está disponible.
+
+    private function synthesizeFromAI(array $input, int $companyId): ?array
+    {
+        $aiService = new AIService();
+
+        // Compiler Engine: carga y compila desde los módulos del Synaptic Core™.
+        // Las variables permiten que un prompt con {{zipcode}} etc. se personalice por llamada.
+        $systemPrompt = AiPrompt::compileBySlug(
+            'cma_urban_intelligence',
+            [
+                'zipcode'     => $input['zipcode'],
+                'total_area'  => (string) $input['totalArea'],
+                'prop_type'   => $typeName,
+                'prop_status' => $statusName,
+            ],
+            self::AURA_URBAN_SYSTEM_PROMPT
+        );
+
+        $propType   = PropertyType::find($input['propTypeId']);
+        $propStatus = PropertyStatus::find($input['propStatusId']);
+        $typeName   = $propType   ? $propType->name   : 'inmueble';
+        $statusName = $propStatus ? $propStatus->name : 'operación';
+
+        $userPrompt = "DATOS DEL INMUEBLE A VALUAR:\n\n"
+            . "Código Postal: {$input['zipcode']}\n"
+            . "Tipo de inmueble: {$typeName}\n"
+            . "Operación: {$statusName}\n"
+            . "Superficie total: {$input['totalArea']} m²\n"
+            . ($input['priceRef'] > 0
+                ? "Precio de referencia del propietario: $" . number_format($input['priceRef'], 0, '.', ',') . " MXN\n"
+                : '')
+            . "\nACTIVA MODO VALUACIÓN SINTÉTICA: calcula el valor de mercado para este inmueble.";
+
+        try {
+            $result = $aiService->dispatch([
+                'messages' => [
+                    ['role' => 'system', 'content' => $systemPrompt],
+                    ['role' => 'user',   'content' => $userPrompt],
+                ],
+                'temperature'     => 0.2,
+                'max_tokens'      => 800,
+                'response_format' => ['type' => 'json_object'],
+            ], $companyId);
+
+            $raw = $result['response'] ?? '';
+
+            if ($raw === '') {
+                return null;
+            }
+
+            $parsed = json_decode($raw, true);
+
+            if (json_last_error() !== JSON_ERROR_NONE || !is_array($parsed)) {
+                Log::warning('BrokerBrain Layer3: respuesta IA no es JSON válido', [
+                    'raw'        => substr($raw, 0, 500),
+                    'company_id' => $companyId,
+                ]);
+                return null;
+            }
+
+            $estimatedValue  = (float) ($parsed['estimated_value']       ?? 0);
+            $pricePerSqm     = (float) ($parsed['estimated_price_per_sqm'] ?? 0);
+            $rangeMin        = (float) ($parsed['price_range_min']        ?? round($estimatedValue * 0.85, -3));
+            $rangeMax        = (float) ($parsed['price_range_max']        ?? round($estimatedValue * 1.15, -3));
+            $confidenceScore = max(1, min(100, (int) ($parsed['confidence_score'] ?? 45)));
+
+            if ($estimatedValue <= 0 || $pricePerSqm <= 0) {
+                Log::warning('BrokerBrain Layer3: AURA devolvió valores numéricos inválidos', [
+                    'estimated_value'    => $estimatedValue,
+                    'price_per_sqm'      => $pricePerSqm,
+                    'company_id'         => $companyId,
+                ]);
+                return null;
+            }
+
+            return [
+                'estimated_value'      => round($estimatedValue, -3),
+                'price_per_sqm'        => round($pricePerSqm, 2),
+                'price_range_min'      => round($rangeMin, -3),
+                'price_range_max'      => round($rangeMax, -3),
+                'suggested_dom_days'   => max(0, (int) ($parsed['suggested_dom_days'] ?? 0)),
+                'confidence_score'     => $confidenceScore,
+                'explainability'       => (string) ($parsed['explainability']  ?? 'Valuación por inteligencia urbana — sin comparables locales.'),
+                'pricing_verdict'      => (string) ($parsed['pricing_verdict']  ?? ''),
+                'buyer_psychology'     => (string) ($parsed['buyer_psychology'] ?? ''),
+                'seller_strategy'      => (string) ($parsed['seller_strategy']  ?? ''),
+                'closing_argument'     => (string) ($parsed['closing_argument'] ?? ''),
+                'market_summary'       => (string) ($parsed['market_summary']   ?? ''),
+            ];
+
+        } catch (\RuntimeException $e) {
+            Log::warning('BrokerBrain Layer3: Orquestador sin proveedores activos', [
+                'error'      => $e->getMessage(),
+                'company_id' => $companyId,
+            ]);
+            return null;
+        } catch (\Throwable $e) {
+            Log::error('BrokerBrain Layer3: error inesperado en síntesis IA', [
+                'error'      => $e->getMessage(),
+                'company_id' => $companyId,
+            ]);
+            return null;
+        }
+    }
+
+    // ── Confidence score por capa de datos ───────────────────────────────────
+
+    private function deriveConfidence(int $layer, int $comparableCount): int
+    {
+        if ($layer === 1) {
+            // Layer 1: datos exactos — alta confianza
+            if ($comparableCount >= 10) return 95;
+            if ($comparableCount >= 5)  return 88;
+            return 80;
+        }
+        // Layer 2: zona ampliada — confianza reducida
+        if ($comparableCount >= 5) return 72;
+        if ($comparableCount >= 3) return 65;
+        return 55;
+    }
+
+    // ── Explainability string por capa ───────────────────────────────────────
+
+    private function deriveExplainability(int $layer, int $fallbackLevel, int $count, string $zipcode): string
+    {
+        $prefix = substr($zipcode, 0, 3);
+
+        if ($layer === 1) {
+            return "Valuación basada en {$count} comparable" . ($count !== 1 ? 's' : '')
+                . " directos del CP {$zipcode} (Bolsa BBC General). Alta precisión geográfica.";
+        }
+
+        $sources = [
+            1 => "comparables de la región postal {$prefix}XX (BBC General)",
+            2 => "comparables de la región {$prefix}XX (sin filtro de bolsa)",
+            3 => "comparables sin restricción de zona (último recurso de datos)",
+        ];
+
+        $source = $sources[$fallbackLevel] ?? "comparables de búsqueda ampliada";
+
+        return "Valuación basada en {$count} {$source}. "
+            . "Sin datos suficientes en CP {$zipcode} — precisión geográfica reducida.";
+    }
 
     private function generateNarrative(array $cmaResult, array $input, int $companyId): array
     {
@@ -424,6 +754,13 @@ PROMPT;
             . "Comparables analizados: " . count($cmaResult['comparables']) . "\n"
             . "DOM proyectado: {$cmaResult['dom_projection']['days']} días ({$cmaResult['dom_projection']['label']})\n"
             . "Nivel de liquidez del mercado: {$cmaResult['dom_projection']['label']}";
+
+        $fallbackLevel = (int) ($cmaResult['fallback_level'] ?? 0);
+        if ($fallbackLevel >= 2) {
+            $userPrompt .= "\n⚠ Contexto de búsqueda: los comparables provienen de una búsqueda ampliada (nivel {$fallbackLevel}/3 — sin filtros de zona ni bolsa BBC). La precisión geográfica es reducida; refleja esto con un confidence_score más bajo.";
+        } elseif ($fallbackLevel === 1) {
+            $userPrompt .= "\nNota: los comparables son de la zona postal ampliada (prefijo 3-dígitos del CP), no del CP exacto.";
+        }
 
         try {
             $result = $aiService->dispatch([

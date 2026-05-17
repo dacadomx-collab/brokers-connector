@@ -122,6 +122,7 @@ Route::prefix('v2')->group(function () {
         Route::put('/ai-settings/{id}',               'Api\SuperAdminController@updateAiSetting');
         Route::delete('/ai-settings/{id}',            'Api\SuperAdminController@destroyAiSetting');
         Route::patch('/ai-settings/{id}/toggle',      'Api\SuperAdminController@toggleAiSetting');
+        Route::post('/ai-settings/{id}/test',         'Api\SuperAdminController@testAiSetting');
 
         // Motor de Pagos — CRUD de pasarelas (payment_gateway_settings)
         Route::get('/payment-gateways',                       'Api\PaymentGatewayController@index');
@@ -141,6 +142,14 @@ Route::prefix('v2')->group(function () {
 
         // Audit Trail
         Route::get('/audit-logs',                                   'Api\SuperAdminController@listAuditLogs');
+
+        // Monitor de Consumo IA — Registro Maestro de Tokens por Tenant
+        Route::get('/token-stats',                                  'Api\SuperAdminController@tokenStats');
+
+        // Synaptic Core™ — Prompts Maestros del Motor Cognitivo AVM
+        Route::get('/ai-prompts',                    'Api\SuperAdminController@listAiPrompts');
+        Route::put('/ai-prompts/{slug}',             'Api\SuperAdminController@updateAiPrompt');
+        Route::post('/ai-prompts/{slug}/test',       'Api\SuperAdminController@testAiPrompt');
     });
 });
 

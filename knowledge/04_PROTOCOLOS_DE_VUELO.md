@@ -38,6 +38,62 @@ Después de que el usuario confirme que un componente (Frontend o Backend) funci
 
 ---
 
+## 🗄️ PROTOCOLO DE BASE DE DATOS — ENTORNO HÍBRIDO (REGLA INMUTABLE)
+
+> Registrado el 2026-05-16 tras incidente de entorno. Aplica a TODAS las sesiones futuras.
+
+### ❌ PROHIBIDO
+```
+php artisan migrate
+php artisan db:seed
+php artisan migrate:fresh
+```
+El CLI de PHP local NO está configurado para conectarse a la base de datos del servidor remoto (testing/producción). Ejecutar estos comandos localmente produce errores de conexión o, peor, modifica una BD local vacía sin efecto en el servidor real.
+
+### ✅ PROCESO OBLIGATORIO para toda modificación de BD
+
+| Paso | Quién | Qué |
+|---|---|---|
+| 1 | IA (Claude) | Crea el archivo de migración Laravel (para historial en git) |
+| 2 | IA (Claude) | Genera el **script SQL puro** (CREATE/ALTER/INSERT) en el Informe de Operación |
+| 3 | Humano | Copia el SQL y lo ejecuta en **phpMyAdmin del servidor remoto** |
+| 4 | Humano | Confirma ejecución exitosa antes de probar el código |
+
+### 📦 LO QUE ENTREGA LA IA en cada migración
+
+```
+✅ Archivo .php en database/migrations/ → para historial git y futura ejecución artisan
+✅ SQL puro en el Informe de Operación  → para ejecución inmediata en phpMyAdmin
+✅ SQL de rollback (DROP/ALTER reverso) → en comentario, por si hay que revertir
+❌ NUNCA instrucciones "ejecuta php artisan migrate" como paso de deploy
+❌ NUNCA asumir que el servidor local tiene acceso a la BD remota
+```
+
+### 🔑 Credenciales de la BD Remota (Servidor Testing/Producción)
+
+| Variable | Valor |
+|---|---|
+| `DB_CONNECTION` | `mysql` |
+| `DB_HOST` | `newbrokers.tourfindy.com` |
+| `DB_PORT` | `3306` |
+| `DB_DATABASE` | `tourfindycom_newbrokers_db` |
+| `DB_USERNAME` | `tourfindycom_newbrokers` |
+| `DB_PASSWORD` | ver `knowledge/info.txt` |
+
+> Para que el XAMPP local se conecte al MySQL remoto, el IP del equipo local debe
+> estar en la lista de Remote MySQL en el cPanel de tourfindy.com.
+> Si la conexión falla con `Access denied`, verificar ese paso primero.
+
+### 🔖 Migraciones Históricas — Estado de Ejecución en Servidor Remoto
+
+| Archivo | Estado | SQL incluido en |
+|---|---|---|
+| `2026_05_16_000001_add_ping_columns_to_ai_settings_table.php` | ✅ SQL entregado | Informe sesión 2026-05-16 |
+| `2026_05_16_000002_create_ai_prompts_table.php` | ✅ SQL entregado | Informe sesión 2026-05-16 |
+| Script Maestro Synaptic Core™ (ai_prompts modular + ai_prompt_versions + audit_logs) | ✅ SQL entregado | Informe sesión 2026-05-16 |
+
+---
+
 ## 🛠️ PRE-FLIGHT CHECKS TÉCNICOS (BROKERS CONNECTOR — HALLAZGOS DE AUDITORÍA)
 
 > Verificaciones específicas del entorno antes de desarrollar o desplegar. Fecha: 2026-04-10.

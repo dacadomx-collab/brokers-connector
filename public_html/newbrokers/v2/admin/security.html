@@ -86,6 +86,14 @@
                 aria-selected="false" aria-controls="panel-audit">
           Audit Trail
         </button>
+        <button id="tab-tokens" class="sa-tab" role="tab"
+                aria-selected="false" aria-controls="panel-tokens">
+          ⚡ Tokens IA
+        </button>
+        <button id="tab-prompts" class="sa-tab" role="tab"
+                aria-selected="false" aria-controls="panel-prompts">
+          ✍️ Prompts IA
+        </button>
       </nav>
 
       <!-- ══ PANEL: ADMINISTRADORES ══════════════════════════════════ -->
@@ -271,6 +279,7 @@
                   <th scope="col">Prioridad</th>
                   <th scope="col">Estado</th>
                   <th scope="col">Tenant</th>
+                  <th scope="col">Último Test</th>
                   <th scope="col" class="sa-col-actions">Acciones</th>
                 </tr>
               </thead>
@@ -531,6 +540,253 @@
 
       </div><!-- /panel-audit -->
 
+      <!-- ══ PANEL: TOKENS IA ════════════════════════════════════════════ -->
+      <div id="panel-tokens" class="sa-panel hidden" role="tabpanel" aria-labelledby="tab-tokens">
+
+        <div class="sa-section-head">
+          <h1 class="sa-section-title">Monitor de Consumo IA</h1>
+          <p class="sa-section-sub">Registro Maestro de tokens procesados por el Orquestador, agregados en tiempo real por empresa.</p>
+        </div>
+
+        <!-- Barra de controles: período + acciones -->
+        <div class="tok-controls">
+          <div class="tok-period-group" role="group" aria-label="Período de análisis">
+            <button class="v2-btn v2-btn-sm tok-period-btn tok-period-active" data-period="all">Todo el tiempo</button>
+            <button class="v2-btn v2-btn-sm tok-period-btn" data-period="90d">90 días</button>
+            <button class="v2-btn v2-btn-sm tok-period-btn" data-period="30d">30 días</button>
+            <button class="v2-btn v2-btn-sm tok-period-btn" data-period="7d">7 días</button>
+          </div>
+          <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
+            <button id="tok-refresh" class="v2-btn v2-btn-ghost" title="Recargar datos">↺ Actualizar</button>
+            <button id="tok-export-csv" class="v2-btn v2-btn-ghost" title="Descargar CSV del período actual">⬇ CSV</button>
+          </div>
+        </div>
+
+        <!-- Spinner de carga -->
+        <div id="tok-loading" class="sa-table-placeholder">
+          <div class="v2-spinner sa-spinner-sm"></div>
+          <span>Calculando consumo de tokens&hellip;</span>
+        </div>
+
+        <!-- Contenido principal (oculto hasta que carga) -->
+        <div id="tok-content" style="display:none;">
+
+          <!-- ── KPI Cards ──────────────────────────────────────────── -->
+          <div class="tok-kpi-grid" id="tok-kpi-grid"></div>
+
+          <!-- ── Gráfico de barras: top consumidores ─────────────────── -->
+          <div class="sa-card tok-chart-card">
+            <div class="sa-card-header">
+              <span>Top Consumidores</span>
+              <span id="tok-chart-label" class="sa-count-badge">—</span>
+            </div>
+            <div id="tok-bar-list" class="tok-bar-list"></div>
+            <div id="tok-no-usage" class="sa-table-placeholder hidden">
+              Sin consumo de tokens en el período seleccionado.
+            </div>
+          </div>
+
+          <!-- ── Tabla detallada ────────────────────────────────────── -->
+          <div class="sa-card">
+            <div class="sa-card-header">
+              <span>Detalle por Empresa</span>
+              <span id="tok-table-count" class="sa-count-badge">—</span>
+            </div>
+            <div class="sa-table-wrapper">
+              <table class="sa-table">
+                <thead>
+                  <tr>
+                    <th scope="col">#</th>
+                    <th scope="col">Empresa</th>
+                    <th scope="col">Tokens</th>
+                    <th scope="col">Mensajes</th>
+                    <th scope="col">Convs.</th>
+                    <th scope="col">Avg / Msg</th>
+                    <th scope="col">% Sistema</th>
+                    <th scope="col">Última actividad</th>
+                  </tr>
+                </thead>
+                <tbody id="tok-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+
+        </div><!-- /tok-content -->
+
+      </div><!-- /panel-tokens -->
+
+      <!-- ══ PANEL: SYNAPTIC CORE™ ══════════════════════════════════════ -->
+      <div id="panel-prompts" class="sa-panel hidden" role="tabpanel" aria-labelledby="tab-prompts">
+
+        <div class="sa-section-head">
+          <h1 class="sa-section-title">Synaptic Core™</h1>
+          <p class="sa-section-sub">Visual Prompt Architect — Modela la inteligencia del Motor Cognitivo AVM módulo a módulo.</p>
+        </div>
+
+        <div style="display:flex;gap:.8rem;margin-bottom:1rem;align-items:center;">
+          <button id="prompts-refresh" class="v2-btn v2-btn-ghost">↺ Actualizar</button>
+          <span id="prompts-count" class="sa-count-badge" style="margin-left:auto;">—</span>
+        </div>
+
+        <div id="prompts-loading" class="sa-table-placeholder">
+          <div class="v2-spinner sa-spinner-sm"></div>
+          <span>Cargando módulos cognitivos&hellip;</span>
+        </div>
+
+        <div id="prompts-list" class="hidden"></div>
+
+      </div><!-- /panel-prompts -->
+
+      <!-- ══ MODAL: SYNAPTIC CORE™ EDITOR ═════════════════════════════════ -->
+      <div id="synaptic-core-modal" class="sa-modal-overlay hidden" role="dialog"
+           aria-modal="true" aria-labelledby="sc-header-name">
+        <div class="sc-shell">
+
+          <!-- Header -->
+          <div class="sc-header">
+            <div class="sc-header-meta">
+              <code class="sc-chip-slug" id="sc-header-slug">—</code>
+              <h2 class="sc-header-title" id="sc-header-name">Synaptic Core™</h2>
+              <span class="sc-version-badge" id="sc-version-badge">v1</span>
+            </div>
+            <div class="sc-header-actions">
+              <button id="sc-save-btn" class="v2-btn v2-btn-primary">💾 Guardar versión</button>
+              <button id="sc-close-btn" class="sa-modal-close" aria-label="Cerrar">✕</button>
+            </div>
+          </div>
+
+          <!-- Internal Tabs -->
+          <nav class="sc-tabs" role="tablist">
+            <button class="sc-tab sc-tab-active" data-sc-tab="identity"  role="tab">🎭 Identidad</button>
+            <button class="sc-tab" data-sc-tab="context"   role="tab">📋 Contexto</button>
+            <button class="sc-tab" data-sc-tab="rules"     role="tab">⚖️ Reglas</button>
+            <button class="sc-tab" data-sc-tab="schemas"   role="tab">📐 Esquemas</button>
+            <button class="sc-tab" data-sc-tab="playground" role="tab">🎮 Playground</button>
+          </nav>
+
+          <!-- Body -->
+          <div class="sc-body">
+
+            <!-- PANEL: Identidad -->
+            <div class="sc-panel" id="sc-panel-identity">
+              <div class="sc-field-row">
+                <div class="sc-field-group">
+                  <label class="sc-label">Nombre del prompt</label>
+                  <input id="sc-name" type="text" class="v2-input" placeholder="Nombre legible para el panel" />
+                </div>
+                <div class="sc-field-group">
+                  <label class="sc-label">Modelo preferido <span class="sc-label-optional">(vacío = sistema predeterminado)</span></label>
+                  <input id="sc-preferred-model" type="text" class="v2-input"
+                         placeholder="ej. gpt-4o-mini · gemini-1.5-flash-latest · llama-3.1-8b-instant" />
+                </div>
+              </div>
+              <label class="sc-label">
+                Rol del Sistema
+                <span class="sc-label-hint">Define la identidad, capacidades y misión del agente.</span>
+              </label>
+              <textarea id="sc-system-role" class="sc-textarea" rows="10"
+                placeholder="Eres AURA, Motor de Inteligencia Urbana de Brokers Connector…&#10;&#10;Usa {{variable}} para inyectar valores dinámicos en tiempo de ejecución."></textarea>
+              <div class="sc-field-hint">Variables disponibles: <code>{{zipcode}}</code> <code>{{total_area}}</code> <code>{{prop_type}}</code> <code>{{prop_status}}</code></div>
+            </div>
+
+            <!-- PANEL: Contexto -->
+            <div class="sc-panel hidden" id="sc-panel-context">
+              <label class="sc-label">
+                Contexto del Negocio
+                <span class="sc-label-hint">Situación específica de uso, datos disponibles, misión.</span>
+              </label>
+              <textarea id="sc-business-context" class="sc-textarea" rows="7"
+                placeholder="Describe el contexto situacional: qué datos tenemos, en qué momento se activa este prompt, qué problema resuelve…"></textarea>
+
+              <label class="sc-label" style="margin-top:1.25rem;">
+                Perfil de Tono
+                <span class="sc-label-hint">JSON — controla formalidad, idioma y estilo.</span>
+              </label>
+              <div class="sc-json-example">{"language":"es-MX","formality":"professional","perspective":"segunda_persona","style":["directo","orientado_a_accion"]}</div>
+              <textarea id="sc-tone-profile" class="sc-textarea sc-textarea-json" rows="5"
+                placeholder='{"language":"es-MX","formality":"professional",...}'></textarea>
+            </div>
+
+            <!-- PANEL: Reglas -->
+            <div class="sc-panel hidden" id="sc-panel-rules">
+              <label class="sc-label">
+                Reglas Inmutables
+                <span class="sc-label-hint">Lista de reglas que el modelo NUNCA puede violar.</span>
+              </label>
+              <textarea id="sc-immutable-rules" class="sc-textarea" rows="9"
+                placeholder="1. Jamás inventes precios fuera del rango real del mercado mexicano.&#10;2. El confidence_score debe reflejar HONESTAMENTE tu certeza.&#10;3. Devuelves ÚNICAMENTE JSON válido…"></textarea>
+
+              <label class="sc-label" style="margin-top:1.25rem;">
+                Prompt Legacy (Monolítico)
+                <span class="sc-label-hint">Fallback si el Rol está vacío. Ignorado por el Compiler si el Rol está activo.</span>
+              </label>
+              <textarea id="sc-prompt-text" class="sc-textarea sc-textarea-legacy" rows="5"
+                placeholder="Prompt monolítico completo (modo legacy / backward-compat)…"></textarea>
+            </div>
+
+            <!-- PANEL: Esquemas -->
+            <div class="sc-panel hidden" id="sc-panel-schemas">
+              <label class="sc-label">
+                Output Schema
+                <span class="sc-label-hint">JSON — estructura exacta que el modelo debe devolver.</span>
+              </label>
+              <textarea id="sc-output-schema" class="sc-textarea sc-textarea-json" rows="10"
+                placeholder='{"estimated_price_per_sqm":45000,"estimated_value":5400000,"confidence_score":55,...}'></textarea>
+
+              <label class="sc-label" style="margin-top:1.25rem;">
+                Variables Inyectables
+                <span class="sc-label-hint">JSON Array — variables que acepta el prompt. El Playground las renderiza automáticamente.</span>
+              </label>
+              <div class="sc-json-example">[{"key":"zipcode","label":"Código Postal","type":"string","required":true},{"key":"total_area","label":"Superficie m²","type":"number"}]</div>
+              <textarea id="sc-variables-schema" class="sc-textarea sc-textarea-json" rows="5"
+                placeholder='[{"key":"zipcode","label":"Código Postal","type":"string","required":true}]'></textarea>
+            </div>
+
+            <!-- PANEL: Playground -->
+            <div class="sc-panel hidden" id="sc-panel-playground">
+              <div class="sc-playground-grid">
+
+                <!-- Left: variables + config -->
+                <div class="sc-playground-left">
+                  <h4 class="sc-pg-title">Variables de prueba</h4>
+                  <p class="sc-pg-sub">Generadas automáticamente desde el Variables Schema. Agrega manuales con el botón.</p>
+                  <div id="sc-playground-vars" class="sc-vars-container"></div>
+                  <button id="sc-playground-add-var" class="v2-btn v2-btn-sm v2-btn-ghost" style="margin-top:.5rem;">+ Variable manual</button>
+
+                  <label class="sc-label" style="margin-top:1rem;">Mensaje de usuario (test)</label>
+                  <textarea id="sc-playground-msg" class="sc-textarea" rows="3">Ejecuta una prueba de valuación de inmueble.</textarea>
+
+                  <button id="sc-playground-run" class="v2-btn v2-btn-primary" style="margin-top:1rem;width:100%;">
+                    ▶ Ejecutar Test en AURA
+                  </button>
+                  <div id="sc-playground-meta" style="display:none;margin-top:.5rem;font-size:.75rem;color:var(--v2-text-subtle);text-align:center;"></div>
+                </div>
+
+                <!-- Right: prompt preview + AI response -->
+                <div class="sc-playground-right">
+                  <div class="sc-pg-panel-head">
+                    <span>Prompt compilado</span>
+                    <button id="sc-toggle-compiled" class="v2-btn v2-btn-sm v2-btn-ghost">Mostrar</button>
+                  </div>
+                  <pre id="sc-compiled-prompt" class="sc-response-pre sc-compiled-hidden"></pre>
+
+                  <div class="sc-pg-panel-head" style="margin-top:.75rem;">
+                    <span>Respuesta del modelo</span>
+                    <span id="sc-playground-provider" class="sc-pg-provider"></span>
+                  </div>
+                  <pre id="sc-playground-response" class="sc-response-pre sc-response-idle">Ejecuta un test para ver la respuesta aquí…</pre>
+                </div>
+
+              </div><!-- /sc-playground-grid -->
+            </div><!-- /sc-panel-playground -->
+
+          </div><!-- /sc-body -->
+
+          <div id="sc-save-error" class="co-edit-error hidden" style="padding:.375rem 1.25rem .625rem;"></div>
+
+        </div><!-- /sc-shell -->
+      </div><!-- /synaptic-core-modal -->
+
     </main>
 
     <footer class="sa-footer">
@@ -606,6 +862,81 @@
     <button id="co-dd-toggle" class="co-dd-item"            role="menuitem" aria-live="polite"></button>
     <div class="co-dd-divider"></div>
     <button id="co-dd-delete" class="co-dd-item co-dd-danger" role="menuitem"><i class="fas fa-trash co-dd-icon"></i> Eliminar</button>
+  </div>
+
+  <!-- Modal: Diagnóstico Forense de Conexión IA ───────────────────────────── -->
+  <div id="ai-ping-modal" class="sa-modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="ai-ping-modal-title">
+    <div class="sa-modal-box" style="max-width:480px;width:100%;">
+
+      <!-- Header -->
+      <div class="sa-modal-header">
+        <div style="display:flex;align-items:center;gap:.6rem;">
+          <span id="ai-ping-modal-badge" style="font-size:.75rem;"></span>
+          <h3 id="ai-ping-modal-title" class="sa-modal-title" style="margin:0;">
+            ⚡ Diagnóstico de Conexión
+          </h3>
+        </div>
+        <button id="ai-ping-close" class="sa-modal-close" aria-label="Cerrar">&#10005;</button>
+      </div>
+
+      <!-- Cuerpo -->
+      <div class="sa-modal-body" style="padding:1.25rem 1.5rem;">
+
+        <!-- Resultado principal -->
+        <div id="ai-ping-result-block" style="
+          display:flex;align-items:center;gap:.75rem;
+          padding:.875rem 1rem;border-radius:.5rem;margin-bottom:1.1rem;
+          border:1px solid var(--v2-border);background:var(--v2-surface-alt);">
+          <span id="ai-ping-result-icon" style="font-size:1.5rem;flex-shrink:0;"></span>
+          <div>
+            <div id="ai-ping-result-label" style="font-size:.9375rem;font-weight:700;color:var(--v2-text);"></div>
+            <div id="ai-ping-result-meta" style="font-size:.8125rem;color:var(--v2-text-muted);margin-top:.15rem;"></div>
+          </div>
+        </div>
+
+        <!-- Clasificación del error (solo visible en error) -->
+        <div id="ai-ping-error-block" class="hidden">
+          <div style="font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--v2-text-subtle);margin-bottom:.5rem;">
+            Diagnóstico del error
+          </div>
+          <div id="ai-ping-error-category" style="
+            display:flex;align-items:flex-start;gap:.5rem;
+            background:rgba(220,38,38,.05);border:1px solid rgba(220,38,38,.18);
+            border-radius:.45rem;padding:.75rem .875rem;margin-bottom:.75rem;">
+            <span id="ai-ping-error-icon" style="font-size:1.1rem;flex-shrink:0;margin-top:.05rem;"></span>
+            <div>
+              <div id="ai-ping-error-type" style="font-size:.875rem;font-weight:700;color:#dc2626;margin-bottom:.2rem;"></div>
+              <div id="ai-ping-error-detail" style="font-size:.8125rem;color:var(--v2-text-muted);word-break:break-word;line-height:1.55;"></div>
+            </div>
+          </div>
+
+          <!-- Sugerencia de resolución -->
+          <div id="ai-ping-hint-block" style="
+            display:flex;align-items:flex-start;gap:.5rem;
+            background:rgba(245,158,11,.05);border:1px solid rgba(245,158,11,.25);
+            border-radius:.45rem;padding:.75rem .875rem;">
+            <span style="font-size:1rem;flex-shrink:0;margin-top:.05rem;">💡</span>
+            <div id="ai-ping-hint" style="font-size:.8125rem;color:#92400e;line-height:1.55;"></div>
+          </div>
+        </div>
+
+        <!-- Respuesta IA (solo visible en éxito) -->
+        <div id="ai-ping-ok-block" class="hidden">
+          <div style="font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--v2-text-subtle);margin-bottom:.4rem;">
+            Respuesta del modelo
+          </div>
+          <code id="ai-ping-response" style="
+            display:block;background:var(--v2-surface-alt);border:1px solid var(--v2-border);
+            border-radius:.4rem;padding:.5rem .75rem;font-size:.8125rem;
+            color:var(--v2-text);word-break:break-all;"></code>
+        </div>
+
+      </div><!-- /body -->
+
+      <div class="sa-modal-footer">
+        <button id="ai-ping-modal-close-btn" class="v2-btn v2-btn-primary" style="min-width:7rem;">Entendido</button>
+      </div>
+    </div>
   </div>
 
   <script src="security.js"></script>

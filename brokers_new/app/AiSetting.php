@@ -15,12 +15,18 @@ class AiSetting extends Model
         'priority_order',
         'is_active',
         'company_id',
+        'last_tested_at',
+        'last_test_status',
+        'last_test_latency_ms',
+        'last_test_error',
     ];
 
     protected $casts = [
-        'extra_config'   => 'array',
-        'is_active'      => 'boolean',
-        'priority_order' => 'integer',
+        'extra_config'         => 'array',
+        'is_active'            => 'boolean',
+        'priority_order'       => 'integer',
+        'last_tested_at'       => 'datetime',
+        'last_test_latency_ms' => 'integer',
     ];
 
     // api_key nunca se serializa al exterior (encriptada en BD)
