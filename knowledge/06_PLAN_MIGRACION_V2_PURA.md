@@ -345,3 +345,445 @@ Estas decisiones de arquitectura son **inmutables** — se respetan en V2 exacta
 | **Session token en memoria — jamás en localStorage** | Vulnerabilidad XSS crítica si se viola. |
 | **ARF-Grid CSS — Mobile-First, sin `!important`** | Sistema de diseño unificado para todas las SPAs. |
 | **Sin `$request->boolean()` si el kernel es Laravel < 6** | Compatibilidad verificada en campo. |
+
+---
+
+## 11. DÍA CERO — GUÍA DE DESPLIEGUE A PRODUCCIÓN
+
+> **Objetivo:** Mover el sistema de `tourfindycom_newbrokers_db` (staging en `newbrokers.tourfindy.com`) al servidor en vivo `brokersconnect_bd` en `brokersconnector.com` sin errores de "tabla no encontrada" ni dolor de cabeza.
+> **Duración estimada:** 45-90 minutos.
+> **Prerrequisito:** El Humano tiene acceso a cPanel de `brokersconnector.com` con phpMyAdmin y Administrador de Archivos (o SFTP/FTP).
+
+---
+
+### PASO 0 — Exportar snapshot de staging (ANTES de empezar)
+
+En phpMyAdmin de `tourfindycom_newbrokers_db`, exportar la BD completa:
+- Formato: SQL
+- Opciones: `IF NOT EXISTS`, `DROP TABLE` desactivado
+- Guardar como `staging_backup_YYYYMMDD.sql`
+
+Este backup es el paracaídas. Si algo falla en producción, se puede restaurar en minutos.
+
+---
+
+### PASO 1 — Subir los archivos al servidor de producción
+
+**Vía Administrador de Archivos de cPanel o SFTP a `/home/[usuario]/`:**
+
+```
+Subir COMPLETO:
+  brokers_new/           ← toda la aplicación Laravel
+  public_html/           ← entry point, SPAs V2, assets
+
+NO subir:
+  brokers_new/vendor/    ← se regenera con composer (ver Paso 3)
+  brokers_new/.env       ← se crea manualmente (ver Paso 2)
+  brokers_new/storage/framework/cache/
+  brokers_new/storage/framework/sessions/
+  brokers_new/storage/framework/views/
+  public_html/passport-install.php  ← archivo temporal, no debe ir a producción
+```
+
+> Si el servidor de producción ya tiene archivos viejos, sobrescribir todo excepto `.env`.
+
+---
+
+### PASO 2 — Crear/actualizar el `.env` de producción
+
+En el servidor de producción, editar `brokers_new/.env` con estos valores exactos:
+
+```dotenv
+APP_NAME="Brokers Connector"
+APP_ENV=production
+APP_KEY=                          # ← DEJAR VACÍO — se genera en Paso 3
+APP_DEBUG=false
+APP_URL=https://brokersconnector.com
+ASSET_URL=https://brokersconnector.com
+
+LOG_CHANNEL=stack
+
+# ── BASE DE DATOS DE PRODUCCIÓN ──────────────────────────────
+DB_CONNECTION=mysql
+DB_HOST=localhost                 # en cPanel siempre es localhost
+DB_PORT=3306
+DB_DATABASE=brokersconnect_bd
+DB_USERNAME=[usuario_cpanel]_bd   # el usuario MySQL de producción
+DB_PASSWORD=[password_bd_produccion]
+
+# ── SESIONES / CACHE ──────────────────────────────────────────
+BROADCAST_DRIVER=log
+CACHE_DRIVER=file
+SESSION_DRIVER=file
+SESSION_LIFETIME=120
+SESSION_DOMAIN=                   # dejar vacío para dominio raíz
+QUEUE_CONNECTION=sync
+
+# ── CORREO ────────────────────────────────────────────────────
+MAIL_DRIVER=smtp
+MAIL_HOST=[smtp_produccion]
+MAIL_PORT=587
+MAIL_USERNAME=[email_produccion]
+MAIL_PASSWORD=[password_smtp]
+MAIL_ENCRYPTION=tls
+MAIL_FROM_ADDRESS=[email_produccion]
+MAIL_FROM_NAME="Brokers Connector"
+
+# ── OPENPAY (MODO PRODUCCIÓN — CRÍTICO) ───────────────────────
+OPENPAY_ID=[merchant_id_produccion]
+OPENPAY_KEY=[private_key_produccion]
+OPENPAY_PUBLIC_KEY=[public_key_produccion]
+OPENPAY_SANDBOX=false             # ← CAMBIAR A false EN PRODUCCIÓN
+
+# ── IA (ANTHROPIC / OPENAI) ───────────────────────────────────
+# La api_key de IA NO va en .env — se guarda cifrada en tabla ai_settings
+# Administrarla desde el Panel Super Admin → Orquestador IA
+
+# ── SUPER ADMIN (IDs de empresas autorizadas) ─────────────────
+SUPER_ADMIN_COMPANY_IDS=[id_empresa_superadmin]
+```
+
+**Variables que cambian de staging → producción:**
+
+| Variable | Staging | Producción |
+|----------|---------|-----------|
+| `APP_ENV` | `local` o `staging` | `production` |
+| `APP_DEBUG` | `true` | `false` |
+| `APP_URL` | `https://newbrokers.tourfindy.com` | `https://brokersconnector.com` |
+| `DB_DATABASE` | `tourfindycom_newbrokers_db` | `brokersconnect_bd` |
+| `DB_HOST` | IP remota | `localhost` |
+| `DB_USERNAME` | `tourfindycom_newbrokers` | usuario de producción |
+| `OPENPAY_SANDBOX` | `true` | `false` |
+| `APP_KEY` | key de staging | **nueva key — generar en Paso 3** |
+
+---
+
+### PASO 3 — Comandos Artisan (vía Terminal SSH o Script Web)
+
+Si el servidor tiene acceso SSH:
+
+```bash
+cd /home/[usuario]/brokers_new
+
+# 1. Instalar dependencias de Composer (sin dev)
+composer install --no-dev --optimize-autoloader
+
+# 2. Generar APP_KEY de producción (NUNCA copiar la de staging)
+php artisan key:generate
+
+# 3. Limpiar y regenerar caches
+php artisan config:cache
+php artisan route:cache
+php artisan view:cache
+
+# 4. Crear symlink de storage (imágenes de propiedades)
+php artisan storage:link
+```
+
+> Si NO hay SSH disponible, el compositor debe correrse localmente con `--no-dev` y subir la carpeta `vendor/` completa.
+
+---
+
+### PASO 4 — SQL de Producción (orden exacto en phpMyAdmin)
+
+Ejecutar en `brokersconnect_bd` en este orden. Todos los bloques son idempotentes (`IF NOT EXISTS`).
+
+#### BLOQUE 1 — Columnas nuevas en `companies`
+
+```sql
+ALTER TABLE `companies`
+  ADD COLUMN IF NOT EXISTS `openpay_customer_id`     VARCHAR(64) NULL AFTER `active`,
+  ADD COLUMN IF NOT EXISTS `openpay_subscription_id` VARCHAR(64) NULL AFTER `openpay_customer_id`;
+```
+
+#### BLOQUE 2 — Tablas de IA (en orden: conversations → messages → settings)
+
+```sql
+CREATE TABLE IF NOT EXISTS `ai_conversations` (
+  `id`         BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `company_id` BIGINT UNSIGNED NOT NULL,
+  `user_id`    BIGINT UNSIGNED NULL,
+  `title`      VARCHAR(191)    NOT NULL,
+  `status`     TINYINT(1)      NOT NULL DEFAULT 1,
+  `created_at` TIMESTAMP NULL,
+  `updated_at` TIMESTAMP NULL,
+  PRIMARY KEY (`id`),
+  INDEX `ai_conversations_company_id_index` (`company_id`),
+  CONSTRAINT `ai_conversations_company_id_foreign`
+    FOREIGN KEY (`company_id`) REFERENCES `companies` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `ai_conversations_user_id_foreign`
+    FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `ai_messages` (
+  `id`              BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `conversation_id` BIGINT UNSIGNED NOT NULL,
+  `role`            ENUM('user','assistant','system') NOT NULL,
+  `content`         LONGTEXT        NOT NULL,
+  `tokens_used`     INT             NOT NULL DEFAULT 0,
+  `created_at`      TIMESTAMP NULL,
+  `updated_at`      TIMESTAMP NULL,
+  PRIMARY KEY (`id`),
+  CONSTRAINT `ai_messages_conversation_id_foreign`
+    FOREIGN KEY (`conversation_id`) REFERENCES `ai_conversations` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `ai_settings` (
+  `id`                    BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `provider_name`         VARCHAR(191)    NOT NULL,
+  `api_key`               TEXT            NOT NULL,
+  `extra_config`          JSON            NULL,
+  `priority_order`        TINYINT UNSIGNED NOT NULL DEFAULT 1,
+  `is_active`             TINYINT(1)      NOT NULL DEFAULT 1,
+  `company_id`            BIGINT UNSIGNED NULL,
+  `last_tested_at`        TIMESTAMP NULL,
+  `last_test_status`      VARCHAR(10)     NULL,
+  `last_test_latency_ms`  INT UNSIGNED    NULL,
+  `last_test_error`       TEXT            NULL,
+  `created_at`            TIMESTAMP NULL,
+  `updated_at`            TIMESTAMP NULL,
+  PRIMARY KEY (`id`),
+  CONSTRAINT `ai_settings_company_id_foreign`
+    FOREIGN KEY (`company_id`) REFERENCES `companies` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+```
+
+#### BLOQUE 3 — Pasarela de Pagos
+
+```sql
+CREATE TABLE IF NOT EXISTS `payment_gateway_settings` (
+  `id`            BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `provider_name` VARCHAR(50)     NOT NULL,
+  `is_active`     TINYINT(1)      NOT NULL DEFAULT 0,
+  `is_sandbox`    TINYINT(1)      NOT NULL DEFAULT 1,
+  `credentials`   TEXT            NULL     COMMENT 'JSON cifrado — nunca texto plano',
+  `company_id`    BIGINT UNSIGNED NULL,
+  `created_at`    TIMESTAMP NULL,
+  `updated_at`    TIMESTAMP NULL,
+  PRIMARY KEY (`id`),
+  CONSTRAINT `payment_gateway_settings_company_id_foreign`
+    FOREIGN KEY (`company_id`) REFERENCES `companies` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+```
+
+#### BLOQUE 4 — Audit Log
+
+```sql
+CREATE TABLE IF NOT EXISTS `audit_logs` (
+  `id`          BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `actor_id`    BIGINT UNSIGNED NULL,
+  `actor_email` VARCHAR(191)    NULL,
+  `action`      VARCHAR(50)     NOT NULL,
+  `target_type` VARCHAR(50)     NOT NULL DEFAULT 'company',
+  `target_id`   BIGINT UNSIGNED NULL,
+  `target_name` VARCHAR(191)    NULL,
+  `from_status` VARCHAR(50)     NULL,
+  `to_status`   VARCHAR(50)     NULL,
+  `extra`       JSON            NULL,
+  `created_at`  TIMESTAMP NULL,
+  `updated_at`  TIMESTAMP NULL,
+  PRIMARY KEY (`id`),
+  INDEX `audit_logs_target_type_target_id_index` (`target_type`, `target_id`),
+  INDEX `audit_logs_actor_id_index` (`actor_id`),
+  INDEX `audit_logs_created_at_index` (`created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+```
+
+#### BLOQUE 5 — AI Prompts + Seed del Motor AURA
+
+```sql
+CREATE TABLE IF NOT EXISTS `ai_prompts` (
+  `id`          INT UNSIGNED    NOT NULL AUTO_INCREMENT,
+  `slug`        VARCHAR(80)     NOT NULL,
+  `name`        VARCHAR(120)    NOT NULL,
+  `prompt_text` TEXT            NOT NULL,
+  `created_at`  TIMESTAMP NULL,
+  `updated_at`  TIMESTAMP NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `ai_prompts_slug_unique` (`slug`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+INSERT IGNORE INTO `ai_prompts` (`slug`, `name`, `prompt_text`, `created_at`, `updated_at`) VALUES (
+  'cma_urban_intelligence',
+  'AURA · Inteligencia Urbana CMA (Layer 3)',
+  'Eres AURA, Motor de Inteligencia Urbana de Brokers Connector.\nEres un perito valuador certificado con profundo conocimiento del mercado inmobiliario mexicano.\n\nSITUACIÓN ACTIVADA: No existen comparables locales en la base de datos para este inmueble. Has activado el modo de VALUACIÓN SINTÉTICA. Usa tu conocimiento del mercado mexicano para calcular el valor estimado.\n\nMETODOLOGÍA DE VALUACIÓN:\n1. Identifica la zona por el Código Postal.\n2. Aplica precios de mercado vigentes para el tipo de inmueble en esa zona.\n3. Ajusta por superficie (precio/m² varía: unidades pequeñas tienen +precio/m², grandes tienen -precio/m²).\n4. Considera el tipo de operación: venta vs. arrendamiento tienen rangos muy distintos.\n5. Proporciona un rango realista (±15% en zonas conocidas, ±25% en zonas con menor certeza).\n\nREGLAS ABSOLUTAS:\n1. Jamás inventes un precio fuera del rango real del mercado mexicano.\n2. El confidence_score debe reflejar HONESTAMENTE tu nivel de certeza.\n3. Devuelves ÚNICAMENTE un JSON válido. Sin texto adicional, sin markdown.\n\nESTRUCTURA DE RESPUESTA OBLIGATORIA (JSON estricto):\n{\n  \"estimated_price_per_sqm\": 45000,\n  \"estimated_value\": 5400000,\n  \"price_range_min\": 4590000,\n  \"price_range_max\": 6210000,\n  \"suggested_dom_days\": 90,\n  \"confidence_score\": 55,\n  \"explainability\": \"Valuación sintética basada en conocimiento de mercado para CP XXXXX.\",\n  \"pricing_verdict\": \"2-3 oraciones sobre posicionamiento de precio en esa zona.\",\n  \"buyer_psychology\": \"2-3 oraciones sobre perfil y motivación del comprador típico.\",\n  \"seller_strategy\": \"2-3 oraciones con estrategia recomendada para el agente.\",\n  \"closing_argument\": \"1 argumento de cierre memorable que el agente puede usar.\",\n  \"market_summary\": \"1 oración resumiendo el estado del mercado local.\"\n}\n\nREGLA DE confidence_score para Inteligencia Urbana:\n- 55-65: zona principal consolidada (CDMX, GDL, MTY, QRO, MID).\n- 40-54: ciudad mediana o zona suburbana con actividad documentada.\n- 25-39: zona rural, localidad pequeña o CP con poca información de mercado.',
+  NOW(),
+  NOW()
+);
+```
+
+#### BLOQUE 6 — Passport OAuth2 (5 tablas + clientes iniciales)
+
+**Paso 6a — Crear las 5 tablas de Passport** (idempotente, `IF NOT EXISTS`):
+
+```sql
+-- 1. oauth_clients — registro de aplicaciones OAuth2
+CREATE TABLE IF NOT EXISTS `oauth_clients` (
+  `id`                      INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `user_id`                 BIGINT       NULL,
+  `name`                    VARCHAR(191) NOT NULL,
+  `secret`                  VARCHAR(100) NOT NULL,
+  `redirect`                TEXT         NOT NULL,
+  `personal_access_client`  TINYINT(1)   NOT NULL,
+  `password_client`         TINYINT(1)   NOT NULL,
+  `revoked`                 TINYINT(1)   NOT NULL,
+  `created_at`              TIMESTAMP    NULL,
+  `updated_at`              TIMESTAMP    NULL,
+  PRIMARY KEY (`id`),
+  INDEX `oauth_clients_user_id_index` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 2. oauth_personal_access_clients — vincula clientes personales
+CREATE TABLE IF NOT EXISTS `oauth_personal_access_clients` (
+  `id`         INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `client_id`  INT UNSIGNED NOT NULL,
+  `created_at` TIMESTAMP    NULL,
+  `updated_at` TIMESTAMP    NULL,
+  PRIMARY KEY (`id`),
+  INDEX `oauth_personal_access_clients_client_id_index` (`client_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 3. oauth_auth_codes — códigos de autorización (flujo Authorization Code)
+CREATE TABLE IF NOT EXISTS `oauth_auth_codes` (
+  `id`         VARCHAR(100) NOT NULL,
+  `user_id`    BIGINT       NOT NULL,
+  `client_id`  INT UNSIGNED NOT NULL,
+  `scopes`     TEXT         NULL,
+  `revoked`    TINYINT(1)   NOT NULL,
+  `expires_at` DATETIME     NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 4. oauth_access_tokens — tokens de acceso activos
+CREATE TABLE IF NOT EXISTS `oauth_access_tokens` (
+  `id`         VARCHAR(100) NOT NULL,
+  `user_id`    BIGINT       NULL,
+  `client_id`  INT UNSIGNED NOT NULL,
+  `name`       VARCHAR(191) NULL,
+  `scopes`     TEXT         NULL,
+  `revoked`    TINYINT(1)   NOT NULL,
+  `created_at` TIMESTAMP    NULL,
+  `updated_at` TIMESTAMP    NULL,
+  `expires_at` DATETIME     NULL,
+  PRIMARY KEY (`id`),
+  INDEX `oauth_access_tokens_user_id_index` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 5. oauth_refresh_tokens — tokens de refresco
+CREATE TABLE IF NOT EXISTS `oauth_refresh_tokens` (
+  `id`              VARCHAR(100) NOT NULL,
+  `access_token_id` VARCHAR(100) NOT NULL,
+  `revoked`         TINYINT(1)   NOT NULL,
+  `expires_at`      DATETIME     NULL,
+  PRIMARY KEY (`id`),
+  INDEX `oauth_refresh_tokens_access_token_id_index` (`access_token_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+```
+
+**Paso 6b — Inicializar los clientes OAuth2**
+
+Los clientes de Passport requieren secretos aleatorios generados por Laravel. Usar **uno** de estos métodos (en orden de preferencia):
+
+**Opción A — Vía Script Web** (si no hay SSH):
+1. Subir `public_html/passport-install.php` (ya está en el repositorio)
+2. Acceder desde el navegador: `https://brokersconnector.com/passport-install.php`
+3. Verificar que diga "Passport configurado correctamente"
+4. **ELIMINAR el archivo inmediatamente** — es un vector de seguridad
+
+**Opción B — Vía SSH**:
+```bash
+cd /home/[usuario]/brokers_new
+php artisan passport:install
+```
+
+**Opción C — SQL manual de emergencia** (solo si A y B fallan):
+
+> ADVERTENCIA: Reemplazar `[SECRET_40_CHARS]` con un string aleatorio de 40 caracteres. Generar en: `openssl rand -base64 30 | tr -d '/+=' | head -c 40`
+
+```sql
+-- Personal Access Client
+INSERT INTO `oauth_clients`
+  (`user_id`,`name`,`secret`,`redirect`,`personal_access_client`,`password_client`,`revoked`,`created_at`,`updated_at`)
+VALUES
+  (NULL, 'Brokers Connector Personal Access Client', '[SECRET_40_CHARS]',
+   'http://localhost', 1, 0, 0, NOW(), NOW());
+
+-- Vincular en oauth_personal_access_clients
+INSERT INTO `oauth_personal_access_clients` (`client_id`, `created_at`, `updated_at`)
+SELECT id, NOW(), NOW() FROM `oauth_clients`
+WHERE `personal_access_client` = 1 AND `revoked` = 0
+ORDER BY id DESC LIMIT 1;
+
+-- Password Grant Client
+INSERT INTO `oauth_clients`
+  (`user_id`,`name`,`secret`,`redirect`,`personal_access_client`,`password_client`,`revoked`,`created_at`,`updated_at`)
+VALUES
+  (NULL, 'Brokers Connector Password Grant Client', '[OTRO_SECRET_40_CHARS]',
+   'http://localhost', 0, 1, 0, NOW(), NOW());
+```
+
+#### BLOQUE 7 — Registrar migraciones en la tabla `migrations`
+
+Esto evita que `php artisan migrate` intente re-ejecutar scripts ya aplicados manualmente:
+
+```sql
+INSERT IGNORE INTO `migrations` (`migration`, `batch`) VALUES
+  ('2026_04_27_000001_create_ai_conversations_table',              1),
+  ('2026_04_27_000002_create_ai_messages_table',                   1),
+  ('2026_04_28_000001_add_openpay_customer_id_to_companies_table', 1),
+  ('2026_04_28_000002_add_openpay_subscription_id_to_companies_table', 1),
+  ('2026_05_04_000001_create_ai_settings_table',                   1),
+  ('2026_05_05_000001_seed_super_admin_role',                       1),
+  ('2026_05_06_000001_create_payment_gateway_settings_table',      1),
+  ('2026_05_13_203448_create_audit_logs_table',                    1),
+  ('2026_05_16_000001_add_ping_columns_to_ai_settings_table',      1),
+  ('2026_05_16_000002_create_ai_prompts_table',                    1);
+```
+
+---
+
+### PASO 5 — Configurar el Super Admin en producción
+
+1. En phpMyAdmin de `brokersconnect_bd`, encontrar el ID del usuario super admin.
+2. En el `.env` de producción, actualizar `SUPER_ADMIN_COMPANY_IDS` con el `company_id` correcto.
+3. Verificar que el usuario tenga el rol `super_admin` en la tabla `model_has_roles`.
+
+---
+
+### PASO 6 — Configurar la API Key de IA en producción
+
+La `api_key` del proveedor IA **nunca va en `.env`** — se administra cifrada desde el Panel:
+
+1. Login como Super Admin en `https://brokersconnector.com`
+2. Panel Super Admin → Orquestador IA → Proveedores
+3. Agregar el proveedor (ej. Anthropic / Claude) con la API Key de producción
+4. Activar y hacer ping para verificar conectividad
+
+---
+
+### PASO 7 — Verificación post-despliegue (Checklist de vuelo)
+
+```
+[ ] https://brokersconnector.com/login carga sin errores (HTTP 200)
+[ ] Login con usuario real funciona correctamente
+[ ] Panel Super Admin accesible → https://brokersconnector.com/home/v2/admin-bridge
+[ ] Broker Brain IA accesible → Menú lateral → Broker Brain IA
+[ ] Pasarela de Pagos sin error 1146 (tabla payment_gateway_settings existe)
+[ ] Suscripciones → botón de pago funciona en modo PRODUCCIÓN (no sandbox)
+[ ] Crear una propiedad de prueba → se guarda correctamente
+[ ] Audit Log registra la operación del Super Admin
+[ ] storage/app/public symlink existe (imágenes de propiedades visibles)
+[ ] APP_DEBUG=false en .env (nunca exponer stack traces en producción)
+```
+
+---
+
+### ROLLBACK DE EMERGENCIA
+
+Si algo falla después del corte:
+
+1. Restaurar el backup `staging_backup_YYYYMMDD.sql` en la BD
+2. Reapuntar el DNS (o el `.env`) de vuelta a `tourfindycom_newbrokers_db`
+3. El sistema regresa a staging en < 5 minutos
+
+**Tiempo máximo de rollback:** 5-10 minutos si el backup fue tomado en el Paso 0.

@@ -240,10 +240,10 @@
                 <div class="ai-field">
                   <label class="ai-label" for="ai-extra">
                     Config extra (JSON)
-                    <span class="ai-label-hint">Ej: {"model":"gpt-4o","max_tokens":1024}</span>
+                    <span class="ai-label-hint" id="ai-extra-hint">Selecciona un proveedor para ver los modelos válidos.</span>
                   </label>
                   <textarea class="ai-input ai-textarea" id="ai-extra" name="extra_config"
-                            placeholder='{"model":"gpt-4o"}' rows="3"></textarea>
+                            placeholder='{"model":"gpt-4o","max_tokens":1024}' rows="3"></textarea>
                 </div>
 
                 <div class="ai-actions">
@@ -518,7 +518,10 @@
             <div class="v2-spinner sa-spinner-sm"></div>
             <span>Cargando logs&hellip;</span>
           </div>
-          <div id="audit-empty" class="sa-table-placeholder hidden">Sin acciones registradas.</div>
+          <div id="audit-empty" class="sa-table-placeholder hidden">
+            Sin registros de auditoría aún. El Trail se genera automáticamente con las próximas operaciones
+            (crear/editar/eliminar proveedores IA, activar/suspender empresas, cambiar roles, etc.).
+          </div>
           <div id="audit-wrapper" class="sa-table-wrapper hidden">
             <table class="sa-table" id="audit-table" role="grid">
               <thead>

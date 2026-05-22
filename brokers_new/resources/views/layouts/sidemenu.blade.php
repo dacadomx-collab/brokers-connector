@@ -98,6 +98,17 @@
                             @endrole
 
                         @hasrole('super_admin')
+                        {{-- Broker Brain IA visible también para super_admin --}}
+                        <li>
+                            <a href="{{ route('v2.broker.brain.bridge') }}"
+                               title="Motor de Tasación Automática y CMA Dinámico">
+                                <i class="fa fa-bar-chart fa-icon" aria-hidden="true"></i>&nbsp;
+                                <span class="mini-click-non">
+                                    Broker Brain IA
+                                    <span class="label label-warning pull-right">Beta</span>
+                                </span>
+                            </a>
+                        </li>
                         <li>
                             <a href="{{ url('home/v2/admin-bridge') }}"
                                title="Zona de máxima seguridad — gestión de roles y orquestador IA">

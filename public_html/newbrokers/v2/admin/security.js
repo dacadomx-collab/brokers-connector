@@ -509,6 +509,7 @@ function populateAiForm({ id, provider_name, priority_order, is_active, extra_co
   state.aiEditingId = id;
   $('ai-setting-id').value    = id;
   $('ai-provider').value      = provider_name;
+  syncProviderHints(provider_name);   // actualiza placeholder y hint al editar
   $('ai-priority').value      = priority_order;
   $('ai-active').value        = is_active;
   $('ai-key').value           = '';   // nunca pre-cargar la key
@@ -529,6 +530,32 @@ function populateAiForm({ id, provider_name, priority_order, is_active, extra_co
 }
 
 $('ai-btn-cancel').addEventListener('click', resetAiForm);
+
+// ── Modelos válidos por proveedor — evita 404 por model ID incorrecto ─────────
+const AI_PROVIDER_MODELS = {
+  openai:    { model: 'gpt-4o',                  hint: 'Modelos válidos: gpt-4o · gpt-4o-mini · gpt-3.5-turbo' },
+  groq:      { model: 'llama3-8b-8192',           hint: 'Modelos válidos: llama3-8b-8192 · mixtral-8x7b-32768 · llama-3.1-8b-instant' },
+  anthropic: { model: 'claude-sonnet-4-6',        hint: 'Modelos válidos: claude-sonnet-4-6 · claude-haiku-4-5-20251001 · claude-opus-4-7' },
+  gemini:    { model: 'gemini-1.5-flash-latest',  hint: 'Modelos válidos: gemini-1.5-flash-latest · gemini-2.5-flash · gemini-1.5-pro-latest' },
+  mistral:   { model: 'mistral-small-latest',     hint: 'Modelos válidos: mistral-small-latest · mistral-large-latest · open-mixtral-8x7b' },
+};
+
+function syncProviderHints(provider) {
+  var info     = AI_PROVIDER_MODELS[provider];
+  var textarea = $('ai-extra');
+  var hint     = $('ai-extra-hint');
+  if (info) {
+    textarea.placeholder = '{"model":"' + info.model + '","max_tokens":1024}';
+    hint.textContent     = info.hint;
+  } else {
+    textarea.placeholder = '{"model":"gpt-4o","max_tokens":1024}';
+    hint.textContent     = 'Selecciona un proveedor para ver los modelos válidos.';
+  }
+}
+
+$('ai-provider').addEventListener('change', function () {
+  syncProviderHints(this.value);
+});
 
 $('ai-form').addEventListener('submit', function (e) {
   e.preventDefault();

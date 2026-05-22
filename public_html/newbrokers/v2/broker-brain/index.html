@@ -144,11 +144,35 @@
           <p>Completa el formulario y haz clic en <strong>Calcular</strong> para obtener el análisis comparativo de mercado.</p>
         </div>
 
+        <!-- Terminal de carga (visible durante runCMA) -->
+        <div id="cma-terminal" style="display:none;">
+          <div class="bb-terminal">
+            <div class="bb-terminal-header">
+              <span class="bb-terminal-dot bb-terminal-dot-red"></span>
+              <span class="bb-terminal-dot bb-terminal-dot-yellow"></span>
+              <span class="bb-terminal-dot bb-terminal-dot-green"></span>
+              <span class="bb-terminal-title">AURA · Motor Cognitivo en ejecución</span>
+            </div>
+            <div class="bb-terminal-body" id="terminal-lines"></div>
+            <div class="bb-terminal-cursor"></div>
+          </div>
+        </div>
+
         <!-- Resultados CMA (oculto hasta calcular) -->
         <div id="results-cma" style="display:none;">
 
           <!-- Aviso de búsqueda ampliada (oculto cuando fallback_level=0) -->
           <div id="fallback-notice" class="bb-alert bb-alert-warning" style="display:none;"></div>
+
+          <!-- Botón Forzar Valuación IA (visible solo en resultados de DB, Layer 1 o 2) -->
+          <div id="force-ai-wrap" style="display:none;margin-bottom:1rem;">
+            <button class="bb-btn-force-ai" onclick="runCMA(true)">
+              ✨ Probar Valuación Sintética con IA
+            </button>
+            <p class="bb-hint" style="margin-top:0.375rem;font-size:0.75rem;">
+              Omite los comparables de base de datos y calcula el valor directamente con el Motor Cognitivo AURA.
+            </p>
+          </div>
 
           <!-- Explainability — fuente de datos de la valuación -->
           <div id="result-explainability" class="bb-explainability" style="display:none;"></div>

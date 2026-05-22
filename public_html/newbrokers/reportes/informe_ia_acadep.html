@@ -1,0 +1,1060 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reporte Ejecutivo IA — Brokers Connector · ACADEP 2026</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+
+  <style>
+    * { font-family: 'Inter', sans-serif; }
+
+    /* ── Gradients y glows ── */
+    .glow-violet  { box-shadow: 0 0 40px -8px rgba(139,92,246,0.45); }
+    .glow-cyan    { box-shadow: 0 0 40px -8px rgba(6,182,212,0.40); }
+    .glow-amber   { box-shadow: 0 0 40px -8px rgba(245,158,11,0.35); }
+    .glow-emerald { box-shadow: 0 0 40px -8px rgba(16,185,129,0.35); }
+
+    .gradient-text-violet {
+      background: linear-gradient(135deg, #a78bfa, #7c3aed);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .gradient-text-cyan {
+      background: linear-gradient(135deg, #22d3ee, #0891b2);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .gradient-text-amber {
+      background: linear-gradient(135deg, #fbbf24, #d97706);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .gradient-text-emerald {
+      background: linear-gradient(135deg, #34d399, #059669);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .gradient-text-hero {
+      background: linear-gradient(135deg, #f59e0b 0%, #ef4444 40%, #a855f7 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+
+    /* ── Cards ── */
+    .card-hover {
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .card-hover:hover { transform: translateY(-3px); }
+
+    /* ── Terminal ── */
+    .terminal-body {
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 12px;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      overflow: hidden;
+    }
+    .terminal-header {
+      background: #161b22;
+      padding: 0.625rem 1rem;
+      border-bottom: 1px solid #30363d;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .t-dot { width: 12px; height: 12px; border-radius: 50%; }
+    .t-dot-r { background: #ff5f57; }
+    .t-dot-y { background: #febc2e; }
+    .t-dot-g { background: #28c840; }
+    .t-title { font-size: 0.75rem; color: #8b949e; margin-left: 4px; }
+    .terminal-lines { padding: 1.25rem 1.5rem; }
+    .t-line { display: flex; gap: 0.625rem; font-size: 0.875rem; line-height: 1.6; margin-bottom: 0.375rem; }
+    .t-prompt { color: #3fb950; font-weight: 700; flex-shrink: 0; }
+    .t-text   { color: #e6edf3; }
+    .t-muted  { color: #8b949e; }
+    .t-cursor { display: inline-block; width: 8px; height: 18px; background: #3fb950;
+                border-radius: 2px; animation: blink 1s step-end infinite; margin-left: 1.5rem; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+    /* ── Cascade flow ── */
+    .cascade-arrow {
+      display: flex; align-items: center; justify-content: center;
+      color: #64748b; font-size: 1.25rem; margin: 0.25rem 0;
+    }
+
+    /* ── Badge pulse ── */
+    .badge-pulse { animation: bpulse 2.5s infinite; }
+    @keyframes bpulse {
+      0%,100%{box-shadow:0 0 0 0 rgba(245,158,11,0.4)}
+      50%{box-shadow:0 0 0 6px rgba(245,158,11,0)}
+    }
+
+    /* ── Section number ── */
+    .section-num {
+      width: 2.5rem; height: 2.5rem; border-radius: 9999px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.875rem; font-weight: 800; flex-shrink: 0;
+    }
+
+    /* ── Stripe bg ── */
+    .stripe-bg {
+      background: repeating-linear-gradient(
+        45deg, #1e293b, #1e293b 10px, #0f172a 10px, #0f172a 20px
+      );
+    }
+
+    /* ── Print ── */
+    @media print {
+      .no-print { display: none !important; }
+      body { background: white !important; }
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased">
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     HEADER EJECUTIVO
+     ══════════════════════════════════════════════════════════════════════════ -->
+<header class="bg-slate-900 text-white relative overflow-hidden">
+  <!-- Ambient lights -->
+  <div class="absolute inset-0 pointer-events-none">
+    <div class="absolute top-0 left-1/4 w-96 h-96 bg-violet-600 rounded-full mix-blend-screen filter blur-[120px] opacity-20"></div>
+    <div class="absolute bottom-0 right-1/4 w-80 h-80 bg-cyan-500 rounded-full mix-blend-screen filter blur-[100px] opacity-15"></div>
+    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[2px] bg-gradient-to-r from-transparent via-amber-500/30 to-transparent"></div>
+  </div>
+
+  <div class="relative z-10 max-w-6xl mx-auto px-6 py-16 md:py-24">
+
+    <!-- Nav superior -->
+    <div class="flex items-center justify-between mb-12">
+      <a href="index.html" class="no-print inline-flex items-center gap-2 text-slate-400 hover:text-white text-sm font-medium transition-colors group">
+        <i class="fas fa-arrow-left text-xs group-hover:-translate-x-0.5 transition-transform"></i>
+        Hub de Documentación
+      </a>
+      <div class="flex items-center gap-2">
+        <span class="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></span>
+        <span class="text-xs text-slate-400 font-medium">v2.6 · Mayo 2026</span>
+      </div>
+    </div>
+
+    <!-- Hero content -->
+    <div class="flex flex-col lg:flex-row lg:items-start gap-12">
+      <div class="flex-1">
+        <!-- Badges -->
+        <div class="flex flex-wrap items-center gap-2 mb-6">
+          <span class="inline-flex items-center gap-1.5 bg-amber-500 text-slate-900 text-xs font-black uppercase px-3 py-1.5 rounded-full tracking-widest badge-pulse">
+            <i class="fas fa-star text-xs"></i> Uso Interno · ACADEP
+          </span>
+          <span class="bg-violet-500/20 text-violet-300 text-xs font-semibold px-3 py-1.5 rounded-full border border-violet-500/30">
+            Reporte Ejecutivo de Innovación
+          </span>
+          <span class="bg-slate-700/60 text-slate-300 text-xs font-medium px-3 py-1.5 rounded-full border border-slate-600">
+            Confidencial
+          </span>
+        </div>
+
+        <h1 class="text-4xl md:text-6xl font-black leading-tight tracking-tight mb-5">
+          Arquitectura <span class="gradient-text-hero">AURA</span>,<br />
+          Synaptic Core™<br class="hidden md:block" />
+          <span class="text-3xl md:text-5xl font-bold text-slate-400">&amp; Motor CMA Predictivo</span>
+        </h1>
+
+        <p class="text-slate-300 text-lg leading-relaxed max-w-2xl mb-8">
+          Todo lo que el equipo <strong class="text-white">ACADEP</strong> necesita saber sobre los cuatro módulos de
+          Inteligencia Artificial que ya operan en producción en Brokers Connector V2,
+          explicado sin jerga técnica y con enfoque en el <strong class="text-amber-400">valor de negocio real</strong>.
+        </p>
+
+        <!-- Quick nav -->
+        <div class="flex flex-wrap gap-2 no-print">
+          <a href="#monitor-tokens"
+             class="inline-flex items-center gap-1.5 bg-slate-800 hover:bg-violet-900/50 border border-slate-700 hover:border-violet-500/50 text-slate-300 hover:text-violet-300 text-xs font-semibold px-3 py-1.5 rounded-lg transition-all">
+            <i class="fas fa-chart-bar text-xs"></i> Monitor de Consumo
+          </a>
+          <a href="#synaptic-core"
+             class="inline-flex items-center gap-1.5 bg-slate-800 hover:bg-cyan-900/50 border border-slate-700 hover:border-cyan-500/50 text-slate-300 hover:text-cyan-300 text-xs font-semibold px-3 py-1.5 rounded-lg transition-all">
+            <i class="fas fa-brain text-xs"></i> Synaptic Core™
+          </a>
+          <a href="#aura-motor"
+             class="inline-flex items-center gap-1.5 bg-slate-800 hover:bg-amber-900/50 border border-slate-700 hover:border-amber-500/50 text-slate-300 hover:text-amber-300 text-xs font-semibold px-3 py-1.5 rounded-lg transition-all">
+            <i class="fas fa-robot text-xs"></i> Motor AURA
+          </a>
+          <a href="#broker-brain"
+             class="inline-flex items-center gap-1.5 bg-slate-800 hover:bg-emerald-900/50 border border-slate-700 hover:border-emerald-500/50 text-slate-300 hover:text-emerald-300 text-xs font-semibold px-3 py-1.5 rounded-lg transition-all">
+            <i class="fas fa-magnifying-glass-dollar text-xs"></i> Broker Brain IA
+          </a>
+        </div>
+      </div>
+
+      <!-- KPI summary panel -->
+      <div class="flex-shrink-0 bg-slate-800/60 border border-slate-700 rounded-3xl p-6 md:w-72 backdrop-blur-sm">
+        <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-5">Resumen del Sistema</p>
+        <div class="space-y-4">
+          <div class="flex items-center gap-3">
+            <div class="w-8 h-8 bg-violet-500/20 border border-violet-500/30 rounded-lg flex items-center justify-center flex-shrink-0">
+              <i class="fas fa-chart-bar text-violet-400 text-xs"></i>
+            </div>
+            <div>
+              <p class="text-sm font-bold text-white">Monitor de Consumo</p>
+              <p class="text-xs text-slate-400">Tokens por agencia en tiempo real</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-3">
+            <div class="w-8 h-8 bg-cyan-500/20 border border-cyan-500/30 rounded-lg flex items-center justify-center flex-shrink-0">
+              <i class="fas fa-sliders text-cyan-400 text-xs"></i>
+            </div>
+            <div>
+              <p class="text-sm font-bold text-white">Synaptic Core™</p>
+              <p class="text-xs text-slate-400">SO Cognitivo · Editable sin código</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-3">
+            <div class="w-8 h-8 bg-amber-500/20 border border-amber-500/30 rounded-lg flex items-center justify-center flex-shrink-0">
+              <i class="fas fa-microchip text-amber-400 text-xs"></i>
+            </div>
+            <div>
+              <p class="text-sm font-bold text-white">Motor AURA</p>
+              <p class="text-xs text-slate-400">OpenAI · Groq · Gemini · Mistral</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-3">
+            <div class="w-8 h-8 bg-emerald-500/20 border border-emerald-500/30 rounded-lg flex items-center justify-center flex-shrink-0">
+              <i class="fas fa-house-chimney-crack text-emerald-400 text-xs"></i>
+            </div>
+            <div>
+              <p class="text-sm font-bold text-white">Broker Brain IA</p>
+              <p class="text-xs text-slate-400">CMA Dinámico · 3-Layer Cascade</p>
+            </div>
+          </div>
+        </div>
+        <div class="mt-6 pt-5 border-t border-slate-700">
+          <p class="text-xs text-slate-500 leading-relaxed">
+            Todos los módulos operan en producción en
+            <a href="https://newbrokers.tourfindy.com" target="_blank" rel="noopener"
+               class="text-emerald-400 hover:text-emerald-300 font-semibold transition-colors">
+              newbrokers.tourfindy.com
+            </a>
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     CONTENIDO PRINCIPAL
+     ══════════════════════════════════════════════════════════════════════════ -->
+<main class="max-w-6xl mx-auto px-6 py-14 space-y-20">
+
+  <!-- ══ SECCIÓN 1 — MONITOR DE CONSUMO IA ══════════════════════════════════ -->
+  <section id="monitor-tokens">
+    <div class="flex items-start gap-5 mb-10">
+      <div class="section-num bg-violet-100 border border-violet-200 text-violet-700">01</div>
+      <div>
+        <p class="text-xs font-bold text-violet-600 uppercase tracking-widest mb-1">Control de Costos</p>
+        <h2 class="text-3xl md:text-4xl font-black text-slate-900 leading-tight">
+          Monitor de Consumo IA
+          <span class="gradient-text-violet ml-2">(Tokens)</span>
+        </h2>
+        <p class="text-slate-500 mt-2 text-base">Visibilidad total del gasto en IA por agencia. El primer paso hacia un modelo de negocio rentable.</p>
+      </div>
+    </div>
+
+    <!-- Problema vs solución -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+
+      <div class="bg-red-50 border border-red-100 rounded-2xl p-6">
+        <div class="flex items-center gap-3 mb-4">
+          <div class="w-9 h-9 bg-red-100 rounded-xl flex items-center justify-center">
+            <i class="fas fa-triangle-exclamation text-red-500"></i>
+          </div>
+          <h3 class="font-bold text-red-700">El problema anterior</h3>
+        </div>
+        <p class="text-sm text-red-600 leading-relaxed">
+          Cada vez que un broker usaba la IA del sistema (valuaciones, análisis, chat inteligente),
+          se generaba un costo real en la API del proveedor (OpenAI, Groq, etc.) que <strong>nadie podía rastrear</strong>.
+          Era imposible saber qué agencia consumía más, cuánto costaba cada análisis ni
+          proyectar el gasto mensual total.
+        </p>
+      </div>
+
+      <div class="bg-violet-50 border border-violet-100 rounded-2xl p-6 glow-violet">
+        <div class="flex items-center gap-3 mb-4">
+          <div class="w-9 h-9 bg-violet-100 rounded-xl flex items-center justify-center">
+            <i class="fas fa-circle-check text-violet-600"></i>
+          </div>
+          <h3 class="font-bold text-violet-700">La solución implementada</h3>
+        </div>
+        <p class="text-sm text-violet-700 leading-relaxed">
+          Ahora, <strong>cada llamada a la IA queda registrada</strong> en la base de datos vinculada
+          a la agencia que la originó. El Super Admin tiene un panel dedicado que muestra en tiempo real
+          cuántos tokens consumió cada agencia, en qué período y cuál fue el costo promedio por operación.
+        </p>
+      </div>
+    </div>
+
+    <!-- Flujo de datos -->
+    <div class="bg-white border border-slate-200 rounded-3xl p-8 mb-6">
+      <h3 class="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
+        <i class="fas fa-diagram-project text-violet-500"></i>
+        Cómo funciona el registro (sin tecnicismos)
+      </h3>
+
+      <div class="grid grid-cols-1 md:grid-cols-5 gap-4 items-center">
+        <div class="bg-slate-50 border border-slate-200 rounded-2xl p-4 text-center">
+          <div class="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center mx-auto mb-2">
+            <i class="fas fa-user-tie text-emerald-600"></i>
+          </div>
+          <p class="text-xs font-bold text-slate-700">Broker solicita</p>
+          <p class="text-xs text-slate-500 mt-0.5">una valuación CMA</p>
+        </div>
+
+        <div class="hidden md:flex items-center justify-center">
+          <i class="fas fa-arrow-right text-slate-300 text-xl"></i>
+        </div>
+
+        <div class="bg-violet-50 border border-violet-200 rounded-2xl p-4 text-center">
+          <div class="w-10 h-10 bg-violet-100 rounded-xl flex items-center justify-center mx-auto mb-2">
+            <i class="fas fa-microchip text-violet-600"></i>
+          </div>
+          <p class="text-xs font-bold text-violet-700">IA procesa</p>
+          <p class="text-xs text-violet-500 mt-0.5">y devuelve el resultado</p>
+        </div>
+
+        <div class="hidden md:flex items-center justify-center">
+          <i class="fas fa-arrow-right text-slate-300 text-xl"></i>
+        </div>
+
+        <div class="bg-slate-900 border border-slate-700 rounded-2xl p-4 text-center">
+          <div class="w-10 h-10 bg-amber-500/20 rounded-xl flex items-center justify-center mx-auto mb-2">
+            <i class="fas fa-database text-amber-400"></i>
+          </div>
+          <p class="text-xs font-bold text-white">Se registra</p>
+          <p class="text-xs text-slate-400 mt-0.5">tokens + agencia + fecha</p>
+        </div>
+      </div>
+
+      <div class="mt-8 bg-slate-50 rounded-xl p-5">
+        <p class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">¿Qué se guarda exactamente?</p>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div class="bg-white border border-slate-200 rounded-lg p-3 text-center">
+            <i class="fas fa-building text-violet-500 mb-1 block"></i>
+            <p class="text-xs font-semibold text-slate-700">Agencia</p>
+            <p class="text-xs text-slate-400">quién lo pidió</p>
+          </div>
+          <div class="bg-white border border-slate-200 rounded-lg p-3 text-center">
+            <i class="fas fa-coins text-amber-500 mb-1 block"></i>
+            <p class="text-xs font-semibold text-slate-700">Tokens usados</p>
+            <p class="text-xs text-slate-400">costo de la llamada</p>
+          </div>
+          <div class="bg-white border border-slate-200 rounded-lg p-3 text-center">
+            <i class="fas fa-clock text-cyan-500 mb-1 block"></i>
+            <p class="text-xs font-semibold text-slate-700">Fecha y hora</p>
+            <p class="text-xs text-slate-400">cuándo ocurrió</p>
+          </div>
+          <div class="bg-white border border-slate-200 rounded-lg p-3 text-center">
+            <i class="fas fa-tag text-emerald-500 mb-1 block"></i>
+            <p class="text-xs font-semibold text-slate-700">Tipo de análisis</p>
+            <p class="text-xs text-slate-400">CMA · Narrativa · Chat</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Valor de negocio -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+      <div class="bg-white border border-slate-200 rounded-2xl p-5 card-hover">
+        <div class="w-10 h-10 bg-violet-100 rounded-xl flex items-center justify-center mb-3">
+          <i class="fas fa-scale-balanced text-violet-600"></i>
+        </div>
+        <h4 class="font-bold text-slate-800 mb-2">Modelo de negocio rentable</h4>
+        <p class="text-sm text-slate-500 leading-relaxed">
+          Ahora ACADEP puede cobrar a las agencias en función de su uso real de IA,
+          o crear planes con cuotas de tokens incluidas — como lo hacen las plataformas SaaS líderes.
+        </p>
+      </div>
+      <div class="bg-white border border-slate-200 rounded-2xl p-5 card-hover">
+        <div class="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center mb-3">
+          <i class="fas fa-chart-line text-amber-600"></i>
+        </div>
+        <h4 class="font-bold text-slate-800 mb-2">Proyección de costos</h4>
+        <p class="text-sm text-slate-500 leading-relaxed">
+          Con datos históricos de consumo, el equipo puede proyectar el costo mensual de la IA,
+          identificar picos de uso y optimizar qué proveedor usar para cada tipo de análisis.
+        </p>
+      </div>
+      <div class="bg-white border border-slate-200 rounded-2xl p-5 card-hover">
+        <div class="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center mb-3">
+          <i class="fas fa-magnifying-glass-chart text-emerald-600"></i>
+        </div>
+        <h4 class="font-bold text-slate-800 mb-2">Trazabilidad total</h4>
+        <p class="text-sm text-slate-500 leading-relaxed">
+          Cada análisis generado es rastreable: sabe qué agencia lo pidió, cuándo,
+          qué modelo de IA lo procesó y cuánto costó. Transparencia completa para auditorías.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Divisor decorativo -->
+  <div class="relative">
+    <div class="h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent"></div>
+    <div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 bg-slate-100 border border-slate-200 rounded-full flex items-center justify-center">
+      <i class="fas fa-circle-nodes text-slate-400 text-xs"></i>
+    </div>
+  </div>
+
+  <!-- ══ SECCIÓN 2 — SYNAPTIC CORE™ ════════════════════════════════════════ -->
+  <section id="synaptic-core">
+    <div class="flex items-start gap-5 mb-10">
+      <div class="section-num bg-cyan-100 border border-cyan-200 text-cyan-700">02</div>
+      <div>
+        <p class="text-xs font-bold text-cyan-600 uppercase tracking-widest mb-1">Sistema Operativo Cognitivo</p>
+        <h2 class="text-3xl md:text-4xl font-black text-slate-900 leading-tight">
+          Synaptic Core™
+          <span class="gradient-text-cyan ml-2">— Gestor de Prompts</span>
+        </h2>
+        <p class="text-slate-500 mt-2 text-base">El "cerebro programable" de la IA. Cambia cómo piensa y habla el sistema sin tocar una línea de código.</p>
+      </div>
+    </div>
+
+    <!-- Metáfora central -->
+    <div class="bg-slate-900 rounded-3xl p-8 md:p-10 mb-8 relative overflow-hidden">
+      <div class="absolute top-0 right-0 w-64 h-64 bg-cyan-500 rounded-full mix-blend-screen filter blur-[100px] opacity-10"></div>
+      <div class="relative z-10">
+        <div class="flex items-center gap-3 mb-5">
+          <div class="w-10 h-10 bg-cyan-500/20 border border-cyan-500/30 rounded-xl flex items-center justify-center">
+            <i class="fas fa-brain text-cyan-400"></i>
+          </div>
+          <p class="text-cyan-400 font-bold text-sm uppercase tracking-wider">La Metáfora Clave</p>
+        </div>
+        <h3 class="text-2xl md:text-3xl font-black text-white mb-4 leading-tight">
+          Antes, la IA tenía un "guión fijo".<br />
+          <span class="text-cyan-400">Ahora tiene un Sistema Operativo.</span>
+        </h3>
+        <p class="text-slate-300 text-base leading-relaxed max-w-3xl">
+          Imagina que antes la IA era como un actor que solo podía leer un libreto impreso y fijo.
+          Si querías cambiar una frase, había que llamar al programador, modificar el código fuente,
+          reiniciar el servidor y esperar. <strong class="text-white">Eso ya no existe.</strong>
+          Ahora el Synaptic Core™ permite que cualquier persona con acceso al panel
+          <strong class="text-cyan-300">reescriba el guión de la IA en tiempo real</strong>,
+          sin código, desde el navegador.
+        </p>
+      </div>
+    </div>
+
+    <!-- Los 5 módulos del prompt -->
+    <div class="bg-white border border-slate-200 rounded-3xl p-8 mb-8">
+      <h3 class="text-lg font-bold text-slate-800 mb-2 flex items-center gap-2">
+        <i class="fas fa-puzzle-piece text-cyan-500"></i>
+        Los 5 módulos que componen cada "Cerebro IA"
+      </h3>
+      <p class="text-sm text-slate-500 mb-7">Cada proveedor del Synaptic Core™ tiene estos componentes configurables de forma independiente:</p>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+        <div class="bg-cyan-50 border border-cyan-100 rounded-2xl p-5">
+          <div class="flex items-center gap-2 mb-3">
+            <span class="w-6 h-6 bg-cyan-200 text-cyan-700 rounded-full text-xs font-black flex items-center justify-center">1</span>
+            <h4 class="font-bold text-cyan-800 text-sm">Rol del Sistema</h4>
+          </div>
+          <p class="text-xs text-cyan-700 leading-relaxed">
+            Define la <em>identidad</em> de la IA. ¿Es AURA, un perito valuador? ¿Un analista de Wall Street?
+            ¿Un asistente empático para el cliente? Esta capa define quién "es" la IA.
+          </p>
+        </div>
+
+        <div class="bg-slate-50 border border-slate-200 rounded-2xl p-5">
+          <div class="flex items-center gap-2 mb-3">
+            <span class="w-6 h-6 bg-slate-300 text-slate-700 rounded-full text-xs font-black flex items-center justify-center">2</span>
+            <h4 class="font-bold text-slate-800 text-sm">Contexto de Negocio</h4>
+          </div>
+          <p class="text-xs text-slate-600 leading-relaxed">
+            Inyecta el <em>conocimiento del dominio</em> inmobiliario: qué es el BBC General,
+            cómo funciona el mercado mexicano, qué datos son confiables y cuáles no.
+          </p>
+        </div>
+
+        <div class="bg-red-50 border border-red-100 rounded-2xl p-5">
+          <div class="flex items-center gap-2 mb-3">
+            <span class="w-6 h-6 bg-red-200 text-red-700 rounded-full text-xs font-black flex items-center justify-center">3</span>
+            <h4 class="font-bold text-red-800 text-sm">Reglas Inmutables</h4>
+          </div>
+          <p class="text-xs text-red-700 leading-relaxed">
+            Restricciones que la IA <strong>nunca puede violar</strong>: "Jamás inventes un precio",
+            "Solo devuelve JSON válido", "Nunca omitas el campo confidence_score".
+            El firewall cognitivo del sistema.
+          </p>
+        </div>
+
+        <div class="bg-amber-50 border border-amber-100 rounded-2xl p-5">
+          <div class="flex items-center gap-2 mb-3">
+            <span class="w-6 h-6 bg-amber-200 text-amber-700 rounded-full text-xs font-black flex items-center justify-center">4</span>
+            <h4 class="font-bold text-amber-800 text-sm">Perfil de Tono</h4>
+          </div>
+          <p class="text-xs text-amber-700 leading-relaxed">
+            Define el estilo de comunicación: ¿formal como un dictamen oficial? ¿Conversacional
+            como un asesor amigable? ¿Directo como un reporte ejecutivo? El tono se puede
+            cambiar sin afectar la lógica del análisis.
+          </p>
+        </div>
+
+        <div class="bg-violet-50 border border-violet-100 rounded-2xl p-5 md:col-span-2 lg:col-span-1">
+          <div class="flex items-center gap-2 mb-3">
+            <span class="w-6 h-6 bg-violet-200 text-violet-700 rounded-full text-xs font-black flex items-center justify-center">5</span>
+            <h4 class="font-bold text-violet-800 text-sm">Esquema de Salida</h4>
+          </div>
+          <p class="text-xs text-violet-700 leading-relaxed">
+            Dicta exactamente el <em>formato de la respuesta</em>: qué campos devolver, en qué orden,
+            con qué tipos de datos. Garantiza que el frontend siempre reciba la misma estructura,
+            sin importar cuál proveedor IA respondió.
+          </p>
+        </div>
+      </div>
+
+      <!-- Ventaja clave -->
+      <div class="bg-gradient-to-r from-cyan-900 to-slate-900 border border-cyan-500/30 rounded-2xl p-6">
+        <div class="flex items-start gap-4">
+          <div class="w-10 h-10 bg-cyan-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
+            <i class="fas fa-lightning-bolt text-cyan-400"></i>
+          </div>
+          <div>
+            <h4 class="font-bold text-white mb-1">La ventaja estratégica</h4>
+            <p class="text-sm text-cyan-200 leading-relaxed">
+              Si el mercado inmobiliario de CDMX cambia mañana, o si el cliente quiere
+              que el sistema sea más agresivo en sus argumentos de cierre, o si hay que
+              agregar una nueva regla de cumplimiento legal — se edita el prompt desde el panel
+              y en <strong class="text-white">menos de 60 segundos</strong> toda la plataforma
+              funciona con la nueva lógica. <strong class="text-cyan-300">Sin deployments, sin bugs, sin esperar al desarrollador.</strong>
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Casos de uso -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+      <div class="bg-white border border-slate-200 rounded-2xl p-5 card-hover">
+        <div class="flex items-center gap-2 mb-3">
+          <i class="fas fa-wand-magic-sparkles text-cyan-500"></i>
+          <h4 class="font-bold text-slate-800 text-sm">Caso de uso: AURA para Lujo</h4>
+        </div>
+        <p class="text-sm text-slate-500 leading-relaxed">
+          Para una agencia de propiedades de lujo, se puede configurar AURA con un tono
+          más exclusivo y referencias a comparables internacionales, sin cambiar nada del motor matemático.
+        </p>
+      </div>
+      <div class="bg-white border border-slate-200 rounded-2xl p-5 card-hover">
+        <div class="flex items-center gap-2 mb-3">
+          <i class="fas fa-scale-balanced text-amber-500"></i>
+          <h4 class="font-bold text-slate-800 text-sm">Caso de uso: Cumplimiento Legal</h4>
+        </div>
+        <p class="text-sm text-slate-500 leading-relaxed">
+          Si un abogado indica que los reportes necesitan un disclaimer específico, se agrega
+          a las Reglas Inmutables del prompt y automáticamente aparece en todos los reportes futuros.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Divisor -->
+  <div class="relative">
+    <div class="h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent"></div>
+    <div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 bg-slate-100 border border-slate-200 rounded-full flex items-center justify-center">
+      <i class="fas fa-circle-nodes text-slate-400 text-xs"></i>
+    </div>
+  </div>
+
+  <!-- ══ SECCIÓN 3 — AURA · MOTOR DE INTELIGENCIA ═════════════════════════ -->
+  <section id="aura-motor">
+    <div class="flex items-start gap-5 mb-10">
+      <div class="section-num bg-amber-100 border border-amber-200 text-amber-700">03</div>
+      <div>
+        <p class="text-xs font-bold text-amber-600 uppercase tracking-widest mb-1">Cerebro Central Agnóstico</p>
+        <h2 class="text-3xl md:text-4xl font-black text-slate-900 leading-tight">
+          AURA
+          <span class="gradient-text-amber ml-2">· Motor de Inteligencia</span>
+        </h2>
+        <p class="text-slate-500 mt-2 text-base">El orquestador que decide, en fracción de segundo, qué modelo de IA responde — y actúa como analista experto de Wall Street para el Real Estate.</p>
+      </div>
+    </div>
+
+    <!-- Hero de AURA -->
+    <div class="relative bg-gradient-to-br from-slate-900 to-amber-950 border border-amber-500/30 rounded-3xl p-8 md:p-10 mb-8 overflow-hidden glow-amber">
+      <div class="absolute inset-0 opacity-5" style="background-image: radial-gradient(#f59e0b 1px, transparent 1px); background-size: 24px 24px;"></div>
+      <div class="relative z-10 flex flex-col md:flex-row gap-8 items-start">
+        <div class="flex-1">
+          <div class="w-16 h-16 bg-amber-500/20 border border-amber-500/40 rounded-2xl flex items-center justify-center mb-5">
+            <span class="text-2xl font-black text-amber-400">A</span>
+          </div>
+          <h3 class="text-2xl font-black text-white mb-3">
+            AURA no es un chatbot.<br />
+            <span class="text-amber-400">Es un analista que nunca descansa.</span>
+          </h3>
+          <p class="text-slate-300 text-base leading-relaxed">
+            Mientras un analista humano tarda horas en revisar propiedades comparables,
+            calcular promedios ponderados y redactar un informe de mercado, AURA hace lo mismo
+            en <strong class="text-amber-300">menos de 8 segundos</strong> — con datos verificados de la base de datos
+            de la plataforma y el conocimiento de los mejores modelos de lenguaje del mundo.
+          </p>
+        </div>
+        <div class="flex-shrink-0 bg-amber-500/10 border border-amber-500/20 rounded-2xl p-6 text-center min-w-[160px]">
+          <p class="text-4xl font-black text-amber-400 mb-1">&lt; 8s</p>
+          <p class="text-xs text-amber-300/70 font-semibold uppercase tracking-wider">análisis completo</p>
+          <div class="w-full h-px bg-amber-500/20 my-3"></div>
+          <p class="text-2xl font-black text-white mb-1">4</p>
+          <p class="text-xs text-slate-400 font-semibold uppercase tracking-wider">proveedores IA</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- El Orquestador: cómo decide qué modelo usar -->
+    <div class="bg-white border border-slate-200 rounded-3xl p-8 mb-8">
+      <h3 class="text-lg font-bold text-slate-800 mb-2 flex items-center gap-2">
+        <i class="fas fa-code-branch text-amber-500"></i>
+        El Orquestador: ¿cómo decide qué modelo usar?
+      </h3>
+      <p class="text-sm text-slate-500 mb-8">
+        El sistema no usa siempre el mismo proveedor de IA. Tiene una <strong>escalera de prioridad</strong>:
+        si el primero falla (por saturación, error de API o límite de uso), automáticamente
+        pasa al siguiente sin que el broker note ninguna interrupción.
+      </p>
+
+      <div class="flex flex-col gap-3">
+
+        <div class="flex items-center gap-4 bg-emerald-50 border border-emerald-200 rounded-2xl p-4">
+          <div class="w-8 h-8 bg-emerald-500 text-white rounded-xl flex items-center justify-center font-black text-sm flex-shrink-0">1</div>
+          <div class="flex-1">
+            <div class="flex items-center gap-2 mb-0.5">
+              <p class="font-bold text-emerald-800 text-sm">Proveedor Principal</p>
+              <span class="text-xs bg-emerald-200 text-emerald-700 px-2 py-0.5 rounded-full font-semibold">Configurado por ACADEP</span>
+            </div>
+            <p class="text-xs text-emerald-600">El modelo con más prioridad recibe la solicitud primero. Ej: OpenAI GPT-4o para análisis críticos.</p>
+          </div>
+          <i class="fas fa-circle-check text-emerald-500 text-lg flex-shrink-0"></i>
+        </div>
+
+        <div class="cascade-arrow">
+          <div class="flex flex-col items-center gap-1">
+            <div class="w-px h-4 bg-slate-300"></div>
+            <i class="fas fa-arrow-down text-slate-400 text-sm"></i>
+            <p class="text-xs text-slate-400 font-medium">Si falla o no responde…</p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-4 bg-blue-50 border border-blue-200 rounded-2xl p-4 opacity-90">
+          <div class="w-8 h-8 bg-blue-500 text-white rounded-xl flex items-center justify-center font-black text-sm flex-shrink-0">2</div>
+          <div class="flex-1">
+            <p class="font-bold text-blue-800 text-sm mb-0.5">Proveedor de Respaldo #1</p>
+            <p class="text-xs text-blue-600">Ej: Groq Llama 3 — ultra-rápido y económico, ideal como failover para análisis de volumen.</p>
+          </div>
+          <i class="fas fa-rotate text-blue-400 text-lg flex-shrink-0"></i>
+        </div>
+
+        <div class="cascade-arrow">
+          <div class="flex flex-col items-center gap-1">
+            <div class="w-px h-4 bg-slate-300"></div>
+            <i class="fas fa-arrow-down text-slate-400 text-sm"></i>
+            <p class="text-xs text-slate-400 font-medium">Si también falla…</p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-4 bg-violet-50 border border-violet-200 rounded-2xl p-4 opacity-80">
+          <div class="w-8 h-8 bg-violet-500 text-white rounded-xl flex items-center justify-center font-black text-sm flex-shrink-0">3</div>
+          <div class="flex-1">
+            <p class="font-bold text-violet-800 text-sm mb-0.5">Proveedor de Respaldo #2</p>
+            <p class="text-xs text-violet-600">Ej: Google Gemini o Mistral — tercera línea de defensa. El sistema nunca se queda sin respuesta.</p>
+          </div>
+          <i class="fas fa-shield-halved text-violet-400 text-lg flex-shrink-0"></i>
+        </div>
+
+      </div>
+
+      <div class="mt-6 bg-amber-50 border border-amber-200 rounded-xl p-4">
+        <p class="text-xs text-amber-700 font-semibold flex items-start gap-2">
+          <i class="fas fa-lightbulb mt-0.5 flex-shrink-0"></i>
+          <span>La escalera es completamente configurable desde el panel Super Admin → Orquestador IA.
+          Se puede cambiar el orden de prioridad, agregar nuevos proveedores o desactivar alguno sin
+          tocar el código y sin reiniciar el servidor.</span>
+        </p>
+      </div>
+    </div>
+
+    <!-- Qué analiza AURA -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+      <div class="bg-white border border-slate-200 rounded-2xl p-5 card-hover">
+        <div class="text-2xl mb-3">📊</div>
+        <h4 class="font-bold text-slate-800 mb-2 text-sm">Veredicto de precio</h4>
+        <p class="text-xs text-slate-500 leading-relaxed">¿El precio pedido por el propietario está por encima, por debajo o en línea con el mercado? AURA lo dictamina en 2-3 oraciones accionables.</p>
+      </div>
+      <div class="bg-white border border-slate-200 rounded-2xl p-5 card-hover">
+        <div class="text-2xl mb-3">🧠</div>
+        <h4 class="font-bold text-slate-800 mb-2 text-sm">Psicología del comprador</h4>
+        <p class="text-xs text-slate-500 leading-relaxed">Perfil del comprador típico para ese tipo de propiedad en esa zona: qué busca, qué le preocupa y qué lo impulsa a decidir.</p>
+      </div>
+      <div class="bg-white border border-slate-200 rounded-2xl p-5 card-hover">
+        <div class="text-2xl mb-3">⚡</div>
+        <h4 class="font-bold text-slate-800 mb-2 text-sm">Argumento de cierre</h4>
+        <p class="text-xs text-slate-500 leading-relaxed">Una frase poderosa, lista para usar, que el broker puede decir al cliente en el momento de cierre. Personalizada por zona y tipo de inmueble.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Divisor -->
+  <div class="relative">
+    <div class="h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent"></div>
+    <div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 bg-slate-100 border border-slate-200 rounded-full flex items-center justify-center">
+      <i class="fas fa-circle-nodes text-slate-400 text-xs"></i>
+    </div>
+  </div>
+
+  <!-- ══ SECCIÓN 4 — BROKER BRAIN IA ══════════════════════════════════════ -->
+  <section id="broker-brain">
+    <div class="flex items-start gap-5 mb-10">
+      <div class="section-num bg-emerald-100 border border-emerald-200 text-emerald-700">04</div>
+      <div>
+        <p class="text-xs font-bold text-emerald-600 uppercase tracking-widest mb-1">La Joya de la Corona</p>
+        <h2 class="text-3xl md:text-4xl font-black text-slate-900 leading-tight">
+          Broker Brain IA
+          <span class="gradient-text-emerald ml-2">— CMA Dinámico</span>
+          <span class="ml-2 text-base font-bold text-slate-400 bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full align-middle">Beta</span>
+        </h2>
+        <p class="text-slate-500 mt-2 text-base">El módulo que convierte datos de propiedades en informes de tasación de nivel profesional. Tres escenarios, una sola experiencia.</p>
+      </div>
+    </div>
+
+    <!-- Qué es un CMA -->
+    <div class="bg-emerald-50 border border-emerald-200 rounded-2xl p-6 mb-8">
+      <div class="flex items-start gap-4">
+        <div class="w-10 h-10 bg-emerald-200 rounded-xl flex items-center justify-center flex-shrink-0">
+          <i class="fas fa-house-chimney text-emerald-700"></i>
+        </div>
+        <div>
+          <h3 class="font-bold text-emerald-800 mb-1">¿Qué es un CMA?</h3>
+          <p class="text-sm text-emerald-700 leading-relaxed">
+            Un <strong>Análisis Comparativo de Mercado (CMA)</strong> es el proceso de valorar un inmueble
+            comparándolo con propiedades similares que se han vendido recientemente en la misma zona.
+            Es lo que hace un tasador profesional — y ahora lo hace el sistema automáticamente en segundos,
+            con toda la base de datos de propiedades compartidas en la Bolsa BBC General.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- El modelo en cascada — 3 escenarios -->
+    <div class="bg-white border border-slate-200 rounded-3xl p-8 mb-8">
+      <h3 class="text-lg font-bold text-slate-800 mb-2 flex items-center gap-2">
+        <i class="fas fa-layer-group text-emerald-500"></i>
+        El Modelo en Cascada: 3 Escenarios de Tasación
+      </h3>
+      <p class="text-sm text-slate-500 mb-8">
+        El sistema nunca "se rinde" ni devuelve un error vacío. Tiene tres niveles de respuesta
+        progresivos, de más a menos preciso. Siempre entrega un resultado.
+      </p>
+
+      <!-- Escenario 1 -->
+      <div class="relative mb-3">
+        <div class="bg-emerald-50 border-2 border-emerald-300 rounded-2xl p-6">
+          <div class="flex flex-col md:flex-row md:items-start gap-4">
+            <div class="flex-shrink-0">
+              <div class="flex items-center gap-2 mb-3">
+                <span class="w-8 h-8 bg-emerald-500 text-white rounded-xl flex items-center justify-center font-black text-sm">L1</span>
+                <span class="inline-flex items-center gap-1 text-xs font-bold text-emerald-600 bg-emerald-200 px-2 py-0.5 rounded-full">
+                  <i class="fas fa-bullseye"></i> Datos Exactos
+                </span>
+              </div>
+              <div class="bg-emerald-500 text-white text-xs font-black px-3 py-1 rounded-full text-center">
+                Confianza: 80–95%
+              </div>
+            </div>
+            <div class="flex-1">
+              <h4 class="font-black text-emerald-800 text-lg mb-2">Escenario 1: Hit Perfecto</h4>
+              <p class="text-sm text-emerald-700 leading-relaxed mb-3">
+                El sistema encuentra <strong>3 o más propiedades del mismo tipo, mismo código postal
+                y en la Bolsa Compartida (BBC General)</strong>. Calcula el precio por m² promedio,
+                filtra valores atípicos y genera la tasación más precisa posible.
+              </p>
+              <div class="flex flex-wrap gap-2">
+                <span class="text-xs bg-emerald-200 text-emerald-700 px-2 py-0.5 rounded-full font-medium">CP exacto</span>
+                <span class="text-xs bg-emerald-200 text-emerald-700 px-2 py-0.5 rounded-full font-medium">Mismo tipo de propiedad</span>
+                <span class="text-xs bg-emerald-200 text-emerald-700 px-2 py-0.5 rounded-full font-medium">BBC General</span>
+                <span class="text-xs bg-emerald-200 text-emerald-700 px-2 py-0.5 rounded-full font-medium">3+ comparables</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="cascade-arrow pt-1">
+          <div class="flex flex-col items-center gap-0.5">
+            <div class="w-px h-3 bg-slate-300"></div>
+            <i class="fas fa-arrow-down text-slate-400 text-sm"></i>
+            <p class="text-xs text-slate-400">Si no hay suficientes comparables exactos…</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Escenario 2 -->
+      <div class="relative mb-3">
+        <div class="bg-amber-50 border-2 border-amber-300 rounded-2xl p-6">
+          <div class="flex flex-col md:flex-row md:items-start gap-4">
+            <div class="flex-shrink-0">
+              <div class="flex items-center gap-2 mb-3">
+                <span class="w-8 h-8 bg-amber-500 text-white rounded-xl flex items-center justify-center font-black text-sm">L2</span>
+                <span class="inline-flex items-center gap-1 text-xs font-bold text-amber-600 bg-amber-200 px-2 py-0.5 rounded-full">
+                  <i class="fas fa-expand"></i> Radio Ampliado
+                </span>
+              </div>
+              <div class="bg-amber-500 text-white text-xs font-black px-3 py-1 rounded-full text-center">
+                Confianza: 55–75%
+              </div>
+            </div>
+            <div class="flex-1">
+              <h4 class="font-black text-amber-800 text-lg mb-2">Escenario 2: Zona Ampliada</h4>
+              <p class="text-sm text-amber-700 leading-relaxed mb-3">
+                Si no hay suficientes datos en el CP exacto, el sistema amplía su búsqueda
+                a la <strong>región postal</strong> (primeros 3 dígitos del CP) y relaja los filtros,
+                incluyendo propiedades que no están en la bolsa BBC. Sigue siendo matemático, pero
+                con menor precisión geográfica.
+              </p>
+              <div class="flex flex-wrap gap-2">
+                <span class="text-xs bg-amber-200 text-amber-700 px-2 py-0.5 rounded-full font-medium">Región postal ampliada</span>
+                <span class="text-xs bg-amber-200 text-amber-700 px-2 py-0.5 rounded-full font-medium">Sin filtro BBC</span>
+                <span class="text-xs bg-amber-200 text-amber-700 px-2 py-0.5 rounded-full font-medium">1+ comparables</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="cascade-arrow pt-1">
+          <div class="flex flex-col items-center gap-0.5">
+            <div class="w-px h-3 bg-slate-300"></div>
+            <i class="fas fa-arrow-down text-slate-400 text-sm"></i>
+            <p class="text-xs text-slate-400">Si tampoco hay datos locales…</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Escenario 3 -->
+      <div class="bg-violet-900 border-2 border-violet-500 rounded-2xl p-6">
+        <div class="flex flex-col md:flex-row md:items-start gap-4">
+          <div class="flex-shrink-0">
+            <div class="flex items-center gap-2 mb-3">
+              <span class="w-8 h-8 bg-violet-500 text-white rounded-xl flex items-center justify-center font-black text-sm">L3</span>
+              <span class="inline-flex items-center gap-1 text-xs font-bold text-violet-300 bg-violet-700 px-2 py-0.5 rounded-full">
+                <i class="fas fa-brain"></i> AURA Rescate
+              </span>
+            </div>
+            <div class="bg-violet-500 text-white text-xs font-black px-3 py-1 rounded-full text-center">
+              Confianza: 25–65%
+            </div>
+          </div>
+          <div class="flex-1">
+            <h4 class="font-black text-white text-lg mb-2">Escenario 3: Valuación Sintética IA</h4>
+            <p class="text-sm text-violet-200 leading-relaxed mb-3">
+              No hay comparables en ningún nivel. AURA activa el <strong>"Modo de Valuación Sintética"</strong>:
+              usa su conocimiento del mercado inmobiliario mexicano (aprendido de millones de datos)
+              para estimar el valor basándose en zona, tipo de inmueble, superficie y tendencias macroeconómicas.
+              Es como un perito valuador haciendo una estimación a partir de su experiencia — sin ver el inmueble.
+            </p>
+            <div class="bg-violet-700/50 border border-violet-500/40 rounded-xl p-3">
+              <p class="text-xs text-violet-300 font-semibold flex items-start gap-2">
+                <i class="fas fa-shield-halved mt-0.5 flex-shrink-0"></i>
+                El sistema siempre indica la fuente del resultado y el nivel de confianza, para que
+                el broker sepa exactamente en qué se basa el número y pueda comunicarlo con transparencia al cliente.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- El Terminal de Pensamiento -->
+    <div class="bg-white border border-slate-200 rounded-3xl p-8 mb-8">
+      <h3 class="text-lg font-bold text-slate-800 mb-2 flex items-center gap-2">
+        <i class="fas fa-terminal text-slate-600"></i>
+        La "Terminal de Pensamiento" — Confianza en la espera
+      </h3>
+      <p class="text-sm text-slate-500 mb-6">
+        Cuando el sistema tarda unos segundos (por el análisis IA), la pantalla no se congela.
+        En cambio, aparece una secuencia de mensajes que le dice al broker exactamente qué está
+        haciendo el sistema en cada momento. Esto elimina la ansiedad de la espera y comunica profesionalismo.
+      </p>
+
+      <!-- Demo visual del terminal -->
+      <div class="terminal-body max-w-2xl">
+        <div class="terminal-header">
+          <span class="t-dot t-dot-r"></span>
+          <span class="t-dot t-dot-y"></span>
+          <span class="t-dot t-dot-g"></span>
+          <span class="t-title">AURA · Motor Cognitivo en ejecución</span>
+        </div>
+        <div class="terminal-lines">
+          <div class="t-line">
+            <span class="t-prompt">$</span>
+            <span class="t-text">Inicializando Motor Cognitivo AURA...</span>
+          </div>
+          <div class="t-line">
+            <span class="t-prompt">$</span>
+            <span class="t-text">Buscando comparables locales exactos...</span>
+          </div>
+          <div class="t-line">
+            <span class="t-prompt">$</span>
+            <span class="t-muted">Ampliando radio de búsqueda...</span>
+          </div>
+          <div class="t-line">
+            <span class="t-prompt">$</span>
+            <span class="t-text">Conectando con Motor Cognitivo AURA...</span>
+          </div>
+          <div class="t-line">
+            <span class="t-prompt">$</span>
+            <span class="t-text">Sintetizando valuación de mercado...</span>
+          </div>
+          <span class="t-cursor"></span>
+        </div>
+      </div>
+
+      <p class="text-xs text-slate-400 mt-4 leading-relaxed">
+        <i class="fas fa-info-circle mr-1"></i>
+        Cada línea aparece en intervalos de 0.7–1.5 segundos, alineada con las fases reales del análisis.
+        Cuando el resultado está listo, la terminal desaparece y se muestran los datos.
+      </p>
+    </div>
+
+    <!-- Feature Killer: Botón Force AI -->
+    <div class="bg-gradient-to-br from-violet-900 to-slate-900 border border-violet-500/40 rounded-3xl p-8 mb-8 glow-violet">
+      <div class="flex items-center gap-3 mb-5">
+        <div class="w-10 h-10 bg-violet-500/20 border border-violet-500/30 rounded-xl flex items-center justify-center">
+          <i class="fas fa-wand-magic-sparkles text-violet-400"></i>
+        </div>
+        <div>
+          <p class="text-xs font-bold text-violet-400 uppercase tracking-wider">Feature Exclusivo</p>
+          <h3 class="text-lg font-black text-white">"✨ Probar Valuación Sintética con IA"</h3>
+        </div>
+      </div>
+
+      <p class="text-slate-300 text-base leading-relaxed mb-6">
+        Cuando el sistema encuentra propiedades comparables en la base de datos (Escenarios 1 o 2),
+        aparece un botón especial que permite al broker <strong class="text-violet-300">solicitar
+        explícitamente una segunda opinión de la IA</strong>, ignorando los comparables.
+        Ideal para contrastar el análisis matemático con la perspectiva sintética de AURA.
+      </p>
+
+      <div class="flex flex-col md:flex-row gap-6 items-start">
+        <div class="bg-violet-800/40 border border-violet-500/30 rounded-2xl p-5 flex-1">
+          <h4 class="font-bold text-white text-sm mb-3">¿Por qué es útil?</h4>
+          <ul class="space-y-2">
+            <li class="flex items-start gap-2 text-sm text-violet-200">
+              <i class="fas fa-check text-violet-400 mt-0.5 flex-shrink-0"></i>
+              <span>Cuando los comparables son escasos o de zonas muy distintas</span>
+            </li>
+            <li class="flex items-start gap-2 text-sm text-violet-200">
+              <i class="fas fa-check text-violet-400 mt-0.5 flex-shrink-0"></i>
+              <span>Para validar si el mercado de la zona está alineado con tendencias macro</span>
+            </li>
+            <li class="flex items-start gap-2 text-sm text-violet-200">
+              <i class="fas fa-check text-violet-400 mt-0.5 flex-shrink-0"></i>
+              <span>Como segunda opinión para propiedades en zonas en transformación</span>
+            </li>
+          </ul>
+        </div>
+        <div class="flex-shrink-0 flex flex-col items-center gap-3">
+          <!-- Mockup del botón -->
+          <div class="bg-gradient-to-r from-violet-600 to-violet-700 text-white font-bold text-sm px-6 py-3 rounded-xl shadow-lg shadow-violet-500/30 cursor-default select-none">
+            ✨ Probar Valuación Sintética con IA
+          </div>
+          <p class="text-xs text-slate-500 text-center max-w-[200px]">
+            Así luce el botón cuando el resultado viene de datos de BD
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Resultados que entrega -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div class="bg-white border border-slate-200 rounded-2xl p-4 text-center card-hover">
+        <div class="text-2xl mb-2">💰</div>
+        <p class="text-xs font-bold text-slate-700">Valor estimado</p>
+        <p class="text-xs text-slate-400 mt-0.5">con rango mín–máx</p>
+      </div>
+      <div class="bg-white border border-slate-200 rounded-2xl p-4 text-center card-hover">
+        <div class="text-2xl mb-2">📐</div>
+        <p class="text-xs font-bold text-slate-700">Precio por m²</p>
+        <p class="text-xs text-slate-400 mt-0.5">ajustado por zona</p>
+      </div>
+      <div class="bg-white border border-slate-200 rounded-2xl p-4 text-center card-hover">
+        <div class="text-2xl mb-2">📅</div>
+        <p class="text-xs font-bold text-slate-700">Días en mercado</p>
+        <p class="text-xs text-slate-400 mt-0.5">3 escenarios de precio</p>
+      </div>
+      <div class="bg-white border border-slate-200 rounded-2xl p-4 text-center card-hover">
+        <div class="text-2xl mb-2">🏠</div>
+        <p class="text-xs font-bold text-slate-700">Comparables reales</p>
+        <p class="text-xs text-slate-400 mt-0.5">con link directo al inmueble</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ CIERRE EJECUTIVO ══════════════════════════════════════════════════ -->
+  <section>
+    <div class="stripe-bg rounded-3xl overflow-hidden border border-slate-700">
+      <div class="bg-slate-900/95 p-8 md:p-12 text-center">
+        <span class="inline-block bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-black uppercase tracking-widest px-4 py-1.5 rounded-full mb-6 badge-pulse">
+          Conclusión Ejecutiva
+        </span>
+
+        <h2 class="text-3xl md:text-4xl font-black text-white mb-5 leading-tight">
+          Brokers Connector V2 no compite<br />
+          <span style="background:linear-gradient(135deg,#f59e0b,#ef4444,#a855f7);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">
+            con el mercado. Lo define.
+          </span>
+        </h2>
+
+        <p class="text-slate-300 text-base md:text-lg max-w-3xl mx-auto leading-relaxed mb-8">
+          Con el Monitor de Consumo, el equipo tiene <strong class="text-white">control del costo</strong>.
+          Con el Synaptic Core™, tiene <strong class="text-white">control de la inteligencia</strong>.
+          Con AURA, tiene <strong class="text-white">un analista senior disponible 24/7</strong>.
+          Y con el Broker Brain IA, tiene la <strong class="text-amber-400">herramienta de tasación más
+          avanzada del mercado inmobiliario mexicano</strong> — en producción, hoy.
+        </p>
+
+        <div class="flex flex-wrap gap-3 justify-center">
+          <a href="https://newbrokers.tourfindy.com/home/v2/broker-brain-bridge"
+             target="_blank" rel="noopener"
+             class="inline-flex items-center gap-2 bg-amber-500 hover:bg-amber-400 text-slate-900 font-bold text-sm px-6 py-3 rounded-xl transition-colors shadow-lg shadow-amber-500/20">
+            <i class="fas fa-brain"></i>
+            Probar Broker Brain IA
+          </a>
+          <a href="https://newbrokers.tourfindy.com/home/v2/admin-bridge"
+             target="_blank" rel="noopener"
+             class="inline-flex items-center gap-2 bg-slate-700 hover:bg-slate-600 border border-slate-600 text-white font-bold text-sm px-6 py-3 rounded-xl transition-colors">
+            <i class="fas fa-shield-halved"></i>
+            Panel Super Admin
+          </a>
+          <a href="index.html"
+             class="no-print inline-flex items-center gap-2 bg-transparent hover:bg-slate-800 border border-slate-600 text-slate-300 font-bold text-sm px-6 py-3 rounded-xl transition-colors">
+            <i class="fas fa-arrow-left"></i>
+            Hub de Documentación
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- Footer -->
+<footer class="border-t border-slate-200 bg-white mt-8">
+  <div class="max-w-6xl mx-auto px-6 py-8 flex flex-col md:flex-row items-center justify-between gap-4">
+    <div class="flex items-center gap-3">
+      <div class="w-8 h-8 bg-slate-900 rounded-lg flex items-center justify-center">
+        <span class="text-white text-xs font-black">BB</span>
+      </div>
+      <div>
+        <p class="text-sm font-bold text-slate-800">Brokers Connector V2</p>
+        <p class="text-xs text-slate-400">Reporte Ejecutivo IA · ACADEP 2026 · Confidencial</p>
+      </div>
+    </div>
+    <div class="flex items-center gap-3">
+      <span class="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></span>
+      <span class="text-xs text-slate-500">Sistema operativo en producción</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

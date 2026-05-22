@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\AiConversation;
+use App\AiMessage;
 use App\AiPrompt;
 use App\Http\Controllers\Controller;
 use App\Property;
@@ -144,6 +146,69 @@ class BrokerBrainController extends Controller
             'priceRef'     => $priceRef,
         ] = $validated;
 
+        // ── 3. force_ai: saltar la búsqueda en DB e ir directo a AURA Layer 3 ──
+        // Activado cuando el usuario pulsa "Probar Valuación Sintética con IA"
+        // desde un resultado de base de datos (Layer 1 o 2).
+        $forceAi = filter_var($request->input('force_ai', false), FILTER_VALIDATE_BOOLEAN);
+
+        if ($forceAi) {
+            $synthResult = $this->synthesizeFromAI($validated, $companyId);
+
+            if ($synthResult === null) {
+                return response()->json([
+                    'success' => false,
+                    'error'   => 'El motor de IA no está disponible. Verifica los proveedores activos en el Orquestador IA.',
+                ], 422);
+            }
+
+            $domDays = ($synthResult['suggested_dom_days'] ?? 0) > 0
+                ? (int) $synthResult['suggested_dom_days']
+                : null;
+
+            $domProjection = $domDays
+                ? [
+                    'days'        => $domDays,
+                    'label'       => $this->domLabel($domDays),
+                    'confidence'  => 'baja',
+                    'data_points' => [
+                        ['label' => 'Mercado activo',  'days' => (int) round($domDays * 0.70)],
+                        ['label' => 'Precio ajustado', 'days' => $domDays],
+                        ['label' => 'Precio elevado',  'days' => (int) round($domDays * 1.40)],
+                    ],
+                ]
+                : $this->estimateDom((float) $synthResult['estimated_value'], $priceRef, 0);
+
+            return response()->json([
+                'success'                => true,
+                'confidence_score'       => $synthResult['confidence_score'],
+                'explainability'         => $synthResult['explainability'],
+                'estimated_market_value' => $synthResult['estimated_value'],
+                'price_per_sqm'          => $synthResult['price_per_sqm'],
+                'price_range'            => [
+                    'min' => $synthResult['price_range_min'],
+                    'max' => $synthResult['price_range_max'],
+                ],
+                'comparables'            => [],
+                'dom_projection'         => $domProjection,
+                'narrative'              => [
+                    'pricing_verdict'  => $synthResult['pricing_verdict'],
+                    'buyer_psychology' => $synthResult['buyer_psychology'],
+                    'seller_strategy'  => $synthResult['seller_strategy'],
+                    'closing_argument' => $synthResult['closing_argument'],
+                    'confidence_score' => $synthResult['confidence_score'],
+                    'market_summary'   => $synthResult['market_summary'],
+                ],
+                'meta'                   => [
+                    'layer_used'        => 3,
+                    'comparables_found' => 0,
+                    'fallback_level'    => 3,
+                    'forced_ai'         => true,
+                    'zone'              => $zipcode,
+                    'generated_at'      => now()->toIso8601String(),
+                ],
+            ]);
+        }
+
         // ══ CASCADA COGNITIVA — 3 Layers ════════════════════════════════════
         //
         // Layer 1 (Exact Match):    CP exacto + bbc=1 → 3+ comparables → confianza 80-95%
@@ -185,6 +250,7 @@ class BrokerBrainController extends Controller
                     'layer_used'        => $dbLayer,
                     'comparables_found' => count($comparables),
                     'fallback_level'    => $fallbackLevel,
+                    'forced_ai'         => false,
                     'zone'              => $zipcode,
                     'generated_at'      => now()->toIso8601String(),
                 ],
@@ -244,6 +310,7 @@ class BrokerBrainController extends Controller
                 'layer_used'        => 3,
                 'comparables_found' => 0,
                 'fallback_level'    => 3,
+                'forced_ai'         => false,
                 'zone'              => $zipcode,
                 'generated_at'      => now()->toIso8601String(),
             ],
@@ -593,8 +660,13 @@ PROMPT;
     {
         $aiService = new AIService();
 
+        // Resolver nombres de tipo/estado ANTES de compilar el prompt
+        $propType   = PropertyType::find($input['propTypeId']);
+        $propStatus = PropertyStatus::find($input['propStatusId']);
+        $typeName   = $propType   ? $propType->name   : 'inmueble';
+        $statusName = $propStatus ? $propStatus->name : 'operación';
+
         // Compiler Engine: carga y compila desde los módulos del Synaptic Core™.
-        // Las variables permiten que un prompt con {{zipcode}} etc. se personalice por llamada.
         $systemPrompt = AiPrompt::compileBySlug(
             'cma_urban_intelligence',
             [
@@ -605,11 +677,6 @@ PROMPT;
             ],
             self::AURA_URBAN_SYSTEM_PROMPT
         );
-
-        $propType   = PropertyType::find($input['propTypeId']);
-        $propStatus = PropertyStatus::find($input['propStatusId']);
-        $typeName   = $propType   ? $propType->name   : 'inmueble';
-        $statusName = $propStatus ? $propStatus->name : 'operación';
 
         $userPrompt = "DATOS DEL INMUEBLE A VALUAR:\n\n"
             . "Código Postal: {$input['zipcode']}\n"
@@ -633,6 +700,9 @@ PROMPT;
             ], $companyId);
 
             $raw = $result['response'] ?? '';
+
+            // Registrar consumo de tokens del Layer 3 en ai_messages
+            $this->logAiUsage($companyId, 'cma_urban_intelligence', $result);
 
             if ($raw === '') {
                 return null;
@@ -775,6 +845,9 @@ PROMPT;
 
             $raw = $result['response'] ?? '';
 
+            // Registrar consumo de tokens de la narrativa AURA en ai_messages
+            $this->logAiUsage($companyId, 'cma_narrative_aura', $result);
+
             if ($raw === '') {
                 return self::AURA_FALLBACK;
             }
@@ -853,5 +926,40 @@ PROMPT;
             return substr($header, 7);
         }
         return null;
+    }
+
+    // ── Registro de consumo de tokens en ai_messages ──────────────────────────
+    // Crea un ai_conversations sintético por llamada CMA para que el Monitor
+    // de Consumo del Super Admin pueda agregar tokens por tenant.
+    // Silencioso por diseño: un fallo de logging no puede detener la tasación.
+
+    private function logAiUsage(int $companyId, string $context, array $aiResult): void
+    {
+        $tokensUsed = (int) ($aiResult['tokens_used'] ?? 0);
+
+        if ($tokensUsed <= 0) {
+            return;
+        }
+
+        try {
+            $conv = AiConversation::create([
+                'company_id' => $companyId,
+                'title'      => 'AURA CMA · ' . $context,
+                'status'     => 1,
+            ]);
+
+            AiMessage::create([
+                'conversation_id' => $conv->id,
+                'role'            => 'assistant',
+                'content'         => mb_substr($aiResult['response'] ?? '', 0, 5000),
+                'tokens_used'     => $tokensUsed,
+            ]);
+        } catch (\Throwable $e) {
+            Log::warning('BrokerBrain: logAiUsage falló (no crítico)', [
+                'context'    => $context,
+                'company_id' => $companyId,
+                'error'      => $e->getMessage(),
+            ]);
+        }
     }
 }

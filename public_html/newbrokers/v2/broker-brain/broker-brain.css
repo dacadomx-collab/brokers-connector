@@ -759,3 +759,122 @@
   0%   { background-position: 200% 0; }
   100% { background-position: -200% 0; }
 }
+
+/* ════════════════════════════════════════════════════════════════
+   Terminal de Carga — "Cerebro Pensando"
+   Estilo terminal tipo macOS. Aparece durante runCMA().
+   ════════════════════════════════════════════════════════════════ */
+
+.bb-terminal {
+  background: #0d1117;
+  border: 1px solid #30363d;
+  border-radius: var(--v2-radius);
+  overflow: hidden;
+  font-family: 'SF Mono', 'Fira Code', 'Fira Mono', 'Roboto Mono', monospace;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+}
+
+.bb-terminal-header {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  background: #161b22;
+  padding: 0.625rem 1rem;
+  border-bottom: 1px solid #30363d;
+}
+
+.bb-terminal-dot {
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.bb-terminal-dot-red    { background: #ff5f57; }
+.bb-terminal-dot-yellow { background: #febc2e; }
+.bb-terminal-dot-green  { background: #28c840; }
+
+.bb-terminal-title {
+  font-size: 0.75rem;
+  color: #8b949e;
+  margin-left: 0.5rem;
+  letter-spacing: 0.03em;
+}
+
+.bb-terminal-body {
+  padding: 1.25rem 1.5rem;
+  min-height: 7rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.bb-terminal-line {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.625rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  animation: bb-terminal-fadein 0.25s ease;
+}
+
+.bb-terminal-prompt {
+  color: #3fb950;
+  flex-shrink: 0;
+  font-weight: 700;
+}
+
+.bb-terminal-text {
+  color: #e6edf3;
+}
+
+.bb-terminal-text-muted {
+  color: #8b949e;
+}
+
+.bb-terminal-cursor {
+  display: inline-block;
+  width: 0.5rem;
+  height: 1.125rem;
+  background: #3fb950;
+  margin: 0.5rem 0 0.5rem 1.5rem;
+  border-radius: 1px;
+  animation: bb-cursor-blink 1s step-end infinite;
+}
+
+@keyframes bb-terminal-fadein {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes bb-cursor-blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
+}
+
+/* ── Botón Forzar Valuación IA ─────────────────────────────────── */
+.bb-btn-force-ai {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+  color: #fff;
+  border: none;
+  border-radius: var(--v2-radius-sm);
+  font-size: 0.875rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.15s;
+  letter-spacing: 0.02em;
+  box-shadow: 0 2px 8px rgba(124,58,237,0.35);
+}
+
+.bb-btn-force-ai:hover {
+  opacity: 0.88;
+  transform: translateY(-1px);
+}
+
+.bb-btn-force-ai:active {
+  transform: translateY(0);
+}

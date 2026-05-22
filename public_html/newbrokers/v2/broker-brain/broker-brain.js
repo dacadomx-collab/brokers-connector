@@ -129,9 +129,56 @@ function populateSelect(selectId, items) {
   });
 }
 
+// ── Terminal de carga ("Cerebro Pensando") ────────────────────────────
+
+const TERMINAL_STEPS = [
+  { delay:    0, text: 'Inicializando Motor Cognitivo AURA...', muted: false },
+  { delay:  700, text: 'Buscando comparables locales exactos...', muted: false },
+  { delay: 1800, text: 'Ampliando radio de búsqueda...', muted: true },
+  { delay: 3000, text: 'Conectando con Motor Cognitivo AURA...', muted: false },
+  { delay: 4500, text: 'Sintetizando valuación de mercado...', muted: false },
+];
+
+var _terminalTimers = [];
+
+function startTerminal() {
+  const wrap  = qid('cma-terminal');
+  const lines = qid('terminal-lines');
+
+  lines.innerHTML = '';
+  _terminalTimers.forEach(clearTimeout);
+  _terminalTimers = [];
+
+  hide('results-placeholder');
+  hide('results-cma');
+  wrap.style.display = '';
+
+  TERMINAL_STEPS.forEach(function (step) {
+    const t = setTimeout(function () {
+      const line = document.createElement('div');
+      line.className = 'bb-terminal-line';
+      line.innerHTML =
+        '<span class="bb-terminal-prompt">$</span>' +
+        '<span class="bb-terminal-text' + (step.muted ? ' bb-terminal-text-muted' : '') + '">' +
+        escHtml(step.text) + '</span>';
+      lines.appendChild(line);
+      lines.scrollTop = lines.scrollHeight;
+    }, step.delay);
+    _terminalTimers.push(t);
+  });
+}
+
+function stopTerminal() {
+  _terminalTimers.forEach(clearTimeout);
+  _terminalTimers = [];
+  qid('cma-terminal').style.display = 'none';
+}
+
 // ── CMA: enviar solicitud ─────────────────────────────────────────────
 
-async function runCMA() {
+async function runCMA(forceAi) {
+  forceAi = forceAi === true;
+
   const btn     = qid('btn-cma');
   const spinner = qid('btn-cma-spinner');
   const btnText = qid('btn-cma-text');
@@ -161,10 +208,13 @@ async function runCMA() {
     return showFormError('La superficie total debe ser mayor a cero.');
   }
 
-  // Deshabilitar botón durante request
-  btn.disabled      = true;
+  // Deshabilitar botón y activar terminal de carga
+  btn.disabled          = true;
   spinner.style.display = '';
-  btnText.textContent   = 'Calculando…';
+  btnText.textContent   = forceAi ? 'Consultando IA…' : 'Calculando…';
+  qid('force-ai-wrap').style.display = 'none';
+
+  startTerminal();
 
   try {
     const res = await fetch(`${state.apiBase}/api/v2/broker-brain/cma`, {
@@ -180,6 +230,7 @@ async function runCMA() {
         prop_status_id: propStatusId,
         total_area:     totalArea,
         price_ref:      priceRef,
+        force_ai:       forceAi,
       }),
     });
 
@@ -195,6 +246,7 @@ async function runCMA() {
   } catch (_) {
     showFormError('Error de conexión. Verifica tu red e intenta de nuevo.');
   } finally {
+    stopTerminal();
     btn.disabled          = false;
     spinner.style.display = 'none';
     btnText.textContent   = 'Recalcular';
@@ -212,6 +264,17 @@ function showFormError(msg) {
 function renderResults(data) {
   // Aviso de nivel de búsqueda
   renderFallbackNotice(data.meta);
+
+  // Botón "Forzar Valuación IA" — visible solo cuando el resultado vino de DB
+  // (layer_used 1 o 2) y no fue ya forzado por IA.
+  const forceWrap = qid('force-ai-wrap');
+  const layerUsed = data.meta?.layer_used ?? 3;
+  const forcedAi  = data.meta?.forced_ai  ?? false;
+  if (layerUsed !== 3 && !forcedAi) {
+    forceWrap.style.display = '';
+  } else {
+    forceWrap.style.display = 'none';
+  }
 
   // Explainability — fuente de los datos de valuación
   const explainEl = qid('result-explainability');
