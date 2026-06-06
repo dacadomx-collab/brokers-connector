@@ -695,3 +695,208 @@
     padding: 12px 16px;
   }
 }
+
+/* ══════════════════════════════════════════════════════════════
+   Componente: AI Manual / Onboarding Interactivo  (v2 — rediseño)
+   Uso: CMA (broker-brain) y Radar de Plusvalía
+   Mobile-First · ARF-Grid · Sin !important · Variables --v2-*
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── Contenedor externo ────────────────────────────────────────── */
+.ai-manual-container {
+  background:    var(--v2-surface);
+  border:        1px solid var(--v2-border);
+  border-radius: var(--v2-radius);
+  box-shadow:    var(--v2-shadow);
+  overflow:      hidden;
+  font-family:   var(--v2-font);
+}
+
+/* ── Cabecera del manual ──────────────────────────────────────── */
+.ai-manual-header {
+  display:         flex;
+  align-items:     center;
+  justify-content: space-between;
+  flex-wrap:       wrap;
+  gap:             10px;
+  padding:         12px 20px;
+  background:      linear-gradient(to right, var(--v2-accent-light), var(--v2-surface-alt));
+  border-bottom:   1px solid var(--v2-border);
+}
+
+.ai-manual-title {
+  display:     flex;
+  align-items: center;
+  gap:         9px;
+  font-size:   13px;
+  font-weight: 700;
+  color:       #1E293B;
+  letter-spacing: -.01em;
+}
+
+.ai-manual-title .fa {
+  width:           28px;
+  height:          28px;
+  display:         inline-flex;
+  align-items:     center;
+  justify-content: center;
+  background:      var(--v2-accent);
+  color:           #fff;
+  border-radius:   var(--v2-radius-sm);
+  font-size:       13px;
+  flex-shrink:     0;
+}
+
+/* ── Botón toggle ocultar/mostrar ─────────────────────────────── */
+.ai-manual-toggle {
+  display:       flex;
+  align-items:   center;
+  gap:           5px;
+  padding:       5px 12px;
+  font-size:     12px;
+  font-weight:   600;
+  color:         var(--v2-text-subtle);
+  background:    var(--v2-surface);
+  border:        1px solid var(--v2-border);
+  border-radius: 999px;
+  cursor:        pointer;
+  white-space:   nowrap;
+  transition:    color .15s, border-color .15s, background .15s, box-shadow .15s;
+  font-family:   var(--v2-font);
+}
+
+.ai-manual-toggle:hover {
+  color:        var(--v2-accent);
+  border-color: var(--v2-accent);
+  background:   var(--v2-accent-light);
+  box-shadow:   0 0 0 3px rgba(79, 70, 229, .08);
+}
+
+.ai-manual-toggle .fa {
+  font-size:  10px;
+  transition: transform .22s ease;
+}
+
+.ai-manual-toggle.open .fa {
+  transform: rotate(180deg);
+}
+
+/* ── Cuerpo del manual ────────────────────────────────────────── */
+.ai-manual-body {
+  padding: 20px;
+}
+
+.ai-manual-body.collapsed {
+  display: none;
+}
+
+/* ── Grid de pasos — Mobile-First ─────────────────────────────── */
+.ai-manual-steps {
+  display:               grid;
+  grid-template-columns: 1fr;
+  gap:                   12px;
+}
+
+@media (min-width: 600px) {
+  .ai-manual-steps {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* ── Tarjeta de paso individual ───────────────────────────────── */
+.ai-manual-step {
+  display:        flex;
+  flex-direction: column;
+  gap:            12px;
+  padding:        16px;
+  background:     var(--v2-bg);
+  border-radius:  var(--v2-radius-sm);
+  border:         1px solid var(--v2-border);
+  transition:     border-color .18s, box-shadow .18s, background .18s;
+  position:       relative;
+  overflow:       hidden;
+}
+
+.ai-manual-step::before {
+  content:       '';
+  position:      absolute;
+  top:           0;
+  left:          0;
+  width:         3px;
+  height:        100%;
+  background:    var(--v2-accent);
+  border-radius: 0 2px 2px 0;
+  opacity:       0.5;
+  transition:    opacity .18s;
+}
+
+.ai-manual-step:hover {
+  border-color: var(--v2-border-focus);
+  box-shadow:   var(--v2-shadow-md);
+  background:   var(--v2-surface);
+}
+
+.ai-manual-step:hover::before {
+  opacity: 1;
+}
+
+/* ── Badge de número de paso ──────────────────────────────────── */
+.ai-manual-step-num {
+  width:           28px;
+  height:          28px;
+  background:      var(--v2-accent);
+  color:           #fff;
+  border-radius:   50%;
+  display:         inline-flex;
+  align-items:     center;
+  justify-content: center;
+  font-size:       12px;
+  font-weight:     800;
+  flex-shrink:     0;
+  box-shadow:      0 2px 6px rgba(79, 70, 229, .30);
+  font-family:     var(--v2-font);
+}
+
+/* ── Contenido textual del paso ───────────────────────────────── */
+.ai-manual-step-content {
+  display:        flex;
+  flex-direction: column;
+  gap:            5px;
+}
+
+.ai-manual-step-content .ai-step-heading {
+  display:     flex;
+  align-items: center;
+  gap:         7px;
+  font-size:   13px;
+  font-weight: 700;
+  color:       #1E293B;
+  line-height: 1.3;
+  font-family: var(--v2-font);
+  margin:      0;
+}
+
+.ai-manual-step-content .ai-step-heading .fa {
+  color:     var(--v2-accent);
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+.ai-manual-step-content .ai-step-desc {
+  font-size:   12px;
+  color:       var(--v2-text-muted);
+  line-height: 1.6;
+  font-family: var(--v2-font);
+  margin:      0;
+}
+
+/* ── Wrapper del manual en módulos con layout propio ──────────── */
+.ai-manual-wrapper {
+  padding: 16px 1.25rem 4px;
+}
+
+@media (min-width: 768px) {
+  .ai-manual-wrapper {
+    padding: 20px 1.5rem 4px;
+  }
+}

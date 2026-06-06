@@ -257,6 +257,21 @@ Route::middleware(['auth'])->group(function () {
         ->middleware(['company', 'companyPayment'])
         ->name('v2.broker.brain.bridge');
 
+    // AI Hub — Dashboard central del Broker Brain IA. Punto de entrada unificado a todos los módulos IA.
+    Route::get('/home/v2/ai-hub-bridge', 'BridgeController@aiHubBridge')
+        ->middleware(['company', 'companyPayment'])
+        ->name('v2.ai.hub.bridge');
+
+    // Radar de Plusvalía — requiere empresa al corriente (companyPayment).
+    Route::get('/home/v2/radar-bridge', 'BridgeController@radarBridge')
+        ->middleware(['company', 'companyPayment'])
+        ->name('v2.radar.bridge');
+
+    // BrokerPulse AI — Módulo de Reportes e Informes con IA. Requiere empresa al corriente.
+    Route::get('/home/v2/analytics-bridge', 'BridgeController@analyticsBridge')
+        ->middleware(['company', 'companyPayment'])
+        ->name('v2.analytics.bridge');
+
     // Panel Super Admin V2 — rol super_admin + empresa autorizada en SUPER_ADMIN_COMPANY_IDS
     Route::get('/home/v2/admin-bridge', 'BridgeController@adminBridge')
         ->middleware(['role:super_admin', 'super_admin_company'])

@@ -6,6 +6,19 @@
   <title>Panel Super Admin — Brokers Connector</title>
   <link rel="stylesheet" href="../shared/v2.css">
   <link rel="stylesheet" href="security.css">
+  <style>
+    /* Botón [Eliminar] en Escalera de Failover — fuerza legibilidad sobre cualquier regla heredada */
+    .v2-btn-delete-text {
+      font-size:    .85rem !important;
+      font-family:  inherit !important;
+      font-weight:  600 !important;
+      color:        #fff !important;
+      letter-spacing: 0 !important;
+      padding:      .25rem .7rem !important;
+      line-height:  1.4 !important;
+      min-width:    5rem !important;
+    }
+  </style>
 </head>
 <body class="v2-root">
 
@@ -210,6 +223,9 @@
                     <option value="gemini">Google (Gemini)</option>
                     <option value="mistral">Mistral AI</option>
                   </select>
+                  <span class="ai-label-hint" style="margin-top:.3rem;display:block;">
+                    El Nodo Soberano ACADEP se configura exclusivamente en el <code>.env</code> del servidor &mdash; no aplica aquí.
+                  </span>
                 </div>
 
                 <div class="ai-field">
@@ -258,6 +274,118 @@
             </div>
           </div>
         </div><!-- /ai-grid -->
+
+        <!-- ── ACADEP: Tarjeta de Handshake / Test de Conexión ──────────── -->
+        <div class="sa-card acadep-card" id="acadep-handshake-card">
+          <div class="sa-card-header">
+            <span class="acadep-header-label">
+              <span class="acadep-badge">ACADEP</span>
+              Nodo Soberano &mdash; Test de Conexi&oacute;n (Handshake)
+            </span>
+          </div>
+          <div class="ai-card-body acadep-body">
+            <p class="acadep-desc">
+              Verifica la comunicaci&oacute;n con el Servidor Central de ACADEP usando las credenciales
+              del proveedor registrado arriba. El handshake env&iacute;a un ping autenticado y valida
+              el contrato de respuesta JSON.
+            </p>
+
+            <!-- Dashboard de Telemetría — Solo Lectura (fuente: .env del servidor) -->
+            <div style="display:flex;flex-direction:column;gap:.85rem;">
+
+              <!-- Gateway URL estático -->
+              <div>
+                <p style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--v2-text-muted);margin:0 0 .35rem;">URL de Gateway Central</p>
+                <div style="display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;">
+                  <code id="acadep-gateway-url" style="
+                    font-size:.82rem;color:var(--v2-text);
+                    background:var(--v2-surface-alt);
+                    border:1px solid var(--v2-border);
+                    border-radius:.3rem;padding:.3rem .65rem;
+                    font-family:'Courier New',Consolas,monospace;
+                    word-break:break-all;">Cargando&hellip;</code>
+                  <span style="font-size:.65rem;font-weight:700;background:rgba(16,185,129,.12);color:#065f46;border:1px solid rgba(16,185,129,.35);border-radius:.3rem;padding:.2rem .5rem;white-space:nowrap;flex-shrink:0;">[CONEXI&Oacute;N POR RED LOCAL LAN]</span>
+                </div>
+              </div>
+
+              <!-- X-AURA-KEY estático -->
+              <div>
+                <p style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--v2-text-muted);margin:0 0 .35rem;">X-AURA-KEY Token</p>
+                <code id="acadep-aura-key" style="
+                  display:block;
+                  font-size:.82rem;color:var(--v2-text);
+                  background:var(--v2-surface-alt);
+                  border:1px solid var(--v2-border);
+                  border-radius:.3rem;padding:.3rem .65rem;
+                  font-family:'Courier New',Consolas,monospace;
+                  letter-spacing:.08em;word-break:break-all;">Cargando&hellip;</code>
+                <p style="font-size:.72rem;color:var(--v2-text-subtle);margin:.3rem 0 0;">Primeros 8 caracteres visibles &mdash; llave completa en <code>.env</code> del servidor.</p>
+              </div>
+
+            </div>
+
+            <div class="acadep-actions" style="display:flex;gap:.6rem;flex-wrap:wrap;align-items:center;">
+              <button id="acadep-test-btn" class="v2-btn v2-btn-primary" type="button"
+                      disabled title="Cargando configuración ACADEP…">
+                <span id="acadep-test-icon">&#128268;</span>
+                Iniciar Handshake
+              </button>
+              <button id="acadep-gen-query-btn" class="v2-btn v2-btn-ghost" type="button"
+                      title="Genera el hash Bcrypt de ACADEP_AURA_KEY y construye el SQL de sincronización"
+                      style="font-size:.8rem;border-style:dashed;">
+                &#128273; Generar Query de Sincronización
+              </button>
+              <span id="acadep-test-spinner" style="display:none;" class="acadep-spinner"></span>
+            </div>
+
+            <!-- Resultado resumido del handshake (badge) -->
+            <div id="acadep-result" class="acadep-result hidden">
+              <div class="acadep-result-header">
+                <span id="acadep-result-icon" class="acadep-result-icon"></span>
+                <strong id="acadep-result-title"></strong>
+                <span id="acadep-result-latency" class="acadep-latency"></span>
+              </div>
+              <div id="acadep-result-detail" class="acadep-result-detail"></div>
+            </div>
+
+            <!-- Terminal de Telemetría ACADEP (fondo negro, monoespaciado) -->
+            <div id="acadep-telemetry-terminal" style="
+              display:none;
+              margin-top:1.25rem;
+              background:#0d1117;
+              border:1px solid #30363d;
+              border-radius:.5rem;
+              overflow:hidden;
+              font-family:'Courier New',Consolas,monospace;
+            ">
+              <div style="
+                background:#161b22;
+                padding:.45rem .85rem;
+                display:flex;
+                align-items:center;
+                gap:.5rem;
+                border-bottom:1px solid #30363d;
+              ">
+                <span style="width:.6rem;height:.6rem;border-radius:50%;background:#ff5f57;display:inline-block;flex-shrink:0;"></span>
+                <span style="width:.6rem;height:.6rem;border-radius:50%;background:#febc2e;display:inline-block;flex-shrink:0;"></span>
+                <span style="width:.6rem;height:.6rem;border-radius:50%;background:#28c840;display:inline-block;flex-shrink:0;"></span>
+                <span style="font-size:.7rem;color:#8b949e;margin-left:.35rem;letter-spacing:.02em;">ACADEP AURA &mdash; Terminal de Telemetr&iacute;a</span>
+                <span id="acadep-terminal-status" style="margin-left:auto;font-size:.65rem;font-weight:700;"></span>
+              </div>
+              <pre id="acadep-terminal-output" style="
+                margin:0;
+                padding:.875rem 1rem;
+                font-size:.75rem;
+                line-height:1.6;
+                color:#c9d1d9;
+                white-space:pre-wrap;
+                word-break:break-word;
+                max-height:300px;
+                overflow-y:auto;
+              "></pre>
+            </div>
+          </div>
+        </div><!-- /acadep-handshake-card -->
 
         <!-- Tabla completa de proveedores -->
         <div class="sa-card">

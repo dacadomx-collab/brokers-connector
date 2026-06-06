@@ -3,6 +3,7 @@
 namespace App;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Crypt;
 
 class AiSetting extends Model
 {
@@ -37,9 +38,10 @@ class AiSetting extends Model
         return $this->belongsTo('App\Company');
     }
 
-    // Devuelve la key desencriptada solo en capa de servicio (nunca en vistas)
+    // Devuelve la key desencriptada solo en capa de servicio (nunca en vistas).
+    // Crypt::decryptString evita la envoltura de serialización PHP de Crypt::decrypt.
     public function decryptedKey(): string
     {
-        return decrypt($this->api_key);
+        return Crypt::decryptString($this->api_key);
     }
 }

@@ -12,6 +12,10 @@
   position: sticky;
   top: 0;
   z-index: 100;
+  /* flex-wrap permite que el v2-mobile-menu ocupe la segunda fila */
+  display: flex;
+  flex-wrap: wrap;
+  padding: 0 1.25rem;
 }
 
 .bb-header-inner {
@@ -21,8 +25,24 @@
   justify-content: space-between;
   gap: 0.75rem;
   max-width: 72rem;
+  width: 100%;
   margin-inline: auto;
-  padding: 0.875rem 1.25rem;
+  padding: 0.875rem 0;
+}
+
+/* El menú móvil hereda el padding lateral del bb-header */
+.bb-header .v2-mobile-menu {
+  max-width: 72rem;
+  width: 100%;
+  margin-inline: auto;
+  padding-bottom: 0.5rem;
+}
+
+/* Wrapper del manual CMA — alinea con el max-width del header */
+.bb-manual-wrapper {
+  max-width:    72rem;
+  width:        100%;
+  margin-inline: auto;
 }
 
 .bb-brand {
@@ -460,6 +480,26 @@
   border-radius: 0 var(--v2-radius-sm) var(--v2-radius-sm) 0;
   margin-bottom: 1rem;
   line-height: 1.6;
+}
+
+/* ── Botón retorno en pantalla de error ─────────────────────── */
+.bb-btn-back {
+  display:         inline-flex;
+  align-items:     center;
+  gap:             0.5rem;
+  margin-top:      0.5rem;
+  padding:         0.625rem 1.375rem;
+  background:      #0891b2;
+  color:           #fff;
+  border-radius:   var(--v2-radius-sm);
+  font-weight:     700;
+  font-size:       0.9375rem;
+  text-decoration: none;
+  transition:      background .15s;
+}
+
+.bb-btn-back:hover {
+  background: #0e7490;
 }
 
 /* ── Loading pantalla completa ───────────────────────────────── */

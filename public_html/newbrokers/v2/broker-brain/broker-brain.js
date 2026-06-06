@@ -54,12 +54,30 @@ async function boot() {
   const token   = params.get('token');
   const apiBase = params.get('api') ? decodeURIComponent(params.get('api')) : '';
 
+  // Resolver todas las URLs de navegación ANTES de cualquier early-return,
+  // así el botón "Volver al Panel" de la pantalla de error también funciona.
+  state.apiBase = apiBase;
+
+  const homeUrl   = apiBase + '/home';
+  const logoutUrl = apiBase + '/home/v2/logout';
+  const aiHubUrl  = apiBase + '/home/v2/ai-hub-bridge';
+  const setHref   = (id, href) => { const el = document.getElementById(id); if (el) el.href = href; };
+
+  setHref('error-back-btn', homeUrl);   // pantalla de error — debe funcionar siempre
+  setHref('nav-ai-hub',     aiHubUrl);
+  setHref('nav-ai-hub-m',   aiHubUrl);
+  setHref('nav-panel',      homeUrl);
+  setHref('nav-panel-m',    homeUrl);
+  setHref('nav-logout',     logoutUrl);
+  setHref('nav-logout-m',   logoutUrl);
+
+  initHamburger();
+  initManualToggle('cma-manual-toggle', 'cma-manual-body', 'cma-manual-text');
+
   if (!token) {
     showError('No se encontró el token de acceso. Regresa al panel.');
     return;
   }
-
-  state.apiBase = apiBase;
 
   const url = `${apiBase}/api/v2/bridge/validate?token=${encodeURIComponent(token)}`;
 
@@ -496,6 +514,47 @@ function onInventorySelect() {
 
   // Limpiar error previo si el auto-fill satisface los campos
   qid('form-error').style.display = 'none';
+}
+
+// ── Manual CMA — toggle ocultar/mostrar ──────────────────────────────
+
+function initManualToggle(toggleId, bodyId, textId) {
+  var btn  = document.getElementById(toggleId);
+  var body = document.getElementById(bodyId);
+  var txt  = document.getElementById(textId);
+  if (!btn || !body) return;
+
+  btn.addEventListener('click', function () {
+    var collapsed = body.classList.toggle('collapsed');
+    btn.classList.toggle('open', collapsed);
+    btn.setAttribute('aria-expanded', String(!collapsed));
+    if (txt) txt.textContent = collapsed ? 'Ver guía' : 'Ocultar guía';
+  });
+}
+
+// ── Hamburger — menú móvil (mismo patrón que hub.js / radar.js) ──────
+
+function initHamburger() {
+  const btn  = document.getElementById('hamburger-btn');
+  const menu = document.getElementById('mobile-menu');
+  if (!btn || !menu) return;
+
+  btn.addEventListener('click', function (e) {
+    e.stopPropagation();
+    var isOpen = menu.classList.toggle('open');
+    btn.classList.toggle('open', isOpen);
+    btn.setAttribute('aria-expanded', String(isOpen));
+    menu.setAttribute('aria-hidden', String(!isOpen));
+  });
+
+  document.addEventListener('click', function () {
+    if (menu.classList.contains('open')) {
+      menu.classList.remove('open');
+      btn.classList.remove('open');
+      btn.setAttribute('aria-expanded', 'false');
+      menu.setAttribute('aria-hidden', 'true');
+    }
+  });
 }
 
 // ── Regresar al Panel Legacy ──────────────────────────────────────────

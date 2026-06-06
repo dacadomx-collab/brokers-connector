@@ -363,11 +363,36 @@ function renderLadder(settings) {
 
     const step = document.createElement('div');
     step.className = 'ai-ladder-step';
+    step.dataset.settingId = s.id;
     step.innerHTML =
       '<span class="ai-priority-pill">P' + s.priority_order + '</span>' +
       '<span class="ai-prov-badge ' + css + '">' + escHtml(label) + '</span>' +
+      '<button class="v2-btn v2-btn-sm v2-btn-danger js-ladder-delete v2-btn-delete-text" ' +
+              'data-id="' + s.id + '" data-provider="' + escAttr(label) + '" ' +
+              'style="margin-left:auto;" ' +
+              'title="Eliminar proveedor de la escalera">' +
+        '[Eliminar]' +
+      '</button>' +
       (!isLast ? '<span class="ai-arrow">↓</span>' : '');
     ladder.appendChild(step);
+  });
+
+  // Botones de purga en la escalera de failover
+  ladder.querySelectorAll('.js-ladder-delete').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      if (!confirm('¿Eliminar el proveedor "' + btn.dataset.provider + '" del Orquestador IA?')) return;
+      btn.disabled = true;
+      apiFetch('/api/v2/admin/ai-providers/' + btn.dataset.id, { method: 'DELETE' })
+        .then(function (d) {
+          if (!d.success) throw new Error(d.error);
+          showToast(d.message || 'Proveedor eliminado.');
+          loadAiSettings(); // reconstruye escalera + tabla en caliente
+        })
+        .catch(function (e) {
+          btn.disabled = false;
+          showToast(e.message, 'error');
+        });
+    });
   });
 
   // Nodo final: representa el caso extremo de fallo total (no es un error activo)
@@ -490,6 +515,7 @@ function loadAiSettings() {
       if (!d.success) throw new Error(d.error);
       renderLadder(d.data);
       renderAiTable(d.data);
+      populateAcadepCard();   // sincroniza el dashboard ACADEP desde .env (sin ai_settings)
     })
     .catch((e) => showToast(e.message, 'error'));
 }
@@ -532,6 +558,7 @@ function populateAiForm({ id, provider_name, priority_order, is_active, extra_co
 $('ai-btn-cancel').addEventListener('click', resetAiForm);
 
 // ── Modelos válidos por proveedor — evita 404 por model ID incorrecto ─────────
+// ACADEP excluido: se configura exclusivamente vía .env, no a través del formulario.
 const AI_PROVIDER_MODELS = {
   openai:    { model: 'gpt-4o',                  hint: 'Modelos válidos: gpt-4o · gpt-4o-mini · gpt-3.5-turbo' },
   groq:      { model: 'llama3-8b-8192',           hint: 'Modelos válidos: llama3-8b-8192 · mixtral-8x7b-32768 · llama-3.1-8b-instant' },
@@ -572,6 +599,11 @@ $('ai-form').addEventListener('submit', function (e) {
   if (!providerVal) {
     showToast('Selecciona un proveedor de IA.', 'error');
     $('ai-provider').focus();
+    return;
+  }
+  // Guardia: ACADEP se configura exclusivamente en el .env — nunca en la BD
+  if (providerVal === 'acadep') {
+    showToast('El Nodo Soberano ACADEP se configura en el .env del servidor. No puede gestionarse desde este formulario.', 'error');
     return;
   }
   if (!isEdit && !keyVal) {
@@ -642,8 +674,9 @@ $('ai-form').addEventListener('submit', function (e) {
 // ══════════════════════════════════════════════════════════════════════════════
 
 // ── Clasificador de errores ──────────────────────────────────────────────────
-function classifyApiError(errorMsg) {
-  var m = (errorMsg || '').toLowerCase();
+function classifyApiError(errorMsg, providerName) {
+  var m    = (errorMsg || '').toLowerCase();
+  var prov = (providerName || '').toLowerCase();
 
   if (m.includes('invalid api key') || m.includes('incorrect api key') ||
       m.includes('invalid_api_key') || m.includes('401') || m.includes('unauthorized') ||
@@ -689,7 +722,8 @@ function classifyApiError(errorMsg) {
       hint:  'La APP_KEY del sistema puede haber cambiado desde que se guardó la llave. Solución: edita este proveedor y reingresa la API Key para que se cifre con la llave actual.',
     };
   }
-  if (m.includes('not implemented') || m.includes('adaptador') || m.includes('no adapter')) {
+  if ((m.includes('not implemented') || m.includes('adaptador') || m.includes('no adapter')) &&
+      prov !== 'acadep') {
     return {
       icon:  '⚙️',
       type:  'Proveedor sin adaptador activo',
@@ -816,7 +850,7 @@ function openPingModal(providerLabel, isOk, data) {
 
   } else {
     // ── Resultado con error ──────────────────────────────────────────────────
-    var classification = classifyApiError(data.error || '');
+    var classification = classifyApiError(data.error || '', data.provider_name || '');
     var full2 = formatPingDate(data.last_tested_at);
 
     $('ai-ping-result-block').style.background  = 'rgba(220,38,38,.04)';
@@ -2343,9 +2377,18 @@ $('sc-toggle-compiled').addEventListener('click', function () {
     window.history.replaceState({}, '', window.location.pathname);
   }
 
+  // ── Configurar el botón "Volver al panel" con la URL dinámica ───────────
+  // El href estático funciona en local pero falla en producción.
+  // Se sobreescribe aquí con state.apiBase para que funcione en cualquier entorno.
+  var backBtn = document.getElementById('error-back-btn');
+  if (backBtn && state.apiBase) {
+    backBtn.href = state.apiBase + '/home';
+  }
+
   // Validar sesión directamente contra la API protegida por Passport (auth:api + role:super_admin)
   // Si el token es inválido o el rol falla, la API retorna 401/403 y apiFetch() lanza error.
-  apiFetch('/api/v2/admin/users?per_page=50')
+  var bootUrl = '/api/v2/admin/users?per_page=50';
+  apiFetch(bootUrl)
     .then(function (data) {
       if (!data.success) {
         showError('No tienes permisos de Super Administrador.');
@@ -2362,6 +2405,222 @@ $('sc-toggle-compiled').addEventListener('click', function () {
       renderAdminPager(data.meta, '');
     })
     .catch(function (err) {
+      // Diagnóstico forense: muestra la URL exacta que falló en F12 → Consola
+      console.error('[404 DETECTADO EN SECURITY]: URL intentada ->', state.apiBase + bootUrl);
+      console.error('[404 DETECTADO EN SECURITY]: Error ->', err.message);
       showError(err.message || 'Error al verificar la sesión. Regresa al panel.');
     });
 }());
+
+/* ======================================================================
+   ACADEP AURA -- Logica del Handshake / Test de Conexion
+   ====================================================================== */
+
+// ── Renderiza el terminal de telemetría ACADEP ────────────────────────────────
+function renderAcadepTerminal(resultData, timestamp) {
+  var terminal   = document.getElementById('acadep-telemetry-terminal');
+  var output     = document.getElementById('acadep-terminal-output');
+  var statusEl   = document.getElementById('acadep-terminal-status');
+  if (!terminal || !output) return;
+
+  var ok  = resultData && resultData.success;
+  var ts  = new Date(timestamp || Date.now()).toLocaleString('es-MX', { hour12: false });
+  var json = '';
+  try { json = JSON.stringify(resultData, null, 2); } catch (_) { json = String(resultData); }
+
+  output.textContent =
+    '# ACADEP AURA — Telemetría de Handshake\n' +
+    '# Timestamp : ' + ts + '\n' +
+    '# Status    : ' + (ok ? 'SUCCESS ✓' : 'FAILED  ✗') + '\n' +
+    '# ─────────────────────────────────────────\n\n' +
+    json;
+
+  output.style.color       = ok ? '#7ee787' : '#f85149';
+  terminal.style.display   = '';
+  terminal.style.borderColor = ok ? '#238636' : '#da3633';
+
+  if (statusEl) {
+    statusEl.textContent  = ok ? '● OK' : '● ERR';
+    statusEl.style.color  = ok ? '#3fb950' : '#f85149';
+  }
+}
+
+// ── Carga telemetría ACADEP desde el backend (.env) — sin depender de ai_settings ──
+function populateAcadepCard() {
+  var btn   = document.getElementById('acadep-test-btn');
+  var urlEl = document.getElementById('acadep-gateway-url');
+  var keyEl = document.getElementById('acadep-aura-key');
+
+  apiFetch('/api/v2/admin/acadep/status')
+    .then(function (d) {
+      if (!d.success) return;
+
+      if (urlEl) urlEl.textContent = d.url_lan || '(ACADEP_AURA_URL_LAN no configurado en .env)';
+      if (keyEl) keyEl.textContent = d.key_masked || '(ACADEP_AURA_KEY no configurada en .env)';
+
+      if (btn) {
+        btn.disabled = !d.configured;
+        btn.title    = d.configured
+          ? 'Lanzar handshake ACADEP contra ' + (d.url_lan || 'servidor LAN')
+          : 'Configura ACADEP_AURA_URL_LAN y ACADEP_AURA_KEY en el .env primero.';
+      }
+    })
+    .catch(function () {
+      if (urlEl) urlEl.textContent = '(error al leer .env desde el servidor)';
+      if (btn)   { btn.disabled = true; btn.title = 'Error al consultar estado ACADEP.'; }
+    });
+
+  // Restaurar último test desde localStorage al recargar la vista
+  try {
+    var saved = JSON.parse(localStorage.getItem('acadep_last_handshake') || 'null');
+    if (saved && saved.result) {
+      renderAcadepTerminal(saved.result, saved.timestamp);
+    }
+  } catch (_) {}
+}
+
+document.getElementById('acadep-test-btn').addEventListener('click', function () {
+  var btn     = document.getElementById('acadep-test-btn');
+  var spinner = document.getElementById('acadep-test-spinner');
+  var result  = document.getElementById('acadep-result');
+  var rIcon   = document.getElementById('acadep-result-icon');
+  var rTitle  = document.getElementById('acadep-result-title');
+  var rLat    = document.getElementById('acadep-result-latency');
+  var rDetail = document.getElementById('acadep-result-detail');
+
+  btn.disabled      = true;
+  btn.style.opacity = '0.6';
+  spinner.style.display = 'inline-block';   // fuerza visibilidad ignorando clase .hidden
+  result.classList.add('hidden');
+  result.classList.remove('acadep-ok', 'acadep-error');
+
+  function resetHandshakeBtn() {
+    spinner.style.display = 'none';         // fuerza ocultamiento — ignora especificidad CSS
+    btn.disabled      = false;
+    btn.style.opacity = '1';
+  }
+
+  fetch(state.apiBase + '/api/v2/analytics/test-connection', {
+    method: 'POST',
+    headers: {
+      'Content-Type':  'application/json',
+      'Authorization': 'Bearer ' + (state.sessionToken || ''),
+      'Accept':        'application/json',
+    },
+  })
+  .then(function (res) { return res.json(); })
+  .then(function (data) {
+    resetHandshakeBtn();
+    result.classList.remove('hidden');
+
+    var ts = Date.now();
+
+    if (data.success) {
+      result.classList.add('acadep-ok');
+      rIcon.textContent  = 'OK';
+      rTitle.textContent = 'Handshake exitoso — ACADEP responde correctamente.';
+      rLat.textContent   = data.latency_ms ? data.latency_ms + ' ms' : '';
+      var detail = 'Transaction ID: ' + (data.transaction_id || '—');
+      if (data.tokens_remaining !== undefined) { detail += '\nTokens restantes: ' + data.tokens_remaining; }
+      if (data.preview) { detail += '\nPreview: ' + data.preview; }
+      rDetail.textContent = detail;
+    } else {
+      result.classList.add('acadep-error');
+      rIcon.textContent   = 'ERR';
+      rTitle.textContent  = 'Handshake fallido';
+      rLat.textContent    = data.latency_ms ? data.latency_ms + ' ms' : '';
+      rDetail.textContent = data.error || 'Error desconocido del servidor ACADEP.';
+    }
+
+    // Pintar JSON completo de Guzzle en el terminal de telemetría
+    renderAcadepTerminal(data, ts);
+
+    // Persistir en localStorage para sobrevivir recargas de vista
+    try {
+      localStorage.setItem('acadep_last_handshake', JSON.stringify({ result: data, timestamp: ts }));
+    } catch (_) {}
+  })
+  .catch(function (networkErr) {
+    resetHandshakeBtn();
+    result.classList.remove('hidden');
+    result.classList.add('acadep-error');
+    rIcon.textContent   = '!!';
+    rTitle.textContent  = 'Error de red';
+    var errMsg = (networkErr && networkErr.message)
+      ? networkErr.message
+      : 'No se pudo alcanzar el backend. Verifica tu conexión.';
+    rDetail.textContent = errMsg;
+
+    var errData = { success: false, error: errMsg };
+    var ts = Date.now();
+    renderAcadepTerminal(errData, ts);
+    try {
+      localStorage.setItem('acadep_last_handshake', JSON.stringify({ result: errData, timestamp: ts }));
+    } catch (_) {}
+  });
+});
+
+/* ── Generar Query de Sincronización ACADEP ────────────────────────────────────
+   Llama al backend para hashear ACADEP_AURA_KEY con bcrypt cost=12 y construir
+   el UPDATE SQL listo para ejecutar en el servidor central ACADEP.
+   El resultado se imprime en el terminal de telemetría negro.
+   ─────────────────────────────────────────────────────────────────────────── */
+
+document.getElementById('acadep-gen-query-btn').addEventListener('click', function () {
+  var genBtn = document.getElementById('acadep-gen-query-btn');
+
+  // Estado de carga
+  var prevText     = genBtn.textContent;
+  genBtn.disabled  = true;
+  genBtn.textContent = '⏳ Generando hash bcrypt…';
+
+  var terminal   = document.getElementById('acadep-telemetry-terminal');
+  var output     = document.getElementById('acadep-terminal-output');
+  var statusEl   = document.getElementById('acadep-terminal-status');
+
+  apiFetch('/api/v2/admin/acadep/generate-query', { method: 'POST' })
+    .then(function (d) {
+      genBtn.disabled  = false;
+      genBtn.textContent = prevText;
+
+      if (!d.success) {
+        // Pintar error en terminal
+        if (terminal) terminal.style.display   = '';
+        if (terminal) terminal.style.borderColor = '#da3633';
+        if (statusEl) { statusEl.textContent = '● ERR'; statusEl.style.color = '#f85149'; }
+        if (output)   output.style.color = '#f85149';
+        if (output)   output.textContent =
+          '# ERROR AL GENERAR QUERY\n' +
+          '# ' + (d.error || 'Error desconocido.') + '\n\n' +
+          '# Verifica que ACADEP_AURA_KEY esté definida en el .env del servidor.';
+        return;
+      }
+
+      // Éxito — pintar SQL con instrucciones en terminal
+      var ts  = new Date().toLocaleString('es-MX', { hour12: false });
+      if (terminal) {
+        terminal.style.display     = '';
+        terminal.style.borderColor = '#238636';
+      }
+      if (statusEl) { statusEl.textContent = '● SQL'; statusEl.style.color = '#3fb950'; }
+      if (output) {
+        output.style.color = '#e3b341';   // amarillo dorado — diferencia visual del handshake
+        output.textContent =
+          '# QUERY DE SINCRONIZACIÓN DE CREDENCIAL ACADEP\n' +
+          '# Generado : ' + ts + '\n' +
+          '# Algoritmo: bcrypt · cost=12 · PASSWORD_BCRYPT (PHP)\n' +
+          '# ─────────────────────────────────────────────────────────\n' +
+          '# COPIA ESTA CONSULTA Y EJECÚTALA EN TU SERVIDOR CENTRAL DE ACADEP:\n\n' +
+          (d.sql || '') + '\n\n' +
+          '# ─────────────────────────────────────────────────────────\n' +
+          '# El hash es irreversible. La llave original permanece en .env.';
+      }
+
+      showToast('Query SQL generada. Cópiala del terminal.');
+    })
+    .catch(function (e) {
+      genBtn.disabled    = false;
+      genBtn.textContent = prevText;
+      showToast(e.message || 'Error al generar el query.', 'error');
+    });
+});

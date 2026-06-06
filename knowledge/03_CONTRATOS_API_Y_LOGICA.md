@@ -612,6 +612,127 @@ api_key (required), id (required|numeric), description, ubication, comission, si
 
 ---
 
+## 🤖 PULSESCOUT IA — CONTRATOS DE INTAKE MULTIMODAL
+
+> **Módulo:** PulseScout IA — Agente especializado en extracción y estructuración de intención multimodal.
+> **Fundación:** 2026-06-05
+> **Rol en la arquitectura:** Intercepta la solicitud del broker (texto, voz, imagen) → estructura la intención → solicita confirmación humana → despacha a AURA → pinta el reporte en HTML. CERO persistencia de archivos en el servidor.
+> **Auth:** Bearer `session_token` (Cache, patrón Bridge V2 — idéntico a Pulse Metrics IA).
+
+---
+
+### `POST /api/v2/pulsescout/intake`
+
+**Recibe el payload multimodal del broker, estructura la intención y devuelve la confirmación de intención para validación humana.**
+
+- **Middleware:** `throttle:10,1`
+- **TENANT LOCK:** `company_id` extraído del `session_token` del Cache — **PROHIBIDO** recibirlo del frontend.
+
+**Payload (JSON):**
+```json
+{
+  "input_type": "text | audio_b64 | image_b64",
+  "text":       "string|nullable  — consulta en texto libre (max 1000 chars)",
+  "audio_b64":  "string|nullable  — audio en Base64 (max 2 MB; formatos: webm/ogg/mp3)",
+  "image_b64":  "string|nullable  — imagen en Base64 (max 2 MB; formatos: png/jpg/jpeg/webp)",
+  "filename":   "string|nullable  — nombre original del archivo adjunto",
+  "context":    "string|nullable  — contexto adicional ya procesado (max 2000 chars)"
+}
+```
+
+**Reglas de validación:**
+- Al menos uno de `text`, `audio_b64`, `image_b64` debe estar presente.
+- `input_type = audio_b64` → `audio_b64` requerido.
+- `input_type = image_b64` → `image_b64` requerido.
+- `input_type = text` → `text` requerido y no vacío.
+- El Base64 de audio/imagen se valida con `base64_decode()` + verificación de magic bytes antes de pasar al modelo.
+
+**Response 200 — Confirmación de intención:**
+```json
+{
+  "success": true,
+  "intent": {
+    "detected_type": "inventory_status | contact_pipeline | financial_summary | custom",
+    "report_title": "string — título sugerido del reporte",
+    "report_description": "string — descripción breve de lo que AURA va a generar",
+    "confirmation_prompt": "string — pregunta para el humano (ej: '¿Te refieres al Reporte de Estatus de Inventario de Junio?')"
+  },
+  "extracted_query": "string — consulta procesada y sanitizada, lista para enviarse a AURA"
+}
+```
+
+**Response 401:**
+```json
+{ "success": false, "error": "No autenticado." }
+```
+
+**Response 422:**
+```json
+{ "success": false, "error": "Se requiere al menos un tipo de entrada: texto, audio o imagen." }
+```
+
+**Response 200 (fallo de IA — catch universal, PROHIBIDO el 500 al cliente):**
+```json
+{ "success": false, "error": "⚠️ PulseScout IA se encuentra procesando un alto volumen de datos. Intente de nuevo en un momento." }
+```
+
+---
+
+### `POST /api/v2/pulsescout/confirm`
+
+**Recibe la confirmación del broker y despacha la consulta definitiva a AURA para generar el informe.**
+
+- **Middleware:** `throttle:5,1`
+- **TENANT LOCK:** idéntico a `/intake`.
+
+**Payload (JSON):**
+```json
+{
+  "confirmed":      "boolean — true = broker aprobó / false = canceló",
+  "extracted_query":"string  — la consulta procesada devuelta por /intake",
+  "report_type":    "string  — tipo de reporte (de la respuesta de /intake)"
+}
+```
+
+**Response 200 (`confirmed: true`):**
+```json
+{
+  "success": true,
+  "report": "string — HTML estructurado del informe generado por AURA",
+  "metrics": {
+    "total_properties":       "int",
+    "published_properties":   "int",
+    "unpublished_properties": "int",
+    "total_contacts":         "int",
+    "company_name":           "string"
+  }
+}
+```
+
+**Response 200 (`confirmed: false`):**
+```json
+{
+  "success":   true,
+  "cancelled": true,
+  "message":   "Solicitud cancelada por el usuario."
+}
+```
+
+---
+
+### 🔒 Reglas de Seguridad Invariables — PulseScout IA
+
+| Regla | Contrato |
+|---|---|
+| **Tenant Lock Absoluto** | `company_id` SIEMPRE del `v2_session_{token}` en Cache — jamás del payload |
+| **Sanitización** | `strip_tags()` + `mb_substr()` en texto; Base64 validado con magic bytes para audio/imagen |
+| **Anti Prompt Injection** | Contenido de `audio_b64`/`image_b64` se pasa al modelo de transcripción/visión — nunca directamente al prompt de AURA sin sanitizar |
+| **CERO persistencia de archivos** | Todo Base64 se procesa en memoria RAM. **PROHIBIDO** escribir al disco del servidor |
+| **Catch Universal** | Todo fallo de API externa → HTTP 200 con `success: false`. **PROHIBIDO** el HTTP 500 al cliente |
+| **Naming** | `snake_case` en todos los campos JSON; rutas en `kebab-case` |
+
+---
+
 ### `GET /api/v2/bridge/validate?token={TOKEN}`
 
 **Intercambia el bridge token de 60 s por un session_token de 30 min. Destruye el bridge token al primer uso (anti-replay).**

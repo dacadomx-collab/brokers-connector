@@ -56,18 +56,33 @@
                                 <i class="fa fa-globe fa-icon"></i>&nbsp;
                                     <span class="mini-click-non ">Bolsa inmobiliaria</span>
                                 </a>
-                            
+
                         </li>
-                       
+
+                        {{-- Pulse Metrics IA — Transversal a todos los roles autenticados (Strangler Fig Pattern) --}}
+                        <li>
+                            <a href="{{ url('/home/v2/analytics-bridge') }}"
+                               target="_blank"
+                               title="Pulse Metrics IA — Informes y Reportes con Inteligencia Artificial">
+                                <i class="fa fa-bar-chart fa-icon" aria-hidden="true"></i>&nbsp;
+                                <span class="mini-click-non">
+                                    Pulse Metrics IA
+                                    <span class="label label-success pull-right">Nuevo</span>
+                                    <br>
+                                    <small>Informes &amp; Reportes con IA</small>
+                                </span>
+                            </a>
+                        </li>
+
                          @role('Admin')
                         {{-- Broker Brain IA — Motor de Tasación y CMA (Strangler Fig Pattern) --}}
                         <li>
-                            <a href="{{ route('v2.broker.brain.bridge') }}"
-                               title="Motor de Tasación Automática y CMA Dinámico">
-                                <i class="fa fa-bar-chart fa-icon" aria-hidden="true"></i>&nbsp;
+                            <a href="{{ route('v2.ai.hub.bridge') }}"
+                               title="Ecosistema Inteligente — Módulos de IA del Broker Brain">
+                                <i class="fa fa-magic fa-icon" aria-hidden="true"></i>&nbsp;
                                 <span class="mini-click-non">
                                     Broker Brain IA
-                                    <span class="label label-warning pull-right">Beta</span>
+                                    <span class="label label-primary pull-right">Hub</span>
                                 </span>
                             </a>
                         </li>
@@ -100,12 +115,12 @@
                         @hasrole('super_admin')
                         {{-- Broker Brain IA visible también para super_admin --}}
                         <li>
-                            <a href="{{ route('v2.broker.brain.bridge') }}"
-                               title="Motor de Tasación Automática y CMA Dinámico">
-                                <i class="fa fa-bar-chart fa-icon" aria-hidden="true"></i>&nbsp;
+                            <a href="{{ route('v2.ai.hub.bridge') }}"
+                               title="Ecosistema Inteligente — Módulos de IA del Broker Brain">
+                                <i class="fa fa-magic fa-icon" aria-hidden="true"></i>&nbsp;
                                 <span class="mini-click-non">
                                     Broker Brain IA
-                                    <span class="label label-warning pull-right">Beta</span>
+                                    <span class="label label-primary pull-right">Hub</span>
                                 </span>
                             </a>
                         </li>

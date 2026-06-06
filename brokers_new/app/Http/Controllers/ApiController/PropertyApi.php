@@ -92,9 +92,15 @@ class PropertyApi extends Controller
 
     public function getpropertiesgeneral(Request $request)
     {
-        // Parametros del request 
-        // ?location=&types=&status=&baths=&beds=&min=&max=
-        $query=Property::where("bbc_general", true)->where("published", true);
+        // Parámetros del request: ?location=&types=&status=&baths=&beds=&min=&max=
+        // Flags inyectadas por backend (inmutables, no sobrescribibles por el cliente):
+        //   bbc_general=true  → solo propiedades compartidas en bolsa BBC General
+        //   published=true    → solo propiedades publicadas en portales
+        //   luly bypass=true  → NO se aplica el scope luly() de PropertyStatus/PropertyType,
+        //                       por lo que todos los tipos/estados (incluidos luly=true) son válidos
+        $query = Property::where('bbc_general', true)
+                         ->where('published',    true)
+                         ->whereNull('deleted_at');
 
         if($request->location)
         {

@@ -49,14 +49,17 @@ class EnsureSuperAdminCompany
     }
 
     /**
-     * Lee SUPER_ADMIN_COMPANY_IDS del .env y retorna un array de enteros.
+     * Lee SUPER_ADMIN_COMPANY_IDS via config() — compatible con config:cache.
+     * env() directo devuelve vacío cuando la caché de configuración está activa,
+     * ya que la variable no pasa por ningún config/*.php. config() lee del caché compilado.
      * Ej: "17,55" → [17, 55]
      */
     private function resolveAllowedIds(): array
     {
-        $raw = env('SUPER_ADMIN_COMPANY_IDS', '');
+        // config() sobrevive a config:cache; env() no para variables fuera de config files.
+        $raw = config('services.super_admin_company_ids', env('SUPER_ADMIN_COMPANY_IDS', ''));
 
-        if (empty(trim($raw))) {
+        if (empty(trim((string) $raw))) {
             return [];
         }
 
@@ -64,7 +67,7 @@ class EnsureSuperAdminCompany
             array_filter(
                 array_map(
                     'intval',
-                    explode(',', $raw)
+                    explode(',', (string) $raw)
                 ),
                 fn (int $id) => $id > 0
             )

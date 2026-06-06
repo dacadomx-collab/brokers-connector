@@ -6,6 +6,7 @@
   <title>Broker Brain IA — Motor de Tasación</title>
   <link rel="stylesheet" href="../shared/v2.css" />
   <link rel="stylesheet" href="broker-brain.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
 </head>
 <body class="v2-root">
 
@@ -19,19 +20,10 @@
   <!-- ══ PANTALLA: Error de sesión ══════════════════════════════════ -->
   <div id="screen-error" class="bb-screen" style="display:none;">
     <div class="bb-screen-icon">🔐</div>
-    <p class="bb-screen-title">Sesión inválida o expirada</p>
+    <p class="bb-screen-title">Sesi&oacute;n inv&aacute;lida o expirada</p>
     <p class="bb-screen-sub" id="error-msg">Regresa al panel e intenta de nuevo.</p>
-    <a href="/home" style="
-      display:inline-block;
-      margin-top:0.5rem;
-      padding:0.625rem 1.25rem;
-      background:#0891b2;
-      color:#fff;
-      border-radius:8px;
-      font-weight:700;
-      text-decoration:none;
-      font-size:0.9375rem;">
-      Volver al Panel
+    <a id="error-back-btn" href="#" class="bb-btn-back">
+      <i class="fa fa-arrow-left"></i> Volver al Panel
     </a>
   </div>
 
@@ -51,15 +43,82 @@
             <div class="bb-brand-role">Motor de Tasación y CMA Dinámico</div>
           </div>
         </div>
-        <div style="display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap;">
-          <span id="hdr-actor" style="font-size:0.8125rem;color:var(--v2-text-subtle);"></span>
-          <button class="bb-logout-btn" onclick="goBack()" title="Volver al dashboard Legacy">
-            ← Panel de Control
+        <div class="v2-header-right">
+          <span id="hdr-actor" style="font-size:0.8125rem;color:var(--v2-text-subtle);margin-right:4px;"></span>
+          <!-- Nav desktop — 3 botones estándar V2 -->
+          <nav class="v2-nav-desktop">
+            <a id="nav-ai-hub" href="#" class="v2-nav-link">
+              <i class="fa fa-magic"></i> Broker Brain IA
+            </a>
+            <a id="nav-panel" href="#" class="v2-nav-link">
+              <i class="fa fa-th-large"></i> Panel de Control
+            </a>
+            <a id="nav-logout" href="#" class="v2-nav-link v2-nav-logout">
+              <i class="fa fa-sign-out"></i> Cerrar Sesi&oacute;n
+            </a>
+          </nav>
+          <button class="v2-hamburger" id="hamburger-btn"
+                  aria-expanded="false" aria-label="Abrir men&uacute;">
+            <span></span><span></span><span></span>
           </button>
-          <button class="bb-logout-btn" onclick="logout()">Cerrar sesión</button>
         </div>
       </div>
+
+      <!-- Menú móvil -->
+      <nav class="v2-mobile-menu" id="mobile-menu" aria-hidden="true">
+        <a id="nav-ai-hub-m" href="#" class="v2-mobile-link">
+          <i class="fa fa-magic"></i> Regresar a Broker Brain IA
+        </a>
+        <a id="nav-panel-m" href="#" class="v2-mobile-link">
+          <i class="fa fa-th-large"></i> Panel de Control
+        </a>
+        <a id="nav-logout-m" href="#" class="v2-mobile-link v2-nav-logout">
+          <i class="fa fa-sign-out"></i> Cerrar Sesi&oacute;n
+        </a>
+      </nav>
     </header>
+
+    <!-- ══ MANUAL: Valuador Inteligente (CMA) ════════════════════ -->
+    <div class="ai-manual-wrapper bb-manual-wrapper">
+      <div class="ai-manual-container" id="ai-manual-cma">
+        <div class="ai-manual-header">
+          <div class="ai-manual-title">
+            <i class="fa fa-graduation-cap"></i>
+            <span>&iquest;C&oacute;mo funciona el Valuador Inteligente (CMA)?</span>
+          </div>
+          <button class="ai-manual-toggle" id="cma-manual-toggle"
+                  aria-expanded="true" aria-controls="cma-manual-body">
+            <i class="fa fa-chevron-up"></i>
+            <span id="cma-manual-text">Ocultar gu&iacute;a</span>
+          </button>
+        </div>
+        <div class="ai-manual-body" id="cma-manual-body">
+          <div class="ai-manual-steps">
+            <div class="ai-manual-step">
+              <div class="ai-manual-step-num">1</div>
+              <div class="ai-manual-step-content">
+                <p class="ai-step-heading"><i class="fa fa-keyboard-o"></i> Captura de Variables</p>
+                <p class="ai-step-desc">Se ingresan metros cuadrados, tipo y ubicaci&oacute;n de la propiedad para inicializar el an&aacute;lisis comparativo de mercado.</p>
+              </div>
+            </div>
+            <div class="ai-manual-step">
+              <div class="ai-manual-step-num">2</div>
+              <div class="ai-manual-step-content">
+                <p class="ai-step-heading"><i class="fa fa-sitemap"></i> Cruce de Capas Operativas</p>
+                <p class="ai-step-desc">AURA analiza comparables activos del tenant (L1 CP exacto / L2 zona ampliada) con confianza del 55&ndash;95%.</p>
+              </div>
+            </div>
+            <div class="ai-manual-step">
+              <div class="ai-manual-step-num">3</div>
+              <div class="ai-manual-step-content">
+                <p class="ai-step-heading"><i class="fa fa-bolt"></i> Mecanismo Failover Activado</p>
+                <p class="ai-step-desc">Si la zona no tiene inventario, la IA genera una tasaci&oacute;n sint&eacute;tica basada en las 17 bandas macroecon&oacute;micas regionales de M&eacute;xico.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <!-- Main -->
     <main class="bb-main">

@@ -155,10 +155,7 @@ class BrokerBrainController extends Controller
             $synthResult = $this->synthesizeFromAI($validated, $companyId);
 
             if ($synthResult === null) {
-                return response()->json([
-                    'success' => false,
-                    'error'   => 'El motor de IA no está disponible. Verifica los proveedores activos en el Orquestador IA.',
-                ], 422);
+                $synthResult = $this->interpolateSyntheticFallback($validated);
             }
 
             $domDays = ($synthResult['suggested_dom_days'] ?? 0) > 0
@@ -263,10 +260,7 @@ class BrokerBrainController extends Controller
         $synthResult = $this->synthesizeFromAI($validated, $companyId);
 
         if ($synthResult === null) {
-            return response()->json([
-                'success' => false,
-                'error'   => 'No hay comparables locales y el motor de IA no está disponible. Verifica los proveedores activos en el Orquestador IA.',
-            ], 422);
+            $synthResult = $this->interpolateSyntheticFallback($validated);
         }
 
         $domDays = ($synthResult['suggested_dom_days'] ?? 0) > 0
@@ -917,6 +911,64 @@ PROMPT;
     private function sanitizeTitle(string $title): string
     {
         return mb_substr(strip_tags($title), 0, 80);
+    }
+
+    private function interpolateSyntheticFallback(array $input): array
+    {
+        $cp      = (string) $input['zipcode'];
+        $prefix2 = (int) substr($cp, 0, 2);
+        $area    = max(1.0, (float) $input['totalArea']);
+
+        $bands = [
+            [ 1,  6,  60000, 100000, 'CDMX Centro'],
+            [ 7, 16,  35000,  80000, 'CDMX Periferia'],
+            [17, 19,  20000,  45000, 'CDMX Limite / Estado de Mexico'],
+            [20, 25,  12000,  22000, 'Aguascalientes / Zacatecas'],
+            [36, 38,  14000,  28000, 'Guanajuato'],
+            [40, 43,  14000,  30000, 'San Luis Potosi / Zacatecas'],
+            [44, 49,  16000,  38000, 'ZMG Guadalajara'],
+            [50, 57,  12000,  25000, 'Estado de Mexico'],
+            [58, 61,  14000,  28000, 'Michoacan'],
+            [62, 63,  18000,  40000, 'Morelos (Cuernavaca)'],
+            [64, 67,  18000,  45000, 'ZMM Monterrey'],
+            [68, 69,  12000,  22000, 'Nuevo Leon Interior'],
+            [76, 77,  16000,  36000, 'Queretaro'],
+            [80, 82,  14000,  28000, 'Sinaloa'],
+            [83, 85,  14000,  30000, 'Sonora'],
+            [86, 87,  12000,  22000, 'Tabasco / Chiapas Norte'],
+            [97, 97,  14000,  32000, 'Merida / Yucatan'],
+        ];
+
+        $minPsqm  = 10000;
+        $maxPsqm  = 18000;
+        $zoneDesc = 'zona sin banda definida (referencia nacional minima)';
+
+        foreach ($bands as [$lo, $hi, $min, $max, $desc]) {
+            if ($prefix2 >= $lo && $prefix2 <= $hi) {
+                $minPsqm  = $min;
+                $maxPsqm  = $max;
+                $zoneDesc = $desc;
+                break;
+            }
+        }
+
+        $midPsqm        = ($minPsqm + $maxPsqm) / 2;
+        $estimatedValue = round($midPsqm * $area, -3);
+
+        return [
+            'estimated_value'    => $estimatedValue,
+            'price_per_sqm'      => round($midPsqm, 2),
+            'price_range_min'    => round($minPsqm * $area, -3),
+            'price_range_max'    => round($maxPsqm * $area, -3),
+            'suggested_dom_days' => 120,
+            'confidence_score'   => 18,
+            'explainability'     => "Modo de ultimo recurso: sin comparables en DB y sin proveedor IA activo. Interpolacion por bandas regionales ({$zoneDesc}). CP: {$cp}. Confianza minima.",
+            'pricing_verdict'    => 'Precio estimado por interpolacion regional. Validar con fuentes externas.',
+            'buyer_psychology'   => 'Analisis de perfil comprador no disponible por ausencia de datos locales.',
+            'seller_strategy'    => 'Consultar valuador certificado para respaldar estrategia de precio.',
+            'closing_argument'   => 'Esta propiedad merece una tasacion formal para negociar con certeza.',
+            'market_summary'     => "Sin datos suficientes en CP {$cp}. Estimacion regional de referencia.",
+        ];
     }
 
     private function extractBearerToken(Request $request): ?string

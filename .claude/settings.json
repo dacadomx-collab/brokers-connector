@@ -2,7 +2,10 @@
   "permissions": {
     "allow": [
       "PowerShell(& \"C:\\\\xampp\\\\php\\\\php.exe\" \"c:\\\\xampp\\\\htdocs\\\\brokersconnect_dev\\\\brokers_new\\\\artisan\" migrate --force 2>&1)",
-      "Bash(powershell -Command \"\\(Get-Content 'c:\\\\xampp\\\\htdocs\\\\brokersconnect_dev\\\\public_html\\\\newbrokers\\\\v2\\\\admin\\\\security.css' | Measure-Object -Line\\).Lines\")"
+      "Bash(powershell -Command \"\\(Get-Content 'c:\\\\xampp\\\\htdocs\\\\brokersconnect_dev\\\\public_html\\\\newbrokers\\\\v2\\\\admin\\\\security.css' | Measure-Object -Line\\).Lines\")",
+      "Read(//c/Users/SERVIDOR/.claude/projects/c--xampp-htdocs-brokersconnect-dev/memory/**)",
+      "Bash(dir \"c:\\\\xampp\\\\htdocs\\\\brokersconnect_dev\\\\public_html\\\\newbrokers\\\\v2\\\\radar\")",
+      "Bash(dir \"c:\\\\xampp\\\\htdocs\\\\brokersconnect_dev\\\\public_html\\\\newbrokers\\\\v2\\\\ai-hub\")"
     ]
   }
 }

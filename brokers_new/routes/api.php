@@ -104,6 +104,18 @@ Route::prefix('v2')->group(function () {
     Route::get('/bridge/validate',  'Api\V2BridgeController@bridgeValidate');
     Route::post('/subscriptions',   'Api\V2BridgeController@subscribe');
 
+    // Radar de Plusvalía — Auth: Bearer session_token (Cache, patrón Bridge V2)
+    Route::get('/radar/heatmap',        'Api\V2RadarController@heatmap')->middleware('throttle:30,1');
+    Route::get('/radar/zone/{zipcode}', 'Api\V2RadarController@zoneDetail')->middleware('throttle:60,1');
+
+    // BrokerPulse AI — Reportes e Informes con IA. Auth: Bearer session_token (Cache, patrón Bridge V2).
+    Route::get('/analytics/validate',         'Api\AiAnalyticsController@bridgeAnalyticsValidate');
+    Route::post('/analytics/query',           'Api\AiAnalyticsController@query')->middleware('throttle:10,1');
+
+    // ACADEP AURA — Handshake / Test de Conexión. Auth: Passport OAuth2 (super_admin).
+    Route::post('/analytics/test-connection', 'Api\AiAnalyticsController@testAcadepConnection')
+        ->middleware(['auth:api', 'role:super_admin', 'throttle:5,1']);
+
     // Regla de monetización — accesible por Admins (auth:api)
     Route::middleware(['auth:api'])->group(function () {
         Route::get('/my-company/user-quota', 'Api\UserQuotaController@check');
@@ -150,6 +162,15 @@ Route::prefix('v2')->group(function () {
         Route::get('/ai-prompts',                    'Api\SuperAdminController@listAiPrompts');
         Route::put('/ai-prompts/{slug}',             'Api\SuperAdminController@updateAiPrompt');
         Route::post('/ai-prompts/{slug}/test',       'Api\SuperAdminController@testAiPrompt');
+
+        // Purga de Proveedores IA — borrado físico con limpieza de caché
+        Route::delete('/ai-providers/{id}',          'Api\AiAnalyticsController@deleteAiProvider');
+
+        // Telemetría estática de ACADEP — lee .env del servidor (sin acceder a ai_settings)
+        Route::get('/acadep/status',                 'Api\AiAnalyticsController@acadepStatus');
+
+        // Utilería de rotación: genera hash bcrypt del ACADEP_AURA_KEY y construye el SQL de sincronización
+        Route::post('/acadep/generate-query',        'Api\AiAnalyticsController@generateAcadepSyncQuery');
     });
 });
 

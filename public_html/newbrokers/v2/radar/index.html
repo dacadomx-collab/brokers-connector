@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Radar de Plusvalía — Broker Brain IA</title>
+  <link rel="stylesheet" href="../shared/v2.css">
+  <link rel="stylesheet" href="radar.css">
+  <!-- Font Awesome 4.7 — iconos de UI -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+  <!-- Leaflet — mapa de calor interactivo (sin API key) -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+        crossorigin="anonymous">
+</head>
+<body class="v2-root">
+
+  <!-- ══ PANTALLA: CARGANDO ══════════════════════════════════════ -->
+  <div id="screen-loading" class="v2-screen">
+    <div class="v2-spinner"></div>
+    <p class="v2-loading-text">Inicializando Radar de Plusvalía&hellip;</p>
+  </div>
+
+  <!-- ══ PANTALLA: ERROR ═════════════════════════════════════════ -->
+  <div id="screen-error" class="v2-screen hidden">
+    <div class="v2-error-card">
+      <div class="v2-error-icon">🔒</div>
+      <h2>Acceso denegado</h2>
+      <p id="error-message">Este enlace ya no es válido. Regresa al panel e intenta de nuevo.</p>
+      <a href="#" id="error-back-btn" class="v2-btn v2-btn-primary">
+        <i class="fa fa-arrow-left"></i> Volver al panel
+      </a>
+    </div>
+  </div>
+
+  <!-- ══ PANTALLA: RADAR PRINCIPAL ══════════════════════════════ -->
+  <div id="screen-main" class="v2-screen hidden"
+       style="display:none; flex-direction:column; justify-content:flex-start;
+              padding:0; min-height:100vh; align-items:stretch;">
+
+    <!-- ── Header ────────────────────────────────────────────── -->
+    <header class="v2-header">
+      <a href="#" id="header-logo-link" class="v2-header-logo">
+        <img id="header-logo-img" src="" alt="Brokers Connector" height="36"
+             style="max-width:160px; display:block;">
+        <span id="header-logo-fallback"
+              style="display:none; align-items:center; gap:8px; font-size:17px; font-weight:700;">
+          <i class="fa fa-home"></i>
+          Brokers <span style="color:var(--v2-accent);">Connector</span>
+        </span>
+      </a>
+
+      <div class="v2-header-right">
+        <!-- Nav desktop — 3 botones estándar V2 -->
+        <nav class="v2-nav-desktop">
+          <a id="nav-ai-hub" href="#" class="v2-nav-link">
+            <i class="fa fa-magic"></i> Broker Brain IA
+          </a>
+          <a id="nav-panel" href="#" class="v2-nav-link">
+            <i class="fa fa-th-large"></i> Panel de Control
+          </a>
+          <a id="nav-logout" href="#" class="v2-nav-link v2-nav-logout">
+            <i class="fa fa-sign-out"></i> Cerrar Sesi&oacute;n
+          </a>
+        </nav>
+        <!-- Hamburger -->
+        <button class="v2-hamburger" id="hamburger-btn"
+                aria-expanded="false" aria-label="Abrir menú">
+          <span></span><span></span><span></span>
+        </button>
+      </div>
+
+      <!-- Menú móvil -->
+      <nav class="v2-mobile-menu" id="mobile-menu" aria-hidden="true">
+        <a id="nav-ai-hub-m" href="#" class="v2-mobile-link">
+          <i class="fa fa-magic"></i> Regresar a Broker Brain IA
+        </a>
+        <a id="nav-panel-m" href="#" class="v2-mobile-link">
+          <i class="fa fa-th-large"></i> Panel de Control
+        </a>
+        <a id="nav-logout-m" href="#" class="v2-mobile-link v2-nav-logout">
+          <i class="fa fa-sign-out"></i> Cerrar Sesi&oacute;n
+        </a>
+      </nav>
+    </header>
+
+    <!-- ── Contenido principal ───────────────────────────────── -->
+    <main class="radar-main">
+
+      <!-- ══ MANUAL: Radar de Plusvalía ════════════════════════ -->
+      <div class="ai-manual-container" id="ai-manual-radar">
+        <div class="ai-manual-header">
+          <div class="ai-manual-title">
+            <i class="fa fa-graduation-cap"></i>
+            <span>&iquest;C&oacute;mo funciona el Radar de Plusval&iacute;a?</span>
+          </div>
+          <button class="ai-manual-toggle" id="radar-manual-toggle"
+                  aria-expanded="true" aria-controls="radar-manual-body">
+            <i class="fa fa-chevron-up"></i>
+            <span id="radar-manual-text">Ocultar gu&iacute;a</span>
+          </button>
+        </div>
+        <div class="ai-manual-body" id="radar-manual-body">
+          <div class="ai-manual-steps">
+            <div class="ai-manual-step">
+              <div class="ai-manual-step-num">1</div>
+              <div class="ai-manual-step-content">
+                <p class="ai-step-heading"><i class="fa fa-map"></i> Mapa T&eacute;rmico Din&aacute;mico</p>
+                <p class="ai-step-desc">La intensidad del color visual (0 al 100) refleja la concentraci&oacute;n de precios por metro cuadrado en cada zona geogr&aacute;fica.</p>
+              </div>
+            </div>
+            <div class="ai-manual-step">
+              <div class="ai-manual-step-num">2</div>
+              <div class="ai-manual-step-content">
+                <p class="ai-step-heading"><i class="fa fa-line-chart"></i> An&aacute;lisis Cinematogr&aacute;fico</p>
+                <p class="ai-step-desc">C&oacute;mputo en background de variaciones porcentuales de precios entre periodos de tiempo para detectar tendencias de mercado.</p>
+              </div>
+            </div>
+            <div class="ai-manual-step">
+              <div class="ai-manual-step-num">3</div>
+              <div class="ai-manual-step-content">
+                <p class="ai-step-heading"><i class="fa fa-building-o"></i> Se&ntilde;ales Urbanas</p>
+                <p class="ai-step-desc">Inferencia de AURA sobre vectores de gentrificaci&oacute;n y motores de crecimiento comercial por colonia y c&oacute;digo postal.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Barra de título + filtros -->
+      <div class="radar-topbar">
+        <div class="radar-title-group">
+          <h1 class="radar-title">
+            <i class="fa fa-map-marker" style="color:var(--v2-accent);"></i>
+            Radar de Plusvalía
+          </h1>
+          <p class="radar-subtitle">
+            Análisis de mercado por zona &mdash; <span id="company-name" class="radar-company"></span>
+          </p>
+        </div>
+        <div class="radar-toolbar">
+          <select id="filter-status" class="radar-select">
+            <option value="">Todas las operaciones</option>
+          </select>
+          <select id="filter-type" class="radar-select">
+            <option value="">Todos los tipos</option>
+          </select>
+          <button id="btn-refresh" class="v2-btn v2-btn-ghost radar-refresh-btn" title="Forzar actualización">
+            <i class="fa fa-refresh"></i>
+            <span class="radar-refresh-label">Actualizar</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Barra de KPIs -->
+      <div class="radar-kpi-bar" id="kpi-bar">
+        <div class="radar-kpi">
+          <span class="radar-kpi-value" id="kpi-zones">—</span>
+          <span class="radar-kpi-label">Zonas</span>
+        </div>
+        <div class="radar-kpi">
+          <span class="radar-kpi-value" id="kpi-listings">—</span>
+          <span class="radar-kpi-label">Propiedades</span>
+        </div>
+        <div class="radar-kpi">
+          <span class="radar-kpi-value" id="kpi-hottest">—</span>
+          <span class="radar-kpi-label">Zona más caliente</span>
+        </div>
+        <div class="radar-kpi">
+          <span class="radar-kpi-value" id="kpi-avg-m2">—</span>
+          <span class="radar-kpi-label">Precio / m² prom.</span>
+        </div>
+      </div>
+
+      <!-- Grid principal: mapa + sidebar -->
+      <div class="radar-body">
+
+        <!-- Columna izquierda: mapa -->
+        <div class="radar-left">
+          <div class="radar-map-container" id="radar-map">
+            <!-- Leaflet se monta aquí. El placeholder desaparece cuando el mapa carga. -->
+            <div class="radar-map-placeholder" id="map-placeholder">
+              <div class="v2-spinner"></div>
+              <p class="v2-loading-text">Cargando mapa&hellip;</p>
+            </div>
+          </div>
+          <!-- Leyenda de calor -->
+          <div class="radar-legend">
+            <span class="radar-legend-label">Precio / m²</span>
+            <div class="radar-legend-gradient"></div>
+            <div class="radar-legend-ends">
+              <span>Menor</span>
+              <span>Mayor</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Columna derecha: sidebar -->
+        <div class="radar-sidebar">
+
+          <!-- Panel: lista de zonas (visible por defecto) -->
+          <div id="panel-list">
+            <div class="sidebar-header">
+              <h2 class="sidebar-title">Zonas detectadas</h2>
+              <p class="sidebar-hint">Haz clic en una zona para ver el análisis detallado</p>
+            </div>
+            <!-- Skeleton mientras carga -->
+            <div id="zone-skeleton" class="zone-skeleton-list">
+              <div class="zone-skeleton-card"></div>
+              <div class="zone-skeleton-card"></div>
+              <div class="zone-skeleton-card"></div>
+            </div>
+            <div id="zone-list" class="zone-list"></div>
+          </div>
+
+          <!-- Panel: detalle de zona (oculto hasta selección) -->
+          <div id="panel-detail" class="hidden">
+            <div class="sidebar-header">
+              <button id="btn-back" class="v2-btn v2-btn-ghost detail-back-btn">
+                <i class="fa fa-arrow-left"></i> Todas las zonas
+              </button>
+              <h2 class="sidebar-title" style="margin-top:12px;">
+                Zona <span id="detail-zip" class="detail-zip-badge"></span>
+              </h2>
+            </div>
+            <div id="zone-detail-content">
+              <div class="v2-screen" style="min-height:auto; padding:40px 0;">
+                <div class="v2-spinner"></div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </main>
+
+    <!-- ── Footer ─────────────────────────────────────────────── -->
+    <footer class="v2-footer">
+      &copy; <span id="footer-year"></span> Brokers Connector &mdash;
+      <a id="footer-privacy" href="#" target="_blank" rel="noopener">Aviso de privacidad</a>
+    </footer>
+
+  </div><!-- /screen-main -->
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+          integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV/XN/WPeE="
+          crossorigin="anonymous"></script>
+  <script src="radar.js"></script>
+</body>
+</html>

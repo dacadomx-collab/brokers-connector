@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Broker Brain IA — Ecosistema Inteligente</title>
+  <link rel="stylesheet" href="../shared/v2.css">
+  <link rel="stylesheet" href="hub.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+</head>
+<body class="v2-root">
+
+  <!-- ══ PANTALLA: CARGANDO ══════════════════════════════════════ -->
+  <div id="screen-loading" class="v2-screen">
+    <div class="v2-spinner"></div>
+    <p class="v2-loading-text">Inicializando Broker Brain IA&hellip;</p>
+  </div>
+
+  <!-- ══ PANTALLA: ERROR ═════════════════════════════════════════ -->
+  <div id="screen-error" class="v2-screen hidden">
+    <div class="v2-error-card">
+      <div class="v2-error-icon">🔒</div>
+      <h2>Acceso denegado</h2>
+      <p id="error-message">Este enlace ya no es válido. Regresa al panel e intenta de nuevo.</p>
+      <a href="#" id="error-back-btn" class="v2-btn v2-btn-primary">
+        <i class="fa fa-arrow-left"></i> Volver al panel
+      </a>
+    </div>
+  </div>
+
+  <!-- ══ PANTALLA: HUB PRINCIPAL ════════════════════════════════ -->
+  <div id="screen-main" class="v2-screen hidden"
+       style="display:none; flex-direction:column; justify-content:flex-start;
+              padding:0; min-height:100vh; align-items:stretch;">
+
+    <!-- ── Header ────────────────────────────────────────────── -->
+    <header class="v2-header">
+      <a href="#" id="header-logo-link" class="v2-header-logo">
+        <img id="header-logo-img" src="" alt="Brokers Connector" height="36"
+             style="max-width:160px; display:block;">
+        <span id="header-logo-fallback"
+              style="display:none; align-items:center; gap:8px; font-size:17px; font-weight:700;">
+          <i class="fa fa-home"></i>
+          Brokers <span style="color:var(--v2-accent);">Connector</span>
+        </span>
+      </a>
+
+      <div class="v2-header-right">
+        <!-- Nav desktop — 3 botones estándar V2 -->
+        <nav class="v2-nav-desktop">
+          <a id="nav-ai-hub" href="#" class="v2-nav-link">
+            <i class="fa fa-magic"></i> Broker Brain IA
+          </a>
+          <a id="nav-panel" href="#" class="v2-nav-link">
+            <i class="fa fa-th-large"></i> Panel de Control
+          </a>
+          <a id="nav-logout" href="#" class="v2-nav-link v2-nav-logout">
+            <i class="fa fa-sign-out"></i> Cerrar Sesi&oacute;n
+          </a>
+        </nav>
+        <button class="v2-hamburger" id="hamburger-btn"
+                aria-expanded="false" aria-label="Abrir menú">
+          <span></span><span></span><span></span>
+        </button>
+      </div>
+
+      <!-- Menú móvil -->
+      <nav class="v2-mobile-menu" id="mobile-menu" aria-hidden="true">
+        <a id="nav-ai-hub-m" href="#" class="v2-mobile-link">
+          <i class="fa fa-magic"></i> Regresar a Broker Brain IA
+        </a>
+        <a id="nav-panel-m" href="#" class="v2-mobile-link">
+          <i class="fa fa-th-large"></i> Panel de Control
+        </a>
+        <a id="nav-logout-m" href="#" class="v2-mobile-link v2-nav-logout">
+          <i class="fa fa-sign-out"></i> Cerrar Sesi&oacute;n
+        </a>
+      </nav>
+    </header>
+
+    <!-- ── Hero ──────────────────────────────────────────────── -->
+    <section class="hub-hero">
+      <div class="hub-hero-glow hub-hero-glow--left"  aria-hidden="true"></div>
+      <div class="hub-hero-glow hub-hero-glow--right" aria-hidden="true"></div>
+      <div class="hub-hero-dots"                      aria-hidden="true"></div>
+      <div class="hub-hero-content">
+        <div class="hub-hero-icon" aria-hidden="true">
+          <i class="fa fa-magic"></i>
+        </div>
+        <h1 class="hub-hero-title">Broker Brain <span class="hub-hero-accent">IA</span></h1>
+        <p class="hub-hero-sub">Tu Ecosistema Inteligente de Análisis Inmobiliario</p>
+        <div class="hub-hero-company">
+          <i class="fa fa-building-o"></i>
+          <span id="company-name">Cargando&hellip;</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Módulos ────────────────────────────────────────────── -->
+    <main class="hub-main">
+
+      <div class="hub-section-header">
+        <h2 class="hub-section-title">Módulos disponibles</h2>
+        <p class="hub-section-sub">Selecciona un módulo para comenzar tu análisis</p>
+      </div>
+
+      <div class="hub-grid">
+
+        <!-- ── FASE 1: CMA IA — ACTIVO ────────────────────────── -->
+        <article class="hub-card hub-card--active">
+          <div class="hub-card-header">
+            <div class="hub-card-icon hub-card-icon--indigo">
+              <i class="fa fa-balance-scale"></i>
+            </div>
+            <div class="hub-card-meta">
+              <span class="hub-badge hub-badge--active">
+                <i class="fa fa-circle"></i> Activo
+              </span>
+              <span class="hub-phase">Fase 1</span>
+            </div>
+          </div>
+          <div class="hub-card-body">
+            <h3 class="hub-card-title">Valuador Inteligente de Mercado</h3>
+            <p class="hub-card-tag">CMA IA — Análisis de Comparables</p>
+            <p class="hub-card-desc">
+              Valuación automática basada en comparables reales de tu cartera.
+              Genera reportes de CMA con nivel de confianza e inteligencia de AURA.
+            </p>
+            <ul class="hub-card-features">
+              <li><i class="fa fa-check"></i> Comparables por Código Postal</li>
+              <li><i class="fa fa-check"></i> Motor 3-Layer Cascade</li>
+              <li><i class="fa fa-check"></i> Reportes exportables</li>
+            </ul>
+          </div>
+          <div class="hub-card-footer">
+            <button id="btn-cma" class="v2-btn v2-btn-primary hub-btn-action"
+                    data-module="cma">
+              <i class="fa fa-external-link"></i> Abrir Valuador
+            </button>
+          </div>
+        </article>
+
+        <!-- ── FASE 2: RADAR — NUEVO/BETA ─────────────────────── -->
+        <article class="hub-card hub-card--beta">
+          <div class="hub-card-header">
+            <div class="hub-card-icon hub-card-icon--amber">
+              <i class="fa fa-map-marker"></i>
+            </div>
+            <div class="hub-card-meta">
+              <span class="hub-badge hub-badge--beta">
+                <i class="fa fa-star"></i> Nuevo · Beta
+              </span>
+              <span class="hub-phase">Fase 2</span>
+            </div>
+          </div>
+          <div class="hub-card-body">
+            <h3 class="hub-card-title">Radar de Plusvalía</h3>
+            <p class="hub-card-tag">Crecimiento Urbano — Mapas de Calor</p>
+            <p class="hub-card-desc">
+              Detecta zonas de alta plusvalía y señales tempranas de gentrificación.
+              Visualiza tendencias de mercado por código postal con mapas interactivos.
+            </p>
+            <ul class="hub-card-features">
+              <li><i class="fa fa-check"></i> Mapa de calor de precios/m²</li>
+              <li><i class="fa fa-check"></i> Señales de gentrificación</li>
+              <li><i class="fa fa-check"></i> Análisis por zona</li>
+            </ul>
+          </div>
+          <div class="hub-card-footer">
+            <button id="btn-radar" class="v2-btn v2-btn-primary hub-btn-action hub-btn-action--beta"
+                    data-module="radar">
+              <i class="fa fa-external-link"></i> Abrir Radar
+            </button>
+          </div>
+        </article>
+
+        <!-- ── FASE 3: COPYWRITING — PRÓXIMAMENTE ─────────────── -->
+        <article class="hub-card hub-card--disabled" aria-disabled="true">
+          <div class="hub-card-header">
+            <div class="hub-card-icon hub-card-icon--teal">
+              <i class="fa fa-pencil"></i>
+            </div>
+            <div class="hub-card-meta">
+              <span class="hub-badge hub-badge--soon">
+                <i class="fa fa-clock-o"></i> Próximamente
+              </span>
+              <span class="hub-phase">Fase 3</span>
+            </div>
+          </div>
+          <div class="hub-card-body">
+            <h3 class="hub-card-title">Asistente de Copywriting</h3>
+            <p class="hub-card-tag">Marketing Inteligente — Contenido Automático</p>
+            <p class="hub-card-desc">
+              Generación de descripciones magnéticas, guiones de video y campañas
+              de marketing personalizadas con IA entrenada en el sector inmobiliario.
+            </p>
+            <ul class="hub-card-features">
+              <li><i class="fa fa-clock-o"></i> Descripciones de propiedades</li>
+              <li><i class="fa fa-clock-o"></i> Guiones de video tour</li>
+              <li><i class="fa fa-clock-o"></i> Campañas de email</li>
+            </ul>
+          </div>
+          <div class="hub-card-footer">
+            <div class="hub-coming-soon">
+              <i class="fa fa-code"></i> En Desarrollo
+            </div>
+          </div>
+        </article>
+
+        <!-- ── FASE 4: LEGAL — EN ESPERA ──────────────────────── -->
+        <article class="hub-card hub-card--disabled" aria-disabled="true">
+          <div class="hub-card-header">
+            <div class="hub-card-icon hub-card-icon--purple">
+              <i class="fa fa-gavel"></i>
+            </div>
+            <div class="hub-card-meta">
+              <span class="hub-badge hub-badge--soon">
+                <i class="fa fa-hourglass-o"></i> En Espera
+              </span>
+              <span class="hub-phase">Fase 4</span>
+            </div>
+          </div>
+          <div class="hub-card-body">
+            <h3 class="hub-card-title">Asesor Legal y Contratos Smart</h3>
+            <p class="hub-card-tag">Compliance IA — Documentación Automática</p>
+            <p class="hub-card-desc">
+              Auditoría inteligente de documentos legales, generación automatizada
+              de contratos de compraventa y detección de cláusulas de riesgo.
+            </p>
+            <ul class="hub-card-features">
+              <li><i class="fa fa-hourglass-o"></i> Análisis de contratos</li>
+              <li><i class="fa fa-hourglass-o"></i> Generación automática</li>
+              <li><i class="fa fa-hourglass-o"></i> Alertas de riesgo legal</li>
+            </ul>
+          </div>
+          <div class="hub-card-footer">
+            <div class="hub-coming-soon">
+              <i class="fa fa-lock"></i> En Espera
+            </div>
+          </div>
+        </article>
+
+      </div><!-- /hub-grid -->
+
+      <!-- Nota de roadmap -->
+      <div class="hub-roadmap-note">
+        <i class="fa fa-road"></i>
+        Nuevo módulo disponible cada trimestre ·
+        <a id="hub-back-panel" href="#" class="hub-roadmap-link">Volver al panel</a>
+      </div>
+
+    </main>
+
+    <!-- ── Footer ─────────────────────────────────────────────── -->
+    <footer class="v2-footer">
+      &copy; <span id="footer-year"></span> Brokers Connector &mdash;
+      <a id="footer-privacy" href="#" target="_blank" rel="noopener">Aviso de privacidad</a>
+    </footer>
+
+  </div><!-- /screen-main -->
+
+  <script src="hub.js"></script>
+</body>
+</html>

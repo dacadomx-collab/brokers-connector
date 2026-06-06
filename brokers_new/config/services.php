@@ -34,4 +34,19 @@ return [
         'secret' => env('SPARKPOST_SECRET'),
     ],
 
+    // ACADEP AURA — Nodo soberano de IA local
+    'acadep' => [
+        'url_lan'  => env('ACADEP_AURA_URL_LAN', ''),
+        'url_wan'  => env('ACADEP_AURA_URL_WAN', ''),
+        'key'      => env('ACADEP_AURA_KEY', ''),
+        'agent_id' => 'AURA_BKC_V1',
+    ],
+
+    // Control de acceso Super Admin — sobrevive config:cache
+    'super_admin_company_ids' => env('SUPER_ADMIN_COMPANY_IDS', ''),
+
+    // URLs del ecosistema V2 (Bridge + SPAs) — sobreviven config:cache
+    'v2_frontend_base' => env('V2_FRONTEND_BASE', ''),
+    'v2_api_base'      => env('V2_API_BASE',      ''),
+
 ];

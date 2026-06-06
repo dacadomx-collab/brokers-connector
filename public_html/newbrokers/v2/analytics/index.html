@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pulse Metrics IA &mdash; Reportes e Informes Inteligentes</title>
+  <link rel="shortcut icon" href="../../../favicon.ico" type="image/x-icon">
+  <link rel="stylesheet" href="../shared/v2.css">
+  <link rel="stylesheet" href="analytics.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+</head>
+<body class="v2-root">
+
+  <!-- ══ PANTALLA: CARGANDO ══════════════════════════════════════ -->
+  <div id="screen-loading" class="v2-screen">
+    <div class="v2-spinner"></div>
+    <p class="v2-loading-text">Inicializando Pulse Metrics IA&hellip;</p>
+  </div>
+
+  <!-- ══ PANTALLA: ERROR ═════════════════════════════════════════ -->
+  <div id="screen-error" class="v2-screen hidden">
+    <div class="v2-error-card">
+      <div class="v2-error-icon">&#128274;</div>
+      <h2>Acceso denegado</h2>
+      <p id="error-message">Este enlace ya no es v&aacute;lido. Regresa al panel e intenta de nuevo.</p>
+      <a href="#" id="error-back-btn" class="v2-btn v2-btn-primary">
+        <i class="fa fa-arrow-left"></i> Volver al panel
+      </a>
+    </div>
+  </div>
+
+  <!-- ══ PANTALLA: PRINCIPAL ════════════════════════════════════ -->
+  <div id="screen-main" class="v2-screen hidden">
+
+    <!-- ── Header ─────────────────────────────────────────────── -->
+    <header class="v2-header no-print">
+
+      <!-- Logo -->
+      <a href="#" id="header-logo-link" class="v2-header-logo">
+        <img id="v2-nav-logo" src="" alt="Brokers Connector" height="36"
+             style="max-width:160px; display:none;">
+        <span id="header-logo-fallback"
+              style="display:flex; align-items:center; gap:8px; font-size:17px; font-weight:700;">
+          <i class="fa fa-home"></i>
+          Brokers <span style="color:var(--v2-accent);">Connector</span>
+        </span>
+      </a>
+
+      <!-- Derecha: badge + nav desktop + hamburger -->
+      <div class="v2-header-right">
+        <span id="company-badge" class="bp-company-badge"></span>
+
+        <nav class="v2-nav-desktop">
+          <a id="nav-hub" href="#" class="v2-nav-link">
+            <i class="fa fa-magic"></i> Broker Brain IA
+          </a>
+          <a id="nav-panel" href="#" class="v2-nav-link">
+            <i class="fa fa-th-large"></i> Panel de Control
+          </a>
+          <a id="nav-logout" href="#" class="v2-nav-link v2-nav-logout">
+            <i class="fa fa-sign-out"></i> Cerrar Sesi&oacute;n
+          </a>
+        </nav>
+
+        <button id="hamburger-btn" class="v2-hamburger" aria-expanded="false" aria-label="Abrir men&uacute;">
+          <span></span><span></span><span></span>
+        </button>
+      </div>
+
+      <!-- Menú móvil — dentro del header (fila completa via flex-wrap) -->
+      <nav id="mobile-menu" class="v2-mobile-menu" aria-hidden="true">
+        <a id="nav-hub-m" href="#" class="v2-mobile-link">
+          <i class="fa fa-magic"></i> Broker Brain IA
+        </a>
+        <a id="nav-panel-m" href="#" class="v2-mobile-link">
+          <i class="fa fa-th-large"></i> Panel de Control
+        </a>
+        <a id="nav-logout-m" href="#" class="v2-mobile-link v2-nav-logout">
+          <i class="fa fa-sign-out"></i> Cerrar Sesi&oacute;n
+        </a>
+      </nav>
+
+    </header>
+
+    <!-- ── Hero ───────────────────────────────────────────────── -->
+    <section class="bp-hero no-print">
+      <div class="bp-hero-inner">
+        <div class="bp-hero-icon"><i class="fa fa-bar-chart"></i></div>
+        <div>
+          <h1 class="bp-hero-title">Pulse Metrics <span class="bp-accent">IA</span></h1>
+          <p class="bp-hero-sub">Convierte datos de tu cartera en informes estrat&eacute;gicos con Inteligencia Artificial.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══ BANNER HERO: NODO SOBERANO ACADEP (Solo Super Admin) ══ -->
+    <div id="acadep-hero-banner" class="no-print" style="
+      display:none;
+      margin:0 0 0;
+      background:linear-gradient(135deg,#0f172a 0%,#1e3a8a 55%,#065f46 100%);
+      padding:20px 24px;
+      position:relative;
+      overflow:hidden;
+    ">
+      <!-- Borde superior neón -->
+      <div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,#06b6d4,#3b82f6,#10b981);"></div>
+      <!-- Resplandor de fondo -->
+      <div style="position:absolute;inset:0;background:radial-gradient(ellipse at 80% 50%,rgba(16,185,129,.1) 0%,transparent 60%);pointer-events:none;"></div>
+
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;position:relative;z-index:1;">
+        <div style="display:flex;align-items:center;gap:14px;">
+          <div style="width:44px;height:44px;border-radius:50%;background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.4);display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0;">
+            🛡️
+          </div>
+          <div>
+            <div style="font-size:.65rem;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:#06b6d4;margin-bottom:2px;">
+              Nodo Soberano ACADEP &mdash; Activo ●
+            </div>
+            <div style="font-size:.95rem;font-weight:800;color:#fff;letter-spacing:-.01em;">
+              AURA v2.0 &mdash; Infraestructura Federada Local
+            </div>
+            <div style="font-size:.72rem;color:rgba(255,255,255,.45);margin-top:1px;font-family:'Courier New',monospace;">
+              LAN 192.168.1.224:8080 &nbsp;·&nbsp; Ollama LLM &nbsp;·&nbsp; PostgreSQL Ledger &nbsp;·&nbsp; CAPEX $0 USD
+            </div>
+          </div>
+        </div>
+        <a id="acadep-infographic-btn" href="#" target="_blank"
+           style="
+             display:inline-flex;align-items:center;gap:8px;
+             background:linear-gradient(135deg,#059669,#10b981);
+             color:#fff;font-size:.8rem;font-weight:700;
+             padding:10px 20px;border-radius:8px;text-decoration:none;
+             border:1px solid rgba(255,255,255,.15);
+             box-shadow:0 0 16px rgba(16,185,129,.35);
+             transition:transform .15s,box-shadow .15s;
+             white-space:nowrap;flex-shrink:0;
+           "
+           onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 0 24px rgba(16,185,129,.55)';"
+           onmouseout="this.style.transform='';this.style.boxShadow='0 0 16px rgba(16,185,129,.35)';">
+          <span style="font-size:1rem;">📊</span>
+          Ver Telemetr&iacute;a e Infograf&iacute;a del Nodo Soberano AURA AI
+        </a>
+      </div>
+    </div>
+
+    <!-- ── Dashboard de métricas (monitor técnico — solo pantalla) ── -->
+    <section class="bp-metrics no-print" id="aura-engine-monitor-box" style="display:none;">
+      <div class="bp-metric-card">
+        <i class="fa fa-home bp-metric-icon"></i>
+        <div class="bp-metric-value" id="met-total">—</div>
+        <div class="bp-metric-label">Total propiedades</div>
+      </div>
+      <div class="bp-metric-card">
+        <i class="fa fa-check-circle bp-metric-icon bp-metric-icon--success"></i>
+        <div class="bp-metric-value" id="met-published">—</div>
+        <div class="bp-metric-label">Publicadas</div>
+      </div>
+      <div class="bp-metric-card">
+        <i class="fa fa-clock-o bp-metric-icon bp-metric-icon--warn"></i>
+        <div class="bp-metric-value" id="met-unpublished">—</div>
+        <div class="bp-metric-label">Sin publicar</div>
+      </div>
+      <div class="bp-metric-card">
+        <i class="fa fa-address-book bp-metric-icon bp-metric-icon--accent"></i>
+        <div class="bp-metric-value" id="met-contacts">—</div>
+        <div class="bp-metric-label">Prospectos</div>
+      </div>
+    </section>
+
+    <!-- ══ SMART INPUT BOX ════════════════════════════════════════ -->
+    <main class="bp-main no-print">
+      <div class="bp-input-card">
+        <h2 class="bp-input-title">
+          <i class="fa fa-magic"></i> &iquest;Qu&eacute; informe necesitas?
+        </h2>
+        <p class="bp-input-hint">
+          Escribe tu pregunta, dicta un comando de voz, o arrastra un documento para obtener un an&aacute;lisis personalizado.
+        </p>
+
+        <!-- Zona Drag & Drop + Textarea principal -->
+        <div id="drop-zone" class="bp-textarea-wrap bp-drop-zone">
+          <div class="bp-drop-hint" aria-hidden="true">
+            <i class="fa fa-cloud-upload"></i> Arrastra un archivo o imagen aqu&iacute;
+          </div>
+          <textarea id="query-input"
+                    class="bp-textarea"
+                    rows="4"
+                    maxlength="1000"
+                    placeholder="Ej: &laquo;Dame un resumen ejecutivo del inventario y recomendaciones para mejorar la tasa de publicaci&oacute;n este mes.&raquo;"></textarea>
+          <span class="bp-char-count"><span id="char-count">0</span>/1000</span>
+        </div>
+
+        <!-- Contexto adicional (documento / voz procesada) -->
+        <div id="context-block" class="bp-context-block" style="display:none;">
+          <label class="bp-context-label">Contexto adicional:</label>
+          <textarea id="context-input" class="bp-context-textarea" rows="3" maxlength="2000"
+                    placeholder="Pega aqu&iacute; el texto extra&iacute;do del documento o la transcripci&oacute;n de tu nota de voz&hellip;"></textarea>
+          <button id="remove-context-btn" class="bp-remove-ctx-btn" type="button">
+            <i class="fa fa-times"></i> Quitar contexto
+          </button>
+        </div>
+
+        <!-- Barra de herramientas -->
+        <div class="bp-toolbar">
+          <!-- Adjuntar documento -->
+          <button id="attach-btn" class="bp-tool-btn" type="button" title="Adjuntar documento o PDF">
+            <i class="fa fa-paperclip"></i>
+            <span class="bp-tool-label">Adjuntar</span>
+          </button>
+          <input id="file-input" type="file" accept=".pdf,.doc,.docx,.txt,.png,.jpg,.jpeg" style="display:none;">
+
+          <!-- C&aacute;mara / foto — PulseScout IA multimodal -->
+          <button id="camera-btn" class="bp-tool-btn" type="button" title="Capturar foto o cargar imagen (PulseScout IA)">
+            <i class="fa fa-camera"></i>
+            <span class="bp-tool-label">Foto</span>
+          </button>
+          <input id="camera-input" type="file" accept="image/*" capture="environment" style="display:none;">
+
+          <!-- Micr&oacute;fono — PulseScout IA voz -->
+          <button id="voice-btn" class="bp-tool-btn" type="button" title="Captura de voz (PulseScout IA)">
+            <i class="fa fa-microphone"></i>
+            <span class="bp-tool-label">Voz</span>
+          </button>
+
+          <div class="bp-toolbar-spacer"></div>
+
+          <button id="generate-btn" class="v2-btn v2-btn-primary bp-generate-btn" type="button">
+            <i class="fa fa-bar-chart"></i> Generar Informe
+          </button>
+        </div>
+
+        <!-- Sugerencias rápidas -->
+        <div class="bp-suggestions">
+          <span class="bp-sug-label">Sugerencias:</span>
+          <button class="bp-sug-chip" data-query="Dame un resumen ejecutivo del inventario actual y 3 recomendaciones para mejorar la tasa de cierre.">Resumen ejecutivo</button>
+          <button class="bp-sug-chip" data-query="Analiza mis propiedades sin publicar y sugiere una estrategia para activarlas en portales esta semana.">Propiedades inactivas</button>
+          <button class="bp-sug-chip" data-query="&iquest;Cu&aacute;l es el estado de mi cartera de prospectos y qu&eacute; acciones priorizar hoy?">Estado de prospectos</button>
+        </div>
+      </div>
+    </main>
+
+    <!-- ══ BANNER DE ERROR DE CONSULTA — permanente hasta recarga ══ -->
+    <div id="query-error-banner" class="bp-query-error-banner hidden no-print" role="alert">
+      <div class="bp-qeb-inner">
+        <i class="fa fa-exclamation-triangle bp-qeb-icon" aria-hidden="true"></i>
+        <div class="bp-qeb-body">
+          <strong class="bp-qeb-title">Error cr&iacute;tico detectado</strong>
+          <p id="query-error-message" class="bp-qeb-msg"></p>
+        </div>
+        <button class="bp-qeb-reload" type="button" onclick="window.location.reload()">
+          <i class="fa fa-refresh"></i> Recargar
+        </button>
+      </div>
+    </div>
+
+    <!-- ══ CONTENEDOR DEL REPORTE ════════════════════════════════ -->
+    <section id="report-section" class="bp-report-section hidden">
+
+      <!-- Barra de acciones del reporte -->
+      <div class="bp-report-toolbar no-print">
+        <div class="bp-report-toolbar-left">
+          <i class="fa fa-file-text-o"></i>
+          <span class="bp-report-title-label">Informe Generado</span>
+          <span id="report-timestamp" class="bp-report-ts"></span>
+          <!-- Indicador de nodo ACADEP — visible solo cuando el informe proviene del nodo soberano -->
+          <span id="acadep-node-badge" class="bp-acadep-badge hidden" title="Generado por el Nodo Soberano ACADEP"></span>
+        </div>
+        <div class="bp-report-toolbar-right">
+          <button id="listen-btn" class="bp-action-btn" type="button" title="Escuchar informe (Text-to-Speech)">
+            <i class="fa fa-volume-up"></i> Escuchar
+          </button>
+          <button id="copy-btn" class="bp-action-btn" type="button" title="Copiar al portapapeles">
+            <i class="fa fa-copy"></i> Copiar
+          </button>
+          <button id="print-btn" class="bp-action-btn bp-action-btn--accent" type="button" title="Descargar PDF / Imprimir">
+            <i class="fa fa-print"></i> Descargar PDF
+          </button>
+          <button id="new-query-btn" class="bp-action-btn" type="button" title="Nueva consulta">
+            <i class="fa fa-refresh"></i> Nueva consulta
+          </button>
+        </div>
+      </div>
+
+      <!-- Encabezado de impresión -->
+      <div class="bp-print-header print-only">
+        <div class="bp-print-logo-area">
+          <span class="bp-print-brand">Brokers Connector &mdash; Pulse Metrics IA</span>
+        </div>
+        <div class="bp-print-meta">
+          <span id="print-company">Informe de Cartera Inmobiliaria</span>
+          <span id="print-date"></span>
+        </div>
+      </div>
+
+      <!-- Cuerpo del reporte — CONTENIDO LIMPIO para PDF -->
+      <article id="report-body" class="bp-report-body report-clean-content"></article>
+
+      <!-- Pie de página de impresión -->
+      <footer class="bp-print-footer print-only">
+        <p>Generado por Pulse Metrics IA &mdash; Brokers Connector &mdash; <span id="print-footer-date"></span></p>
+        <p>Este informe es confidencial y de uso interno exclusivo de la empresa.</p>
+      </footer>
+
+    </section>
+
+    <!-- ── Spinner de generación ──────────────────────────────── -->
+    <div id="generating-overlay" class="bp-generating-overlay hidden no-print">
+      <div class="bp-generating-card">
+        <div class="v2-spinner"></div>
+        <p class="bp-generating-text">Analizando tu cartera con IA&hellip;</p>
+        <p class="bp-generating-sub">Esto puede tomar hasta 30 segundos.</p>
+      </div>
+    </div>
+
+    <!-- ══ PULSESCOUT IA — MODAL DE CONFIRMACIÓN DE INTENCIÓN ══════ -->
+    <!-- Oculto por defecto. Se activa tras /intake cuando el agente ha estructurado
+         la intención y necesita validación del broker humano antes de despachar a AURA. -->
+    <div id="pulsescout-preview-modal" class="ps-modal-overlay hidden no-print"
+         role="dialog" aria-modal="true" aria-labelledby="ps-modal-title">
+      <div class="ps-modal-card">
+
+        <!-- Cabecera del modal -->
+        <div class="ps-modal-header">
+          <div class="ps-modal-icon" aria-hidden="true">
+            <i class="fa fa-search"></i>
+          </div>
+          <div>
+            <h2 id="ps-modal-title" class="ps-modal-title">PulseScout IA detect&oacute;</h2>
+            <p class="ps-modal-subtitle">&iquest;Es esto lo que necesitas?</p>
+          </div>
+        </div>
+
+        <!-- Tarjeta de intención detectada -->
+        <div class="ps-intent-card">
+          <span class="ps-intent-type" id="ps-intent-type">Reporte de Inventario</span>
+          <h3 id="ps-report-title" class="ps-report-title">Resumen ejecutivo del inventario</h3>
+          <p id="ps-report-description" class="ps-report-description">
+            AURA analizará tu cartera completa y generará un informe con métricas clave,
+            tendencias y recomendaciones estrat&eacute;gicas.
+          </p>
+        </div>
+
+        <!-- Consulta procesada (expandible) -->
+        <details class="ps-query-details">
+          <summary class="ps-query-summary">
+            <i class="fa fa-code"></i> Ver consulta procesada
+          </summary>
+          <pre id="ps-extracted-query" class="ps-query-pre"></pre>
+        </details>
+
+        <!-- Botones de confirmación -->
+        <div class="ps-modal-actions">
+          <button id="ps-confirm-btn" class="v2-btn v2-btn-primary ps-confirm-btn" type="button">
+            <i class="fa fa-check"></i> [Confirmar y Generar Informe Real]
+          </button>
+          <button id="ps-cancel-btn" class="ps-cancel-btn" type="button">
+            <i class="fa fa-times"></i> No, cancelar
+          </button>
+        </div>
+
+      </div>
+    </div><!-- /#pulsescout-preview-modal -->
+
+    <!-- ── Toast de notificación ──────────────────────────────── -->
+    <div id="toast" class="bp-toast hidden" role="alert" aria-live="polite"></div>
+
+  </div><!-- /screen-main -->
+
+  <script src="analytics.js"></script>
+</body>
+</html>

@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\AiSetting;
+use App\Services\AcadepAuraService;
 use App\Services\Providers\OpenAIProvider;
 use App\Services\Providers\GroqProvider;
 use App\Services\Providers\MistralProvider;
@@ -10,8 +11,8 @@ use App\Services\Providers\GeminiProvider;
 
 class AIService
 {
-    // Mapa provider_name → clase adaptadora
-    // Para añadir un proveedor: crear el adaptador en Providers/ e inscribirlo aquí.
+    // Mapa provider_name → clase adaptadora (solo proveedores comerciales SDK-compatibles)
+    // AcadepProvider eliminado del mapa: el nodo soberano usa bypass directo via AcadepAuraService.
     private const ADAPTERS = [
         'openai'  => OpenAIProvider::class,
         'groq'    => GroqProvider::class,
@@ -21,11 +22,12 @@ class AIService
 
     /**
      * Dispara el payload al proveedor de mayor prioridad.
-     * Si falla, hace failover al siguiente en la escalera.
+     * Para 'acadep': bypass directo a AcadepAuraService (protocolo OPEN KEY LAN/WAN).
+     * Para el resto: adapters SDK comerciales con failover en cascada.
      *
-     * @param  array       $payload      ['messages' => [...], 'temperature' => float]
-     * @param  int|null    $company_id   Tenant que hace la solicitud
-     * @return array       Respuesta estandarizada del adaptador ganador
+     * @param  array    $payload     ['messages' => [...], 'temperature' => float]
+     * @param  int|null $company_id  Tenant que hace la solicitud
+     * @return array    Respuesta estandarizada: ['status'=>'ok', 'response'=>string, ...]
      * @throws \RuntimeException Si todos los proveedores activos fallan
      */
     public function dispatch(array $payload, ?int $company_id = null): array
@@ -43,6 +45,40 @@ class AIService
         }
 
         foreach ($providers as $setting) {
+
+            // ── BYPASS ACADEP (Protocolo OPEN KEY — LAN/WAN) ─────────────────────────
+            // El nodo ACADEP usa X-AURA-KEY + despacho LAN/WAN desde .env.
+            // No pasa por el factory de adapters SDK (incompatible por diseño).
+            if ($setting->provider_name === 'acadep') {
+                $acadep = new AcadepAuraService();
+
+                if (!$acadep->isConfigured()) {
+                    \Log::info('AIService: bypass ACADEP omitido — env vars no configuradas');
+                    continue;
+                }
+
+                // Construir el prompt combinando todos los mensajes del payload
+                $prompt = implode("\n\n---\n\n", array_map(function ($msg) {
+                    $role    = strtoupper($msg['role']    ?? 'USER');
+                    $content = $msg['content'] ?? '';
+                    return "[{$role}]\n{$content}";
+                }, $payload['messages'] ?? []));
+
+                $result = $acadep->dispatch($prompt, self::AGENT_ID_ACADEP);
+
+                if ($result['status'] === 'ok') {
+                    return $result;
+                }
+
+                \Log::warning('AIService: bypass ACADEP falló — activando failover comercial', [
+                    'status'     => $result['status'],
+                    'error'      => $result['error'] ?? 'desconocido',
+                    'company_id' => $company_id,
+                ]);
+                continue;
+            }
+
+            // ── Adapters comerciales (OpenAI / Groq / Mistral / Gemini) ─────────────
             $adapterClass = self::ADAPTERS[$setting->provider_name] ?? null;
 
             if (!$adapterClass) {
@@ -73,4 +109,6 @@ class AIService
 
         throw new \RuntimeException('Todos los proveedores de IA fallaron. Sin respuesta disponible.');
     }
+
+    private const AGENT_ID_ACADEP = 'AURA_BKC_V1';
 }

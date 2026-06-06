@@ -1,7 +1,8 @@
 # 🧬 SYSTEM CODEX & REGISTRY — BROKERS CONNECTOR (DICCIONARIO DE ORO)
 
-> **Fuente de verdad extraída de:** `database/migrations/` + `BackUp/brokersconnect_bd.sql`
-> **Framework:** Laravel (PHP) — Arquitectura multitenant por `company_id`
+> **Fuente de verdad extraída de:** `knowledge/tourfindycom_newbrokers_db.sql` (dump de producción, 2026-06-03)
+> **Framework:** Laravel 5.8 (PHP 8.4) — Arquitectura multitenant por `company_id`
+> **⚠️ PROHIBIDO** usar el dump antiguo `BackUp/brokersconnect_bd.sql` — fue reemplazado por este dump de producción.
 
 ---
 
@@ -482,64 +483,209 @@
 
 | Columna | Tipo | Notas |
 | :--- | :--- | :--- |
-| `id` | BIGINT UNSIGNED PK | Auto-increment |
-| `provider_name` | VARCHAR(255) | Identificador del adaptador: `openai`, `groq` |
-| `api_key` | TEXT | Clave API **cifrada con `encrypt()`** — nunca texto plano |
-| `extra_config` | JSON NULL | Config adicional del proveedor: `{"model":"gpt-4o"}` |
-| `priority_order` | TINYINT UNSIGNED DEFAULT 1 | 1 = mayor prioridad en la escalera de failover |
+| `id` | INT UNSIGNED PK | Auto-increment |
+| `provider_name` | VARCHAR(50) | Identificador del adaptador: `openai`, `groq`, `mistral`, `gemini` |
+| `api_key` | TEXT NOT NULL | Clave API **cifrada con `Crypt::encryptString()`** — nunca texto plano |
+| `extra_config` | JSON NULL | Config adicional: `{"model":"gpt-4o-mini", "endpoint":"..."}` |
+| `priority_order` | INT(11) DEFAULT 1 | 1 = mayor prioridad en la escalera de failover |
 | `is_active` | BOOLEAN DEFAULT 1 | 0 = excluido del orquestador |
-| `company_id` | BIGINT UNSIGNED NULL | FK → `companies.id` CASCADE DELETE. NULL = configuración global |
+| `company_id` | INT UNSIGNED NULL | FK → `companies.id`. NULL = configuración global del sistema |
+| `last_tested_at` | TIMESTAMP NULL | Fecha/hora del último ping de conectividad |
+| `last_test_status` | VARCHAR(10) NULL | Resultado del último ping: `ok` o `error` |
+| `last_test_latency_ms` | INT UNSIGNED NULL | Latencia en ms del último ping exitoso |
+| `last_test_error` | TEXT NULL | Mensaje de error sanitizado del último ping fallido |
 | `created_at` / `updated_at` | TIMESTAMP NULL | Timestamps Laravel |
 
-> **REGLA DE ORO:** `api_key` se guarda con `encrypt()` en `store`/`update`. Se recupera con `decryptedKey()` del Modelo — nunca en vistas. La vista recibe solo `api_key_masked` (ej. `••••••••4o3a`).
+> **REGLA DE ORO:** `api_key` se guarda con `Crypt::encryptString()` en `store`/`update`. Se recupera con `decryptedKey()` del Modelo (`Crypt::decryptString()`) — nunca en vistas. La vista recibe solo `api_key_masked`.
+>
+> **ADAPTADORES registrados:** `openai` → `OpenAIProvider`, `groq` → `GroqProvider`, `mistral` → `MistralProvider`, `gemini` → `GeminiProvider`.
 
 ---
 
 ### 🔍 Tabla: `audit_logs`
-> Registro de auditoría inmutable de todas las acciones del Super Admin. Fuente de verdad para trazabilidad.
+> Registro de auditoría inmutable de acciones del Super Admin.
 >
-> **REGLA INQUEBRANTABLE:** Todo endpoint de escritura del `SuperAdminController` DEBE insertar un registro aquí ANTES de retornar éxito. Sin log = operación incompleta.
+> **REGLA INQUEBRANTABLE:** Todo endpoint de escritura del `SuperAdminController` DEBE insertar un registro aquí. Sin log = operación incompleta.
 >
-> **REGLA DE SEGURIDAD:** JAMÁS registrar `api_key`, contraseñas ni tokens en ningún campo, ni siquiera en `extra`.
+> **SCHEMA DE PRODUCCIÓN REAL** (verificado en dump 2026-06-03):
 
 | Columna | Tipo | Notas |
 | :--- | :--- | :--- |
 | `id` | BIGINT UNSIGNED PK | Auto-increment |
-| `actor_id` | BIGINT UNSIGNED NULL | FK implícita → `users.id` del Super Admin que ejecutó la acción |
-| `actor_email` | VARCHAR(191) NULL | Email del actor — snapshot para trazabilidad sin JOIN |
-| `action` | VARCHAR(50) | Código de acción (ver catálogo abajo). Nunca texto libre. |
-| `target_type` | VARCHAR(50) DEFAULT 'company' | Tabla afectada: `company`, `users`, `ai_settings` |
-| `target_id` | BIGINT UNSIGNED NULL | ID del registro afectado |
-| `target_name` | VARCHAR(191) NULL | Nombre legible del registro (empresa, email, proveedor) |
-| `from_status` | VARCHAR(50) NULL | Estado anterior del target |
-| `to_status` | VARCHAR(50) NULL | Estado posterior del target |
-| `extra` | JSON NULL | Detalles adicionales de la operación. Sin credenciales. |
+| `company_id` | BIGINT UNSIGNED NOT NULL | FK → `companies.id` — empresa afectada |
+| `super_admin_id` | BIGINT UNSIGNED NOT NULL | FK → `users.id` — Super Admin que ejecutó la acción |
+| `action` | VARCHAR(255) | Descripción de la acción ejecutada |
 | `created_at` / `updated_at` | TIMESTAMP NULL | Timestamps Laravel |
 
-**Índices:** `(target_type, target_id)`, `actor_id`, `created_at`
+> **⚠️ ADVERTENCIA DE DISCREPANCIA:** El Codex anterior listaba columnas adicionales (`actor_id`, `actor_email`, `target_type`, etc.) que NO existen en producción. Esas columnas son del modelo de aplicación del SuperAdminController, no de la tabla real. Usar solo las 5 columnas arriba listadas.
 
-#### Catálogo de `action` (valores válidos):
+---
 
-| Código | Descripción | target_type |
+---
+
+## 🤖 MÓDULO IA — TABLAS NUEVAS (SCHEMA DE PRODUCCIÓN 2026-06-03)
+
+> Estas 6 tablas **no existían en el Codex anterior**. Verificadas en el dump de producción.
+
+---
+
+### 📋 Tabla: `ai_prompts`
+> Synaptic Core™ — Prompts maestros del Motor Cognitivo AVM. Editables vía panel Super Admin.
+
+| Columna | Tipo | Notas |
 | :--- | :--- | :--- |
-| `activate` | Empresa activada | `company` |
-| `suspend` | Empresa suspendida | `company` |
-| `delete` | Empresa eliminada lógicamente | `company` |
-| `update` | Datos de empresa editados | `company` |
-| `subscription_override` | Pago manual / ajuste financiero | `company` |
-| `toggle_role` | Rol de usuario promovido/degradado | `users` |
-| `reset_password` | Contraseña temporal generada | `users` |
-| `CREATE_AI_SETTING` | Proveedor IA creado | `ai_settings` |
-| `UPDATE_AI_SETTING` | Proveedor IA editado | `ai_settings` |
-| `DELETE_AI_SETTING` | Proveedor IA eliminado | `ai_settings` |
-| `TOGGLE_AI_SETTING` | Estado de proveedor IA cambiado | `ai_settings` |
+| `id` | INT UNSIGNED PK | Auto-increment |
+| `slug` | VARCHAR(80) UNIQUE | Identificador único. Se usa `slug` (no `key` — palabra reservada MySQL) |
+| `name` | VARCHAR(120) | Nombre descriptivo del prompt |
+| `prompt_text` | TEXT NULL | Prompt monolítico legacy. El Compiler Engine lo usa si `system_role` está vacío |
+| `system_role` | TEXT NULL | Módulo 1: Identidad y rol del agente IA |
+| `business_context` | TEXT NULL | Módulo 2: Contexto situacional del negocio |
+| `immutable_rules` | TEXT NULL | Módulo 3: Reglas que el modelo no puede violar |
+| `tone_profile` | JSON NULL | Módulo 4: `{"language","formality","perspective","style"[]}` |
+| `output_schema` | JSON NULL | Módulo 5: Estructura JSON obligatoria de la respuesta |
+| `variables_schema` | JSON NULL | Módulo 6: `[{"key","label","type","required"}]` — variables inyectables |
+| `preferred_model` | VARCHAR(80) NULL | Modelo preferido: ej. `gpt-4o-mini`. NULL = predeterminado del sistema |
+| `version` | SMALLINT UNSIGNED DEFAULT 1 | Contador de versiones. Auto-incrementa en cada guardado |
+| `is_active` | BOOLEAN DEFAULT 1 | 0 = prompt desactivado |
+| `created_at` / `updated_at` | TIMESTAMP NULL | Timestamps Laravel |
+
+**Slug maestro del CMA:** `cma_urban_intelligence` — inyectado por `AiPrompt::compileBySlug()` en `BrokerBrainController::synthesizeFromAI()`.
+
+---
+
+### 🔖 Tabla: `ai_prompt_versions`
+> Historial de versiones de cada prompt maestro (auditoría de cambios).
+
+| Columna | Tipo | Notas |
+| :--- | :--- | :--- |
+| `id` | INT UNSIGNED PK | Auto-increment |
+| `prompt_id` | INT UNSIGNED | FK → `ai_prompts.id` |
+| `version` | SMALLINT UNSIGNED DEFAULT 1 | Número de versión del snapshot |
+| `system_role` | TEXT NULL | Snapshot del módulo 1 |
+| `business_context` | TEXT NULL | Snapshot del módulo 2 |
+| `immutable_rules` | TEXT NULL | Snapshot del módulo 3 |
+| `tone_profile` | JSON NULL | Snapshot del módulo 4 |
+| `output_schema` | JSON NULL | Snapshot del módulo 5 |
+| `variables_schema` | JSON NULL | Snapshot del módulo 6 |
+| `preferred_model` | VARCHAR(80) NULL | Modelo al momento del snapshot |
+| `prompt_text` | TEXT NULL | Prompt monolítico al momento del snapshot |
+| `changed_by_email` | VARCHAR(191) NULL | Email del Super Admin que realizó el cambio |
+| `change_note` | VARCHAR(255) NULL | Nota del cambio (opcional) |
+| `created_at` | TIMESTAMP NULL | Fecha del snapshot |
+
+---
+
+### 🗺️ Tabla: `ai_zone_heatmaps`
+> **Caché del Radar de Plusvalía.** Resultados pre-computados por zona/CP con TTL de 24 h.
+
+| Columna | Tipo | Notas |
+| :--- | :--- | :--- |
+| `id` | BIGINT UNSIGNED PK | Auto-increment |
+| `company_id` | BIGINT UNSIGNED NOT NULL | FK → `companies.id` **[TENANT LOCK]** |
+| `zipcode` | INT UNSIGNED NOT NULL | Código postal de la zona |
+| `center_lat` | DECIMAL(10,7) NULL | Latitud central calculada (AVG de `properties.lat`) |
+| `center_lng` | DECIMAL(10,7) NULL | Longitud central calculada (AVG de `properties.lng`) |
+| `heat_score` | TINYINT UNSIGNED DEFAULT 0 | Score 0-100 de plusvalía relativa (percentil dentro del tenant) |
+| `appreciation_index` | DECIMAL(5,2) NULL | Índice de apreciación (Fase 2-B, aún `null`) |
+| `avg_price_per_m2` | DOUBLE NULL | Precio promedio por m² en la zona |
+| `active_listings` | INT UNSIGNED DEFAULT 0 | Propiedades activas en la zona al momento del cómputo |
+| `gentrification_signal` | ENUM('ninguna','incipiente','moderada','avanzada') | Señal inferida por `heat_score` |
+| `growth_drivers` | JSON NULL | Array de drivers: `["demanda_alta","mercado_activo",...]` |
+| `aura_insight` | TEXT NULL | Insight narrativo de AURA (Fase 2-B) |
+| `aura_prompt_slug` | VARCHAR(80) NULL | Slug del prompt usado para generar `aura_insight` |
+| `computed_at` | TIMESTAMP NULL | Timestamp del cómputo |
+| `valid_until` | TIMESTAMP NULL | Expiración del caché (TTL 24 h) |
+| `created_at` / `updated_at` | TIMESTAMP NULL | Timestamps Laravel |
+
+**Cálculo de `heat_score`:** percentil normalizado `((pm2 - min) / (max - min)) * 100` dentro del portafolio del tenant. NO es un valor absoluto de mercado.
+
+---
+
+### 📈 Tabla: `ai_market_trends`
+> Tendencias agregadas de precios por zona/periodo. Alimenta el Radar Fase 2-B (predictivo).
+
+| Columna | Tipo | Notas |
+| :--- | :--- | :--- |
+| `id` | BIGINT UNSIGNED PK | Auto-increment |
+| `company_id` | BIGINT UNSIGNED NOT NULL | FK → `companies.id` **[TENANT LOCK]** |
+| `zipcode` | INT UNSIGNED NOT NULL | Código postal |
+| `period_start` | DATE NOT NULL | Inicio del periodo analizado |
+| `period_end` | DATE NOT NULL | Fin del periodo analizado |
+| `prop_status_id` | BIGINT UNSIGNED NULL | FK → `property_statuses.id` — NULL = todos los estados |
+| `prop_type_id` | BIGINT UNSIGNED NULL | FK → `property_types.id` — NULL = todos los tipos |
+| `sample_count` | INT UNSIGNED DEFAULT 0 | Propiedades incluidas en el cálculo |
+| `avg_price` | DOUBLE NULL | Precio promedio del periodo |
+| `median_price` | DOUBLE NULL | Mediana de precios del periodo |
+| `avg_price_per_m2` | DOUBLE NULL | Precio/m² promedio del periodo |
+| `min_price` | DOUBLE NULL | Precio mínimo del periodo |
+| `max_price` | DOUBLE NULL | Precio máximo del periodo |
+| `trend_pct` | DOUBLE NULL | Variación % vs periodo anterior |
+| `confidence_score` | TINYINT UNSIGNED DEFAULT 0 | Confianza 0-100 según `sample_count` |
+| `generated_by` | ENUM('scheduler','manual','aura') DEFAULT 'scheduler' | Origen del registro |
+| `created_at` / `updated_at` | TIMESTAMP NULL | Timestamps Laravel |
+
+---
+
+### 📸 Tabla: `ai_property_price_snapshots`
+> Historial de precios por propiedad para cálculo de tendencias. Base de datos temporal del Radar.
+
+| Columna | Tipo | Notas |
+| :--- | :--- | :--- |
+| `id` | BIGINT UNSIGNED PK | Auto-increment |
+| `company_id` | BIGINT UNSIGNED NOT NULL | FK → `companies.id` **[TENANT LOCK]** |
+| `property_id` | BIGINT UNSIGNED NOT NULL | FK → `properties.id` |
+| `snapshot_date` | DATE NOT NULL | Fecha del snapshot de precio |
+| `price` | DOUBLE NOT NULL | Precio al momento del snapshot |
+| `built_area` | DOUBLE DEFAULT 0 | Superficie construida al momento del snapshot |
+| `total_area` | DOUBLE DEFAULT 0 | Superficie total al momento del snapshot |
+| `price_per_m2` | DOUBLE GENERATED | `price / built_area` (columna calculada STORED). NULL si `built_area = 0` |
+| `prop_status_id` | BIGINT UNSIGNED NOT NULL | FK → `property_statuses.id` |
+| `prop_type_id` | BIGINT UNSIGNED NOT NULL | FK → `property_types.id` |
+| `zipcode` | INT UNSIGNED NULL | CP al momento del snapshot |
+| `created_at` / `updated_at` | TIMESTAMP NULL | Timestamps Laravel |
+
+> **NOTA:** `price_per_m2` es una columna `GENERATED ALWAYS AS (if(built_area > 0, price / built_area, NULL)) STORED`. No se puede insertar/actualizar directamente.
+
+---
+
+### 🌍 Tabla: `ai_external_zone_data`
+> Datos externos de mercado por zona (futuro feed de APIs de datos socioeconómicos).
+
+| Columna | Tipo | Notas |
+| :--- | :--- | :--- |
+| `id` | BIGINT UNSIGNED PK | Auto-increment |
+| `zipcode` | INT UNSIGNED NOT NULL | Código postal |
+| `data_source` | VARCHAR(80) NOT NULL | Fuente: `inegi`, `denue`, `banxico`, etc. |
+| `data_type` | VARCHAR(80) NOT NULL | Tipo de dato: `poblacion`, `ingreso_promedio`, `empleos`, etc. |
+| `period` | YEAR(4) NULL | Año del dato |
+| `value_numeric` | DOUBLE NULL | Valor numérico del indicador |
+| `value_json` | LONGTEXT (JSON) NULL | Datos estructurados adicionales |
+| `fetched_at` | TIMESTAMP NULL | Fecha de descarga |
+| `created_at` / `updated_at` | TIMESTAMP NULL | Timestamps Laravel |
+
+---
+
+### 💳 Tabla: `payment_gateway_settings`
+> Configuración de pasarelas de pago por ambiente (sandbox/producción).
+
+| Columna | Tipo | Notas |
+| :--- | :--- | :--- |
+| `id` | BIGINT UNSIGNED PK | Auto-increment |
+| `provider_name` | VARCHAR(50) NOT NULL | Identificador: `openpay`, `stripe`, etc. |
+| `is_active` | BOOLEAN DEFAULT 0 | 1 = pasarela activa |
+| `is_sandbox` | BOOLEAN DEFAULT 1 | 1 = modo sandbox/pruebas |
+| `credentials` | TEXT NULL | JSON cifrado — NUNCA texto plano |
+| `company_id` | BIGINT UNSIGNED NULL | FK → `companies.id`. NULL = configuración global |
+| `created_at` / `updated_at` | TIMESTAMP NULL | Timestamps Laravel |
 
 ---
 
 ## 🧠 REGISTRO SEMÁNTICO (VOCABULARIO CONTROLADO)
 
 ### ✅ Términos Permitidos
-`company_id`, `agent_id`, `contact_id`, `property_id`, `prop_type_id`, `prop_status_id`, `prop_use_id`, `full_name`, `last_name`, `built_area`, `total_area`, `parking_lots`, `feature_properties`, `contact_properties`, `file_properties`, `property_stocks`
+**Core CRM:** `company_id`, `agent_id`, `contact_id`, `property_id`, `prop_type_id`, `prop_status_id`, `prop_use_id`, `full_name`, `last_name`, `built_area`, `total_area`, `parking_lots`, `feature_properties`, `contact_properties`, `file_properties`, `property_stocks`
+
+**Módulo IA:** `session_token`, `bridge_token`, `heat_score`, `appreciation_index`, `avg_price_per_m2`, `confidence_score`, `gentrification_signal`, `growth_drivers`, `aura_insight`, `trend_pct`, `sample_count`, `slug`, `system_role`, `business_context`, `immutable_rules`, `tone_profile`, `output_schema`, `variables_schema`, `preferred_model`, `price_per_m2`, `center_lat`, `center_lng`
 
 ### ❌ Términos Prohibidos / Evitar
 `inmueble_id`, `agente`, `prospecto`, `inmobiliaria_id`, `tipo_propiedad`, `estado_propiedad`, `superficie`, `foto_id`, `caracteristicas`
@@ -585,11 +731,88 @@ users     ──< ai_conversations     (user_id)      ← nullable; sesión del 
 ai_conversations ──< ai_messages   (conversation_id, CASCADE DELETE)
 
 ── IA / ORQUESTADOR ──
-companies ──< ai_settings          (company_id, CASCADE DELETE) ← NULL = global
+companies ──< ai_settings          (company_id) ← NULL = global
 ai_settings → AIService.php        (Patrón Strategy + Failover Dinámico)
-ai_settings → OpenAIProvider       (priority_order 1, adaptador Tier 1)
-ai_settings → GroqProvider         (priority_order 2, adaptador Tier 2)
+                                    Adaptadores: openai, groq, mistral, gemini
+
+── IA / PROMPTS (Synaptic Core™) ──
+ai_prompts ──< ai_prompt_versions  (prompt_id) ← historial de cambios
+ai_prompts → BrokerBrainController (slug: cma_urban_intelligence)
+
+── IA / RADAR (Fase 2) ──
+companies ──< ai_zone_heatmaps     (company_id) ← TTL 24h, caché del heatmap
+companies ──< ai_market_trends     (company_id) ← tendencias por periodo/zipcode
+companies ──< ai_property_price_snapshots (company_id) ← historial de precios
+              ai_external_zone_data (zipcode) ← datos externos, sin tenant lock
+
+── PAGOS ──
+companies ──< payment_gateway_settings (company_id) ← NULL = global
 ```
+
+---
+
+---
+
+## 🔬 ESTADO OPERATIVO DE PRODUCCIÓN (verificado en dump 2026-06-03)
+
+### Datos Sembrados Confirmados
+
+| Tabla | Registros | Notas |
+| :--- | :--- | :--- |
+| `properties` | ~300+ | La Paz, BCS. Zipcodes 23050-23200. Campos `lat`/`lng` como `VARCHAR`. Mezcla de `built_area` NULL / 0 / poblado |
+| `ai_prompts` | 1 | Slug: `cma_urban_intelligence` — estructura modular completa (6 módulos + output_schema + variables_schema) |
+| `ai_settings` | 2 | Groq (priority 1, DECOMMISSIONED), Mistral (priority 2, OK) |
+| `companies` | 1 (producción) | La Paz BCS |
+| `ai_zone_heatmaps` | 0 | Se computa automáticamente en el primer request al Radar |
+| `ai_market_trends` | 0 | Fase 2-B — aún sin datos históricos |
+| `ai_property_price_snapshots` | 0 | Fase 2-B — sin snapshots aún |
+
+### ⚠️ Alerta Operativa: Groq Model Decommissioned
+
+```
+provider: groq | model: llama3-8b-8192 | estado: DECOMMISSIONED
+error: "The model llama3-8b-8192 has been decommissioned and is no longer supported."
+```
+
+**Impacto:** El failover dinámico de `AIService` intenta Groq primero (priority 1), falla con 400, y escala a Mistral (priority 2). El sistema funciona pero con **+300-400ms de latencia adicional** por el intento fallido.
+
+**Acción requerida:** Actualizar `extra_config` del provider Groq a un modelo vigente (`llama-3.1-8b-instant` o `llama3-70b-8192`) vía panel Super Admin → Orquestador IA.
+
+---
+
+## 📋 MÓDULO ADI-CORE: AURA Document Intelligence & Executive Briefing
+
+> **Referencia:** `knowledge/07_AURA_REPORT_ENGINE.md`
+> **Estado:** En diseño — Fase 1 por implementar
+> **Controller destino:** `App\Http\Controllers\Api\V2\AiReportController.php`
+
+### Contrato de Arquitectura (extraído del Blueprint)
+
+| Principio | Definición |
+| :--- | :--- |
+| **O (Origen)** | Lógica en backend exclusivamente. Aislamiento por `company_id`. La IA no accede a datos de otros tenants |
+| **R (Recursos)** | Estilos en `v2.css`. HTML semántico compatible con ARF-Grid Y `@media print`. Sin `!important`, sin `style=""` |
+| **O (Orden)** | `snake_case` en tablas DB. `camelCase` en estado JS de la SPA. Estructura modular limpia |
+
+### Pipeline de Datos — 5 Capas (Token Economy)
+> Diseñado para evitar saturar la ventana de contexto de la API al procesar portafolios grandes.
+
+| Capa | Función | Estado |
+| :--- | :--- | :--- |
+| 1 | Recepción de intención (texto libre, notas de voz, archivos) | Por implementar |
+| 2 | Ruteo de intención + clasificación de tipo de reporte | Por implementar |
+| 3 | Extracción SQL contextualizada (filtrada por `company_id`) | Por implementar |
+| 4 | Compresión semántica del contexto antes de la IA | Por implementar |
+| 5 | Generación HTML del reporte + persistencia | Por implementar |
+
+### Nuevas Tablas Requeridas (pendientes de migración)
+
+> ⚠️ **Mandamiento de Inmutabilidad:** NO crear estas tablas sin autorización explícita del Lead Architect. Están registradas aquí para anti-alucinación.
+
+| Tabla | Propósito |
+| :--- | :--- |
+| `ai_reports` | Historial de reportes generados por tenant |
+| `ai_report_sections` | Secciones modulares de cada reporte (BI multibloque) |
 
 ---
 
@@ -610,7 +833,7 @@ ai_settings → GroqProvider         (priority_order 2, adaptador Tier 2)
 | `AIProviderInterface.php` | `brokers_new/app/Services/Contracts/AIProviderInterface.php` | Interface (Strategy) | ✅ Producción | Contrato para todos los adaptadores. Método: `request(array $payload, array $config): array`. |
 | `AIService.php` | `brokers_new/app/Services/AIService.php` | Service (Orchestrator) | ✅ Producción | Orquestador maestro con failover dinámico. Itera proveedores por `priority_order`, hace `Log::warning` en cada fallo y lanza `RuntimeException` si todos fallan. |
 | `OpenAIProvider.php` | `brokers_new/app/Services/Providers/OpenAIProvider.php` | Provider Adapter (Tier 1) | ✅ Producción | Adaptador OpenAI. Modelo configurable vía `extra_config.model` (default: `gpt-4o`). Retorna JSON estandarizado con `latency_ms`. |
-| `GroqProvider.php` | `brokers_new/app/Services/Providers/GroqProvider.php` | Provider Adapter (Tier 2) | ✅ Producción | Adaptador Groq (LPU). Endpoint OpenAI-compatible. Modelo configurable (default: `llama3-8b-8192`). Timeout 15s (vs 30s de OpenAI). |
+| `GroqProvider.php` | `brokers_new/app/Services/Providers/GroqProvider.php` | Provider Adapter (Tier 2) | ⚠️ Producción | Adaptador Groq (LPU). Endpoint OpenAI-compatible. **MODEL DECOMMISSIONED:** `llama3-8b-8192` ya no existe. Actualizar a `llama-3.1-8b-instant` vía panel Super Admin. Timeout 15s. |
 | `AISettingsController.php` | `brokers_new/app/Http/Controllers/AISettingsController.php` | Controller (Admin-only) | ✅ Producción | CRUD de `ai_settings`. Doble candado: triple middleware + `hasRole('Admin')`. `api_key` → `encrypt()` en store/update. Vista recibe solo `api_key_masked`. |
 | `ai/settings.blade.php` | `brokers_new/resources/views/ai/settings.blade.php` | Blade View (Admin) | ✅ Producción | Panel de configuración del Orquestador. ARF-Grid. Tabla con keys enmascaradas, toggle inline de activo/inactivo, formulario store/update, escalera visual de failover. |
 | `SuperAdminController.php` | `brokers_new/app/Http/Controllers/Api/SuperAdminController.php` | API Controller (V2) | ✅ Producción | Panel Super Admin. Auth: Bearer session_token V2 + `hasRole('super_admin')`. Endpoints: `listAdmins`, `toggleRole`, `resetPassword`. Sin Passport — usa patrón Bridge V2. |
@@ -618,3 +841,8 @@ ai_settings → GroqProvider         (priority_order 2, adaptador Tier 2)
 | `v2/admin/security.html` | `public_html/newbrokers/v2/admin/security.html` | SPA HTML (V2) | ✅ Producción | Panel de gestión de credenciales de Super Admin. 3 pantallas: loading / error / main. Usa el flujo bridge V2 idéntico a checkout. |
 | `v2/admin/security.js` | `public_html/newbrokers/v2/admin/security.js` | SPA JS (V2 Vanilla) | ✅ Producción | Cerebro del panel. Boot → bridge/validate → listAdmins. Funciones: `toggleRole()`, `openModal()` + `execResetPassword()`. camelCase estricto. `escHtml()` protege contra XSS. |
 | `v2/admin/security.css` | `public_html/newbrokers/v2/admin/security.css` | CSS (V2 ARF-Grid) | ✅ Producción | Estilos del panel Super Admin. Usa variables `--v2-*` de `shared/v2.css`. Mobile-First. Sin `!important`, sin anchos fijos. Responsive: oculta columna Estado en móvil. |
+| `V2RadarController.php` | `brokers_new/app/Http/Controllers/Api/V2RadarController.php` | API Controller (V2 — Fase 2) | ✅ Producción | Radar de Plusvalía. Endpoints: `GET /api/v2/radar/heatmap`, `GET /api/v2/radar/zone/{zipcode}`. Calcula `heat_score` como percentil relativo por tenant. Caché TTL 24h en `ai_zone_heatmaps`. Fallback `built_area → total_area` para price/m². |
+| `v2/radar/index.html` | `public_html/newbrokers/v2/radar/index.html` | SPA HTML (V2) | ✅ Producción | Radar de Plusvalía SPA. 3 pantallas: loading / error / main. Leaflet CDN con guard `typeof L !== 'undefined'`. Manual interactivo 3 pasos. Boot guard `_bootExecuted`. |
+| `v2/radar/radar.js` | `public_html/newbrokers/v2/radar/radar.js` | SPA JS (V2 Vanilla) | ✅ Producción | Flujo bridge V2. Separación de try-catch: Bloque 1 (sesión), Bloque 2 (UI). `replaceState` post-validación. Diagnóstico console.log en validación. `initMap()` con guard Leaflet. |
+| `BridgeController.php` (todos) | `brokers_new/app/Http/Controllers/BridgeController.php` | Web Controller (Bridge) | ✅ Producción | Métodos: `subscriptionBridge`, `brokerBrainBridge`, `aiHubBridge`, `radarBridge`, `adminBridge`. Helpers: `resolveFrontendBase()` (url('/') + '/newbrokers'), `resolveApiBase()` (str_replace localhost fix). |
+| `BrokerBrainController.php` | `brokers_new/app/Http/Controllers/Api/BrokerBrainController.php` | API Controller (V2 — Fase 1) | ✅ Producción | Motor CMA con Cascada 3 Capas. `synthesizeFromAI()` inyecta prompt `cma_urban_intelligence`. `interpolateSyntheticFallback()` — 17 bandas regionales México. Mandamiento Anti-422 activo. |

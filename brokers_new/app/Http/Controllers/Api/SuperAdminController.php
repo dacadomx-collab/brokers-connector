@@ -10,6 +10,7 @@ use App\Invoice;
 use App\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -243,7 +244,7 @@ class SuperAdminController extends Controller
 
         $setting = AiSetting::create([
             'provider_name'  => $data['provider_name'],
-            'api_key'        => encrypt($data['api_key']),
+            'api_key'        => Crypt::encryptString($data['api_key']),
             'extra_config'   => isset($data['extra_config']) ? json_decode($data['extra_config'], true) : null,
             'priority_order' => $data['priority_order'],
             'is_active'      => $isActive,
@@ -300,7 +301,7 @@ class SuperAdminController extends Controller
         }
 
         if (!empty($data['api_key'])) {
-            $payload['api_key'] = encrypt($data['api_key']);
+            $payload['api_key'] = Crypt::encryptString($data['api_key']);
             $changes['api_key'] = '*** actualizada ***'; // NUNCA texto plano en el log
         }
 
@@ -1329,35 +1330,32 @@ class SuperAdminController extends Controller
     {
         $actor = $params['actor'];
 
+        // Construir el campo `action` enriquecido para compensar las columnas
+        // que el modelo de aplicación necesita pero la tabla de producción no tiene
+        // (target_type, target_id, from_status, to_status, extra).
+        // Se serializa como un string compacto en el VARCHAR(255) de `action`.
+        $actionStr = $params['action'];
+        if (isset($params['target_name'])) {
+            $actionStr .= ' [' . mb_substr((string) $params['target_name'], 0, 60) . ']';
+        }
+        if (isset($params['from_status']) || isset($params['to_status'])) {
+            $actionStr .= ' ' . ($params['from_status'] ?? '') . '→' . ($params['to_status'] ?? '');
+        }
+        $actionStr = mb_substr($actionStr, 0, 255);
+
         try {
+            // Schema REAL de producción: id, company_id, super_admin_id, action, created_at, updated_at
             DB::table('audit_logs')->insert([
-                'actor_id'    => $actor->id,
-                'actor_email' => $actor->email,
-                'action'      => $params['action'],
-                'target_type' => $params['target_type'] ?? 'company',
-                'target_id'   => $params['target_id']   ?? null,
-                'target_name' => isset($params['target_name'])
-                    ? mb_substr((string) $params['target_name'], 0, 191)
-                    : null,
-                'from_status' => isset($params['from_status'])
-                    ? mb_substr((string) $params['from_status'], 0, 50)
-                    : null,
-                'to_status'   => isset($params['to_status'])
-                    ? mb_substr((string) $params['to_status'], 0, 50)
-                    : null,
-                'extra'       => isset($params['extra'])
-                    ? json_encode($params['extra'], JSON_UNESCAPED_UNICODE)
-                    : null,
-                'created_at'  => now(),
-                'updated_at'  => now(),
+                'company_id'     => $actor->company_id ?? 0,
+                'super_admin_id' => $actor->id,
+                'action'         => $actionStr,
+                'created_at'     => now(),
+                'updated_at'     => now(),
             ]);
         } catch (\Exception $e) {
-            // Audit trail no puede silenciar la operación principal,
-            // pero SÍ debe registrarse en el log de sistema.
             \Log::error('SuperAdmin: falló writeAuditLog', [
-                'action'    => $params['action'] ?? 'unknown',
-                'target_id' => $params['target_id'] ?? null,
-                'error'     => $e->getMessage(),
+                'action' => $actionStr,
+                'error'  => $e->getMessage(),
             ]);
         }
     }
