@@ -93,55 +93,6 @@
       </div>
     </section>
 
-    <!-- ══ BANNER HERO: NODO SOBERANO ACADEP (Solo Super Admin) ══ -->
-    <div id="acadep-hero-banner" class="no-print" style="
-      display:none;
-      margin:0 0 0;
-      background:linear-gradient(135deg,#0f172a 0%,#1e3a8a 55%,#065f46 100%);
-      padding:20px 24px;
-      position:relative;
-      overflow:hidden;
-    ">
-      <!-- Borde superior neón -->
-      <div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,#06b6d4,#3b82f6,#10b981);"></div>
-      <!-- Resplandor de fondo -->
-      <div style="position:absolute;inset:0;background:radial-gradient(ellipse at 80% 50%,rgba(16,185,129,.1) 0%,transparent 60%);pointer-events:none;"></div>
-
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;position:relative;z-index:1;">
-        <div style="display:flex;align-items:center;gap:14px;">
-          <div style="width:44px;height:44px;border-radius:50%;background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.4);display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0;">
-            🛡️
-          </div>
-          <div>
-            <div style="font-size:.65rem;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:#06b6d4;margin-bottom:2px;">
-              Nodo Soberano ACADEP &mdash; Activo ●
-            </div>
-            <div style="font-size:.95rem;font-weight:800;color:#fff;letter-spacing:-.01em;">
-              AURA v2.0 &mdash; Infraestructura Federada Local
-            </div>
-            <div style="font-size:.72rem;color:rgba(255,255,255,.45);margin-top:1px;font-family:'Courier New',monospace;">
-              LAN 192.168.1.224:8080 &nbsp;·&nbsp; Ollama LLM &nbsp;·&nbsp; PostgreSQL Ledger &nbsp;·&nbsp; CAPEX $0 USD
-            </div>
-          </div>
-        </div>
-        <a id="acadep-infographic-btn" href="#" target="_blank"
-           style="
-             display:inline-flex;align-items:center;gap:8px;
-             background:linear-gradient(135deg,#059669,#10b981);
-             color:#fff;font-size:.8rem;font-weight:700;
-             padding:10px 20px;border-radius:8px;text-decoration:none;
-             border:1px solid rgba(255,255,255,.15);
-             box-shadow:0 0 16px rgba(16,185,129,.35);
-             transition:transform .15s,box-shadow .15s;
-             white-space:nowrap;flex-shrink:0;
-           "
-           onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 0 24px rgba(16,185,129,.55)';"
-           onmouseout="this.style.transform='';this.style.boxShadow='0 0 16px rgba(16,185,129,.35)';">
-          <span style="font-size:1rem;">📊</span>
-          Ver Telemetr&iacute;a e Infograf&iacute;a del Nodo Soberano AURA AI
-        </a>
-      </div>
-    </div>
 
     <!-- ── Dashboard de métricas (monitor técnico — solo pantalla) ── -->
     <section class="bp-metrics no-print" id="aura-engine-monitor-box" style="display:none;">
@@ -363,6 +314,20 @@
 
     <!-- ── Toast de notificación ──────────────────────────────── -->
     <div id="toast" class="bp-toast hidden" role="alert" aria-live="polite"></div>
+
+    <!-- ══ DEVELOPER AGENT MONITOR — Consola de Telemetría Interna ══
+         PRIVACIDAD: @media print oculta este bloque completamente.
+         El usuario/cliente NUNCA lo ve en el PDF generado.           -->
+    <div id="developer-agent-monitor" class="dam-root" aria-hidden="true">
+      <div class="dam-header">
+        <span class="dam-dot dam-dot--red"></span>
+        <span class="dam-dot dam-dot--yellow"></span>
+        <span class="dam-dot dam-dot--green"></span>
+        <span class="dam-title">AURA &middot; Agent Monitor</span>
+        <button id="dam-toggle-btn" class="dam-toggle" type="button" title="Minimizar / Expandir">&#8964;</button>
+      </div>
+      <div id="dam-log" class="dam-log" aria-live="polite" aria-label="Log de agentes AURA"></div>
+    </div><!-- /#developer-agent-monitor -->
 
   </div><!-- /screen-main -->
 

@@ -165,6 +165,7 @@ class AiAnalyticsController extends Controller
             $usedLayer     = null;
             $networkLayer  = null;
             $transactionId = null;
+            $acadepDebug   = null; // campos forenses de diagnóstico — se propagan al frontend en Capa C
 
             // ── Capa A: ACADEP AURA (Nodo Soberano — máxima prioridad) ──────────────
             // Lee credenciales directamente del .env via config/services.php.
@@ -193,23 +194,37 @@ class AiAnalyticsController extends Controller
 
                 } elseif ($acadepResult['status'] === 'blocked') {
                     // ACADEP respondió pero rechazó (CAPEX / cuota agotada).
-                    // Congelar el módulo en el frontend (state.halted via banner).
+                    // Congelar el módulo en el frontend — se incluyen campos forenses para el monitor.
                     Log::error('[PulseMetrics] ACADEP bloqueó la solicitud', [
-                        'reason'     => $acadepResult['error'],
-                        'company_id' => $companyId,
+                        'reason'      => $acadepResult['error'],
+                        'company_id'  => $companyId,
+                        'http_status' => $acadepResult['http_status'] ?? null,
                     ]);
                     return response()->json([
-                        'success' => false,
-                        'error'   => $acadepResult['error'],
-                        'halted'  => true,
+                        'success'      => false,
+                        'error'        => $acadepResult['error'],
+                        'halted'       => true,
+                        'http_status'  => $acadepResult['http_status']  ?? null,
+                        'content_type' => $acadepResult['content_type'] ?? null,
+                        'raw_response' => $acadepResult['raw_response'] ?? null,
                     ], 200);
 
                 } else {
-                    // Error de red — continuar a Capa B
+                    // Error de red o parseo — continuar a Capa B.
+                    // Colectar campos forenses para propagarlos en Capa C si todo falla.
                     Log::warning('[PulseMetrics] ACADEP inaccesible, activando failover comercial', [
-                        'error'      => $acadepResult['error'] ?? 'desconocido',
-                        'company_id' => $companyId,
+                        'error'       => $acadepResult['error'] ?? 'desconocido',
+                        'http_status' => $acadepResult['http_status'] ?? null,
+                        'company_id'  => $companyId,
                     ]);
+                    $acadepDebug = [
+                        'error'        => $acadepResult['error']        ?? null,
+                        'http_status'  => $acadepResult['http_status']  ?? null,
+                        'content_type' => $acadepResult['content_type'] ?? null,
+                        'raw_response' => $acadepResult['raw_response'] ?? null,
+                        'network_layer'=> $acadepResult['network_layer'] ?? null,
+                        'latency_ms'   => $acadepResult['latency_ms']   ?? null,
+                    ];
                 }
             }
 
@@ -293,12 +308,14 @@ class AiAnalyticsController extends Controller
                 ]);
             }
 
-            // Capa C: Mock estructurado — ningún proveedor disponible
+            // Capa C: Mock estructurado — ningún proveedor disponible.
+            // _acadep_debug expone los campos forenses al Developer Agent Monitor del frontend.
             return response()->json([
-                'success' => true,
-                'report'  => $this->buildMockReport($metrics ?? [], $userQuery ?? ''),
-                'metrics' => $metrics ?? [],
-                '_dev'    => 'mock — configure ACADEP_AURA_URL or a valid API key in .env',
+                'success'       => true,
+                'report'        => $this->buildMockReport($metrics ?? [], $userQuery ?? ''),
+                'metrics'       => $metrics ?? [],
+                '_dev'          => 'capa-c',
+                '_acadep_debug' => $acadepDebug,
             ]);
 
         } catch (\Exception $e) {
@@ -545,10 +562,12 @@ PROMPT;
     }
 
     /**
-     * Informe mock estructurado — se activa cuando el dispatcher de AURA no tiene
-     * proveedores operativos (llaves de API no configuradas en .env).
-     * Valida la conectividad HTTP completa y muestra las métricas reales del tenant.
-     * Se elimina del flujo en cuanto se configuren llaves válidas en GROQ_API_KEY / OPENAI_API_KEY.
+     * Informe de diagnóstico de Capa C — se activa únicamente cuando:
+     *   1. El Nodo ACADEP (LAN + WAN) no respondió (ConnectException en ambos endpoints), Y
+     *   2. Los proveedores comerciales lanzaron RuntimeException (llaves placeholder/vacías).
+     *
+     * Muestra las métricas reales del tenant y un diagnóstico forense preciso.
+     * Desaparece automáticamente en cuanto el Nodo ACADEP sea alcanzable.
      */
     private function buildMockReport(array $metrics, string $query): string
     {
@@ -559,42 +578,43 @@ PROMPT;
         $contacts  = (int) ($metrics['total_contacts']         ?? 0);
         $queryText = htmlspecialchars(mb_substr($query, 0, 120), ENT_QUOTES, 'UTF-8');
 
-        return <<<HTML
-<h2>✅ Conexión con el Cerebro V2 — Validada</h2>
-<p>El pipeline completo <strong>HTTP → Autenticación → Tenant Lock → Motor IA</strong>
-está operativo. Los datos del tenant han sido extraídos y validados correctamente.</p>
+        $urlLan = config('services.acadep.url_lan', env('ACADEP_AURA_URL_LAN', 'no configurada'));
+        $urlWan = config('services.acadep.url_wan', env('ACADEP_AURA_URL_WAN', 'no configurada'));
 
-<h2>📊 Datos del Tenant: {$company}</h2>
+        return <<<HTML
+<h2>✅ Pipeline HTTP → Tenant Lock — Validado</h2>
+<p>El stack completo <strong>Autenticación → Bridge Token → Tenant Lock → Orquestador AURA</strong>
+está operativo. Los datos del tenant han sido extraídos y encapsulados correctamente.</p>
+
+<h2>📊 Cartera de {$company}</h2>
 <ul>
-  <li><strong>Propiedades totales en cartera:</strong> {$total}</li>
-  <li><strong>Propiedades publicadas:</strong> {$published}</li>
-  <li><strong>Propiedades sin publicar:</strong> {$unpub}</li>
+  <li><strong>Propiedades totales:</strong> {$total}</li>
+  <li><strong>Publicadas:</strong> {$published}</li>
+  <li><strong>Sin publicar:</strong> {$unpub}</li>
   <li><strong>Prospectos / Contactos CRM:</strong> {$contacts}</li>
 </ul>
 
 <h2>🔍 Consulta recibida</h2>
 <p><em>"{$queryText}"</em></p>
 
-<h2>⚠️ Estado del Motor de IA</h2>
-<p>El orquestador <strong>AURA</strong> intentó contactar todos los proveedores de IA
-configurados (Groq, Mistral, Gemini, OpenAI) pero todas las llaves de API en el archivo
-<code>.env</code> son llaves de marcador de posición. Para activar el análisis real,
-reemplaza los valores en las siguientes variables del <code>.env</code>:</p>
+<h2>⚡ Estado del Nodo Soberano AURA</h2>
+<p>El orquestador intentó contactar el Servidor Central ACADEP en ambas capas de red,
+pero ningún endpoint respondió en el timeout configurado:</p>
 <ul>
-  <li><code>GROQ_API_KEY</code> — Llave gratuita en <strong>console.groq.com</strong></li>
-  <li><code>OPENAI_API_KEY</code> — Llave en <strong>platform.openai.com</strong></li>
-  <li><code>MISTRAL_API_KEY</code> — Llave en <strong>console.mistral.ai</strong></li>
-  <li><code>GEMINI_API_KEY</code> — Llave en <strong>aistudio.google.com</strong></li>
+  <li><strong>LAN:</strong> <code>{$urlLan}</code> — sin respuesta (connect_timeout 1.5 s)</li>
+  <li><strong>WAN:</strong> <code>{$urlWan}</code> — sin respuesta (connect_timeout 5 s)</li>
 </ul>
+<p>Los proveedores comerciales de respaldo (Groq, OpenAI, Mistral) están configurados
+con llaves de marcador de posición y no pudieron activarse como fallover.</p>
 
 <h2>Próximos pasos recomendados</h2>
 <ul>
-  <li><strong>1.</strong> Configura al menos una llave de API válida en el <code>.env</code>
-      y recarga la página para activar el análisis real con IA.</li>
-  <li><strong>2.</strong> Verifica en el <strong>Panel Super Admin → Orquestador IA</strong>
-      que el proveedor esté marcado como activo y con su llave actualizada.</li>
-  <li><strong>3.</strong> Realiza tu primera consulta real — el sistema ya tiene todos
-      tus datos de cartera listos para ser analizados.</li>
+  <li><strong>1.</strong> Verifica que el Daemon Go en el Servidor Central ACADEP esté activo
+      y que el firewall permita conexiones desde esta IP al puerto <code>8080</code>.</li>
+  <li><strong>2.</strong> Si estás en la red LAN de ACADEP (<code>192.168.1.x</code>), confirma
+      que la IP <code>192.168.1.224</code> sea alcanzable con <code>ping</code> o <code>curl</code>.</li>
+  <li><strong>3.</strong> Una vez restaurada la conectividad, esta pantalla de diagnóstico
+      desaparecerá automáticamente y el informe real del tenant se generará en su lugar.</li>
 </ul>
 HTML;
     }

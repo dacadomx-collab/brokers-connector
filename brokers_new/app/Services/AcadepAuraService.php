@@ -190,18 +190,31 @@ class AcadepAuraService
                 'json' => $payload,
             ]);
 
-            $latency = (int) round((microtime(true) - $globalStart) * 1000);
-            $body    = json_decode($response->getBody()->getContents(), true);
+            $latency     = (int) round((microtime(true) - $globalStart) * 1000);
+            // ── Capturador centinela: leer el stream una sola vez ─────────
+            // getContents() consume el stream; toda la lógica posterior opera
+            // sobre $rawBody (string) en lugar de volver a leer el stream.
+            $httpStatus  = $response->getStatusCode();
+            $contentType = $response->getHeaderLine('Content-Type');
+            $rawBody     = $response->getBody()->getContents();
+            $body        = json_decode($rawBody, true);
 
             if (!is_array($body)) {
-                Log::warning("[AcadepAura:{$layer}] Respuesta no es JSON válido");
+                Log::warning("[AcadepAura:{$layer}] Respuesta no es JSON válido", [
+                    'http_status'  => $httpStatus,
+                    'content_type' => $contentType,
+                    'raw_preview'  => mb_substr($rawBody, 0, 300),
+                ]);
                 return [
                     'status'        => 'error',
                     'response'      => '',
                     'tokens_used'   => 0,
                     'latency_ms'    => $latency,
                     'network_layer' => $layer,
-                    'error'         => 'El nodo ACADEP respondió con contenido no JSON.',
+                    'error'         => "El nodo ACADEP respondió con contenido no JSON (HTTP {$httpStatus}).",
+                    'http_status'   => $httpStatus,
+                    'content_type'  => $contentType,
+                    'raw_response'  => mb_substr($rawBody, 0, 1000),
                 ];
             }
 
@@ -224,6 +237,9 @@ class AcadepAuraService
                     'latency_ms'    => $latency,
                     'network_layer' => $layer,
                     'error'         => $errorMsg,
+                    'http_status'   => $httpStatus,
+                    'content_type'  => $contentType,
+                    'raw_response'  => mb_substr($rawBody, 0, 1000),
                 ];
             }
 
@@ -250,11 +266,23 @@ class AcadepAuraService
                     'latency_ms' => 0, 'network_layer' => $layer];
 
         } catch (RequestException $e) {
-            $statusCode = $e->hasResponse() ? $e->getResponse()->getStatusCode() : 0;
-            $latency    = (int) round((microtime(true) - $globalStart) * 1000);
+            $statusCode     = $e->hasResponse() ? $e->getResponse()->getStatusCode() : 0;
+            $latency        = (int) round((microtime(true) - $globalStart) * 1000);
+            $rawErrBody     = '';
+            $errContentType = '';
+
+            // Extraer el body de la respuesta HTTP de error para diagnóstico forense
+            if ($e->hasResponse()) {
+                try {
+                    $errContentType = $e->getResponse()->getHeaderLine('Content-Type');
+                    $rawErrBody     = mb_substr((string) $e->getResponse()->getBody(), 0, 1000);
+                } catch (\Throwable $_) {}
+            }
 
             Log::warning("[AcadepAura:{$layer}] Error HTTP {$statusCode}", [
-                'url' => $url,
+                'url'          => $url,
+                'content_type' => $errContentType,
+                'raw_preview'  => mb_substr($rawErrBody, 0, 200),
             ]);
 
             // HTTP 402 = CAPEX agotado → blocked (congela DOM)
@@ -269,6 +297,9 @@ class AcadepAuraService
                 'latency_ms'    => $latency,
                 'network_layer' => $layer,
                 'error'         => $errorMsg,
+                'http_status'   => $statusCode,
+                'content_type'  => $errContentType,
+                'raw_response'  => $rawErrBody,
             ];
         }
     }

@@ -158,13 +158,6 @@ function updateMetrics(metrics) {
   el('met-unpublished').textContent = metrics.unpublished_properties  ?? '—';
   el('met-contacts').textContent    = metrics.total_contacts          ?? '—';
   el('aura-engine-monitor-box').style.display = 'grid';
-
-  // ── Banner ACADEP: visible al cargar métricas, URL resuelta dinámicamente ──
-  var acadepBanner = el('acadep-hero-banner');
-  var acadepBtn    = el('acadep-infographic-btn');
-  if (acadepBanner) acadepBanner.style.display = '';
-  if (acadepBtn)    acadepBtn.href = (state.apiBase || '')
-    + '/newbrokers/reportes/reporte_infraestructura_aura_v2.html';
 }
 
 /* ── Wiring de eventos ──────────────────────────────────────── */
@@ -228,6 +221,85 @@ function wireEvents() {
 
   // ── Drag & Drop ──────────────────────────────────────────────
   wireDragDrop();
+
+  // ── Developer Agent Monitor — toggle minimizar ───────────────
+  wireDeveloperMonitor();
+}
+
+/* ══════════════════════════════════════════════════════════════
+   DEVELOPER AGENT MONITOR — Consola de Telemetría Interna
+   Invisible en PDF (@media print en analytics.css).
+   ══════════════════════════════════════════════════════════════ */
+
+function wireDeveloperMonitor() {
+  const btn = el('dam-toggle-btn');
+  const mon = el('developer-agent-monitor');
+  if (!btn || !mon) return;
+
+  btn.addEventListener('click', () => {
+    const isMin = mon.classList.toggle('dam-minimized');
+    btn.textContent = isMin ? '⌃' : '⌄';
+    btn.title       = isMin ? 'Expandir' : 'Minimizar';
+  });
+
+  agentLog('info', 'Sistema', 'Pulse Metrics IA inicializado. Pipeline AURA activo.');
+}
+
+/**
+ * Registra una entrada en el Developer Agent Monitor.
+ * @param {'info'|'ok'|'warn'|'error'} level
+ * @param {string} agent   Nombre del agente (ej: 'Kernel AURA')
+ * @param {string} msg     Mensaje de telemetría
+ */
+function agentLog(level, agent, msg) {
+  const log = el('dam-log');
+  if (!log) return;
+
+  const ts    = new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  const entry = document.createElement('div');
+  entry.className = `dam-entry dam-entry--${level}`;
+  entry.innerHTML =
+    `<span class="dam-ts">${ts}</span>` +
+    `<span class="dam-agent">[${escHtml(agent)}]</span>` +
+    `<span class="dam-entry-msg"> ${escHtml(msg)}</span>`;
+
+  log.appendChild(entry);
+  log.scrollTop = log.scrollHeight;
+}
+
+function escHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+/**
+ * Imprime un bloque <pre> con el payload crudo del servidor ACADEP/Go.
+ * @param {string} label   Encabezado de la entrada
+ * @param {{http_status, content_type, raw}} debug  Campos forenses
+ */
+function agentLogRaw(label, debug) {
+  const log = el('dam-log');
+  if (!log) return;
+  const ts   = new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  const txt  = [
+    `  HTTP Status  : ${debug.http_status  || '—'}`,
+    `  Content-Type : ${debug.content_type || '—'}`,
+    `  Body (≤1000 chars):`,
+    `${debug.raw || '(vacío)'}`,
+  ].join('\n');
+
+  const entry = document.createElement('div');
+  entry.className = 'dam-entry dam-entry--warn';
+  entry.innerHTML =
+    `<span class="dam-ts">${ts}</span>` +
+    `<span class="dam-agent">[${escHtml(label)}]</span>` +
+    `<span class="dam-entry-msg dam-raw-block"><pre class="dam-raw-pre">${escHtml(txt)}</pre></span>`;
+
+  log.appendChild(entry);
+  log.scrollTop = log.scrollHeight;
 }
 
 /* ══════════════════════════════════════════════════════════════
@@ -404,8 +476,9 @@ function toggleVoice() {
 
   rec.onstart = () => {
     state.isRecording = true;
-    el('voice-btn').classList.add('bp-active');
-    el('voice-btn').querySelector('.bp-tool-label').textContent = 'Escuchando…';
+    const voiceBtn = el('voice-btn');
+    voiceBtn.classList.add('bp-active', 'v2-mic-recording');
+    voiceBtn.querySelector('.bp-tool-label').textContent = 'Escuchando…';
   };
 
   rec.onresult = evt => {
@@ -417,15 +490,20 @@ function toggleVoice() {
 
   rec.onend = () => {
     state.isRecording = false;
-    el('voice-btn').classList.remove('bp-active');
-    el('voice-btn').querySelector('.bp-tool-label').textContent = 'Voz';
+    const voiceBtn = el('voice-btn');
+    voiceBtn.classList.remove('bp-active', 'v2-mic-recording');
+    voiceBtn.querySelector('.bp-tool-label').textContent = 'Voz';
   };
 
-  rec.onerror = () => {
+  rec.onerror = (e) => {
     state.isRecording = false;
-    el('voice-btn').classList.remove('bp-active');
-    el('voice-btn').querySelector('.bp-tool-label').textContent = 'Voz';
-    showToast('No se pudo capturar el audio. Intenta de nuevo.', 'error');
+    const voiceBtn = el('voice-btn');
+    voiceBtn.classList.remove('bp-active', 'v2-mic-recording');
+    voiceBtn.querySelector('.bp-tool-label').textContent = 'Voz';
+    const msg = e.error === 'not-allowed'
+      ? 'Permiso de micrófono denegado'
+      : 'No se pudo capturar el audio. Intenta de nuevo.';
+    showToast(msg, 'error');
   };
 
   state.recognition = rec;
@@ -547,8 +625,14 @@ async function generateReport(bypassPreflight) {
     updateTTSBtn(false);
   }
 
+  // ── Telemetría: arranque del pipeline ───────────────────────
+  agentLog('info', 'Voz/Texto', `Inicializado. Transcripción limpia capturada: "${query.slice(0, 80)}${query.length > 80 ? '…' : ''}"`);
+  agentLog('info', 'Kernel AURA', 'Evaluando orquestación... Verificando configuración del Nodo Soberano ACADEP');
+
   showOverlay(true);
   el('report-section').classList.add('hidden');
+
+  agentLog('info', 'Handshake Red', 'Tocando la puerta en el Servidor Central Linux... Payload de contexto enviado');
 
   try {
     const res = await fetch(`${state.apiBase}/api/v2/analytics/query`, {
@@ -565,20 +649,56 @@ async function generateReport(bypassPreflight) {
 
     if (!data.success) {
       showOverlay(false);
+      agentLog('error', 'Pipeline', `Error crítico recibido: ${data.error || 'respuesta inválida del servidor'}`);
+      // Volcado del payload crudo si el servidor lo adjuntó (blocked con debug)
+      if (data.raw_response || data.http_status) {
+        agentLogRaw('Payload Crudo ACADEP', {
+          http_status:  data.http_status  || '—',
+          content_type: data.content_type || '—',
+          raw:          String(data.raw_response || '').slice(0, 1000),
+        });
+      }
       console.error('[ERROR CRÍTICO DETECTADO]:', data.error);
       showQueryError(data.error || 'El servidor devolvió un error. Recarga la página para continuar.');
       return;
     }
 
+    // ── Telemetría: diagnóstico de la capa usada ────────────────
+    const layer = data.network_layer || null;
+    const txId  = data.transaction_id || null;
+    if (layer === 'lan' || layer === 'wan') {
+      agentLog('ok', 'Ledger Central', `Autenticación aprobada. Tokens concedidos. Procesando prompt...`);
+      agentLog('ok', 'Retorno de Datos', `Respuesta estructurada recibida con éxito vía ${layer.toUpperCase()}${txId ? ' · TX: ' + txId : ''}. Parseando base de datos.`);
+    } else if (data._dev === 'capa-c') {
+      agentLog('warn', 'Kernel AURA', 'Detectadas API Keys comerciales ausentes/fallidas. Forzando desvío al Nodo Soberano.');
+      agentLog('warn', 'Kernel AURA', 'Nodo ACADEP inaccesible en LAN y WAN. Capa C activa — diagnóstico forense adjunto.');
+      // Volcar el payload crudo del Nodo ACADEP si el backend lo capturó
+      const dbg = data._acadep_debug;
+      if (dbg && (dbg.raw_response || dbg.http_status)) {
+        agentLogRaw('Payload Crudo Go/ACADEP', {
+          http_status:  dbg.http_status  || '—',
+          content_type: dbg.content_type || '—',
+          raw:          String(dbg.raw_response || '').slice(0, 1000),
+        });
+      } else {
+        agentLog('warn', 'Handshake Red', 'Sin respuesta de red desde 192.168.1.224:8080 (ConnectException — timeout)');
+      }
+      agentLog('warn', 'Retorno de Datos', 'Capa C devuelta — verificar conectividad de red con el Servidor Central Linux.');
+    } else {
+      agentLog('ok', 'Kernel AURA', 'Detectadas API Keys comerciales ausentes/fallidas. Forzando desvío al Nodo Soberano previo.');
+      agentLog('ok', 'Retorno de Datos', 'Respuesta estructurada recibida con éxito. Proveedor: failover comercial.');
+    }
+
     // Pasar meta (network_layer, transaction_id) para el badge ACADEP
     const meta = {
-      network_layer:  data.network_layer  || null,
-      transaction_id: data.transaction_id || null,
+      network_layer:  layer,
+      transaction_id: txId,
     };
     renderReport(data.report, data.metrics, meta);
 
   } catch (err) {
     showOverlay(false);
+    agentLog('error', 'Pipeline', `Sin conexión con el servidor PHP: ${err.message || 'error de red'}`);
     console.error('[ERROR CRÍTICO DETECTADO]:', err);
     showQueryError('Sin conexión con el servidor. Recarga la página para continuar.');
   }

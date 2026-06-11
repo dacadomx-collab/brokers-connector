@@ -5,7 +5,13 @@
       "Bash(powershell -Command \"\\(Get-Content 'c:\\\\xampp\\\\htdocs\\\\brokersconnect_dev\\\\public_html\\\\newbrokers\\\\v2\\\\admin\\\\security.css' | Measure-Object -Line\\).Lines\")",
       "Read(//c/Users/SERVIDOR/.claude/projects/c--xampp-htdocs-brokersconnect-dev/memory/**)",
       "Bash(dir \"c:\\\\xampp\\\\htdocs\\\\brokersconnect_dev\\\\public_html\\\\newbrokers\\\\v2\\\\radar\")",
-      "Bash(dir \"c:\\\\xampp\\\\htdocs\\\\brokersconnect_dev\\\\public_html\\\\newbrokers\\\\v2\\\\ai-hub\")"
+      "Bash(dir \"c:\\\\xampp\\\\htdocs\\\\brokersconnect_dev\\\\public_html\\\\newbrokers\\\\v2\\\\ai-hub\")",
+      "Bash(php -l \"c:/xampp/htdocs/brokersconnect_dev/public_html/newbrokers/v2/analytics/analytics.js\")",
+      "Bash(node --check \"c:/xampp/htdocs/brokersconnect_dev/public_html/newbrokers/v2/analytics/analytics.js\")",
+      "Bash(php \"c:/xampp/htdocs/brokersconnect_dev/brokers_new/app/Http/Controllers/Api/AiAnalyticsController.php\")",
+      "PowerShell(& \"C:\\\\xampp\\\\php\\\\php.exe\" -l \"C:\\\\xampp\\\\htdocs\\\\brokersconnect_dev\\\\brokers_new\\\\app\\\\Http\\\\Controllers\\\\Api\\\\AiAnalyticsController.php\")",
+      "PowerShell(& \"C:\\\\xampp\\\\php\\\\php.exe\" -l \"C:\\\\xampp\\\\htdocs\\\\brokersconnect_dev\\\\brokers_new\\\\app\\\\Services\\\\AcadepAuraService.php\")",
+      "PowerShell(& \"C:\\\\xampp\\\\php\\\\php.exe\" -l \"C:\\\\xampp\\\\htdocs\\\\brokersconnect_dev\\\\brokers_new\\\\app\\\\Services\\\\AIService.php\")"
     ]
   }
 }
