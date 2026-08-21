@@ -1,0 +1,44 @@
+﻿🚀 MASTER PLAN & ESTRATEGIA DE MIGRACIÓN: BROKERS CONNECTOR V2.0
+
+
+Fecha: martes 7 Julio 2026
+Documento Estratégico y Checklist de Ejecución
+Visión: Transición a un Ecosistema SaaS Seguro, Ágil y Potenciado por Inteligencia Artificial (PropTech BCS).
+🎯 1. VISIÓN EJECUTIVA Y OBJETIVO
+El sistema actual (Legacy en Laravel 5.8) representa un techo técnico que compromete la seguridad y la velocidad. Nuestro objetivo es "estrangular" este sistema viejo de forma progresiva sin detener la producción, utilizando el Patrón Estrangulador (Strangler Fig Pattern).
+Nuestra propuesta de valor: Uniremos la agilidad tecnológica y distribución de EasyBroker con el rigor legal de MLS BCS, eliminando las debilidades de ambos mediante la automatización y la Inteligencia Artificial.
+🧠 2. DIFERENCIADOR COMPETITIVO: EL MOTOR "MAIA"
+Para superar la falta de validación de EasyBroker y la extrema burocracia manual de MLS BCS, implementaremos el Motor de Arbitraje de Inteligencia Artificial (MAIA):
+1. Hashing Perceptivo Visual (pHash) Anti-Duplicados: Toda imagen subida será procesada matemáticamente para detectar si un broker está robando fotos de una propiedad ya listada y exclusiva en el sistema.
+2. Geocodificación con Arbitraje Espacial: Si dos propiedades tienen coordenadas a menos de 15 metros de diferencia y similitud en metros cuadrados/habitaciones, el sistema bloqueará el alta y generará una controversia automática.
+3. Arbitraje Semántico Documental (OCR/Vision): La IA analizará los PDF cargados (Título de Propiedad, Contrato de Exclusividad, Avalúo) para extraer y validar nombres de dueños, vigencias y polígonos sin intervención humana, permitiendo un One-Shot Publishing.
+⚙️ 3. AUTOMATIZACIÓN DEL PADRÓN SETUES BCS
+Dado que el Gobierno de BCS no cuenta con una API pública para setuesbcs.gob.mx/padronapi/, implementaremos un nodo autónomo de sincronización:
+* Tecnología: Script asíncrono en Node.js utilizando Playwright para simular navegación humana y evadir firewalls gubernamentales.
+* Frecuencia: Ejecución programada (Cron Job) todos los domingos a las 02:00 AM para no saturar los servidores estatales.
+* Destino: Los datos extraídos (Folio, Nombre, Estatus) se insertarán mediante operaciones UPSERT en nuestra nueva tabla government_licenses de MariaDB.
+💼 4. REGLAS DE NEGOCIO Y MONETIZACIÓN (SaaS)
+La plataforma V2 se regirá por un control estricto de multitenencia (Tenant Lock por company_id) y una estructura de 3 niveles:
+* Filtro de Entrada: Al registrarse, se exige Folio de Licencia. Si la validación contra SETUES y Asociaciones (AMPI/ASPI) es exitosa, se desbloquea el Paquete 1 (Agente Inmobiliario - $850/mes) con la insignia PRO.
+* Constructoras y Privados: Si no tienen licencia, solo acceden al Paquete 2 ($1,400/mes) o Paquete 3 ($1,200/mes). Sus propiedades se van a la Bolsa General marcadas como "No exclusivas" para que los brokers con licencia puedan comercializarlas.
+* Guillotina de Trial: 10 días de prueba. Al día 11, un middleware global bloquea absolutamente todo el sistema, permitiendo al usuario ver ÚNICAMENTE la pantalla de pagos (OpenPay).
+🏗️ 5. ESTRATEGIA DE ARQUITECTURA (REGLA DE O.R.O.)
+La migración respeta la regla de Origen, Recursos, Orden:
+1. Aislamiento Total (Recursos): El nuevo Frontend (SPA en Vanilla JS) vivirá en /public_html/newbrokers/v2/ y NUNCA compartirá CSS o JS con el código Legacy. Cero estilos inline y 100% Mobile-First (ARF-Grid).
+2. Autenticación API (Origen): Todo módulo V2 consumirá datos mediante Laravel Sanctum/Passport (Bearer Tokens). Adiós a las sesiones de PHP y a las vistas enredadas (Blade).
+3. El Puente (Orden): El usuario navega en el panel viejo, hace clic en un módulo nuevo, el sistema genera un "Bridge Token" criptográfico de 60 segundos, lo cruza a la SPA V2 y el token se destruye (anti-doble-cobro).
+✅ 6. CHECKLIST DE EJECUCIÓN (Fase 1 - V2 Core)
+A. Preparación de Base de Datos (Multitenant Seguro)
+* [ ] Ejecutar SQL en producción para crear government_licenses (Padrón SETUES).
+* [ ] Ejecutar SQL para crear association_members (Directorio AMPI/ASPI).
+* [ ] Alterar tabla companies para añadir account_status (trial, active, suspended), trial_ends_at y is_verified_pro.
+* [ ] Crear tablas de IA y Auditoría: property_documents_metadata y property_controversies.
+B. Infraestructura y Seguridad (El Puente)
+* [ ] Construir y validar el BridgeController para emitir tokens de un solo uso hacia el entorno V2.
+* [ ] Aislar los Global Scopes (TenantCompanyScope, TenantUserScope) para garantizar que un cliente jamás vea propiedades o contactos de otra agencia.
+* [ ] Bloquear y eliminar cualquier ruta Legacy insegura (ej. /generar-codex y passwords hardcodeados en los controladores).
+C. Módulos V2 a Construir (En orden de prioridad)
+* [ ] Módulo 1: Suscripciones y OpenPay (V2). Interfaz de pago segura sin que las tarjetas toquen nuestro servidor (PCI Compliant).
+* [ ] Módulo 2: Scraper SETUES (Node.js). Sincronización autónoma de agentes.
+* [ ] Módulo 3: Motor MAIA (One-Shot Publishing). Recepción de PDFs, conexión con IA de visión y pre-llenado de características de propiedad.
+Documento aprobado por Lead Architect (Gemini). Listo para ser asignado al Agente Ejecutor (Claude) para inicio de codificación.

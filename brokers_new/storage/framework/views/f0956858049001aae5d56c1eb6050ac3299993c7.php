@@ -85,6 +85,7 @@
     <?php echo $__env->make('layouts.sidemenu', \Illuminate\Support\Arr::except(get_defined_vars(), ['__data', '__path']))->render(); ?>
 
     <div class="all-content-wrapper">
+        <?php if (! (request()->routeIs('home'))): ?>
         <div class="container-fluid">
             <div class="row">
                 <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
@@ -94,6 +95,7 @@
                 </div>
             </div>
         </div>
+        <?php endif; ?>
 
         <?php echo $__env->make('layouts.topbar', \Illuminate\Support\Arr::except(get_defined_vars(), ['__data', '__path']))->render(); ?>
 

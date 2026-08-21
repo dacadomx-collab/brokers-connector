@@ -46,7 +46,7 @@
                     <i class="menu-icon fa fa-address-book fc-icon"></i>
                 </div>
                 <div class="flip-card-back">
-                    <p class="text"><a href="{{ route('contact.home') }}">Contactos</a></p>
+                    <p class="text"><a href="{{ route('contact.home') }}">Directorio</a></p>
                 </div>
             </div>
         </div>

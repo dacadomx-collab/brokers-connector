@@ -900,3 +900,218 @@
     padding: 20px 1.5rem 4px;
   }
 }
+
+/* ══════════════════════════════════════════════════════════════
+   MÓDULO MAIA — Expediente Jurídico (Creación de Propiedades V2)
+   Mobile-First · ARF-Grid · Sin !important · Sin estilos inline ·
+   Sin anchos fijos en px en el contenedor principal.
+   ══════════════════════════════════════════════════════════════ */
+
+.maia-main {
+  flex: 1 1 auto;
+  max-width: 1100px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 24px 16px 60px;
+}
+
+@media (min-width: 768px) {
+  .maia-main {
+    padding: 40px 24px 80px;
+  }
+}
+
+/* ── Cabecera de página ─────────────────────────────────────── */
+.maia-page-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+.maia-page-icon {
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  border-radius: var(--v2-radius);
+  background: var(--v2-accent-light);
+  color: var(--v2-accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+}
+.maia-page-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--v2-text);
+  margin-bottom: 4px;
+}
+.maia-page-sub {
+  font-size: 14px;
+  color: var(--v2-text-muted);
+  line-height: 1.5;
+}
+
+/* ── Regla ARF-Grid: malla de dropzones ────────────────────────
+   flex + wrap + gap fluido. Los hijos usan flex-basis en %,
+   nunca ancho fijo en px — Mobile-First: 100% en móvil,
+   2-3 columnas en escritorio vía @media. ─────────────────────── */
+.maia-dropzone-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+}
+
+.maia-doc-card {
+  flex: 1 1 100%;
+  max-width: 100%;
+  background: var(--v2-surface);
+  border: 1px solid var(--v2-border);
+  border-radius: var(--v2-radius);
+  box-shadow: var(--v2-shadow);
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+  transition: border-color .18s, box-shadow .18s;
+}
+
+@media (min-width: 768px) {
+  .maia-doc-card {
+    flex: 1 1 calc(50% - 0.75rem);
+    max-width: calc(50% - 0.75rem);
+  }
+}
+
+@media (min-width: 1024px) {
+  .maia-doc-card {
+    flex: 1 1 calc(33.333% - 1rem);
+    max-width: calc(33.333% - 1rem);
+  }
+}
+
+.maia-doc-card--filled {
+  border-color: var(--v2-success);
+  box-shadow: 0 0 0 3px rgba(4,120,87,.10), var(--v2-shadow);
+}
+
+.maia-doc-card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.maia-doc-icon {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--v2-radius-sm);
+  background: var(--v2-surface-alt);
+  color: var(--v2-accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 17px;
+}
+.maia-doc-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+.maia-doc-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--v2-text);
+}
+.maia-doc-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  width: fit-content;
+}
+.maia-doc-badge--required {
+  background: var(--v2-error-bg);
+  color: var(--v2-error);
+}
+.maia-doc-badge--optional {
+  background: var(--v2-surface-alt);
+  color: var(--v2-text-subtle);
+}
+
+/* ── Campo select (tipo de contrato) ───────────────────────── */
+.maia-field label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--v2-text-muted);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: .4px;
+}
+.maia-select {
+  height: 44px;
+}
+
+/* ── Dropzone (input file oculto + label estilizado) ───────── */
+.maia-dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  text-align: center;
+  border: 2px dashed var(--v2-border);
+  border-radius: var(--v2-radius-sm);
+  background: var(--v2-bg);
+  padding: 1.5rem 1rem;
+  cursor: pointer;
+  transition: border-color .18s, background .18s;
+  width: 100%;
+}
+.maia-dropzone:hover,
+.maia-dropzone--dragover {
+  border-color: var(--v2-border-focus);
+  background: var(--v2-accent-light);
+}
+.maia-dropzone-icon {
+  font-size: 22px;
+  color: var(--v2-text-subtle);
+}
+.maia-dropzone-text {
+  font-size: 12.5px;
+  color: var(--v2-text-muted);
+}
+.maia-dropzone-filename {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--v2-success);
+  word-break: break-all;
+}
+
+/* ── Barra de envío ─────────────────────────────────────────── */
+.maia-submit-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 2rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--v2-border);
+}
+.maia-submit-hint {
+  font-size: 13px;
+  color: var(--v2-text-muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.maia-submit-hint--ready {
+  color: var(--v2-success);
+}

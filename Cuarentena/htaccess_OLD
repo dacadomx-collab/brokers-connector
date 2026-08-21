@@ -1,0 +1,5 @@
+# Bloqueo estricto de ejecución de código en directorios de recursos
+<FilesMatch "\.(php|php5|phtml|php7|phps|asp|aspx|jsp)$">
+    Order Deny,Allow
+    Deny from all
+</FilesMatch>

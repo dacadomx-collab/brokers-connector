@@ -28,7 +28,7 @@
         <div class="container-fluid">
             <div class="row">
 
-                {{-- Flip Cards: menú principal --}}
+                {{-- Fila de módulos principales --}}
                 <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
                     @include('includes.flip-cards')
                 </div>

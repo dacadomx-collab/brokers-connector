@@ -258,10 +258,11 @@ body {
 .flip-card-back::-webkit-scrollbar-thumb:active { background-color: var(--color-text-muted); }
 .flip-card-back::-webkit-scrollbar-track { background: var(--color-border); border-radius: var(--radius); }
 
-/* Fila contenedora de flip cards — Mobile First */
+/* Fila contenedora de flip cards — Mobile First / Regla ARF-Grid */
 .flip-cards-row {
     display: flex;
     flex-wrap: wrap;
+    justify-content: space-between;
     gap: 0;
     margin-bottom: 1.5rem;
 }

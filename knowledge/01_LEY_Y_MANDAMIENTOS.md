@@ -130,9 +130,9 @@ auth → company → companyPayment
 
 | # | Archivo | Problema | Severidad |
 |---|---|---|---|
-| 1 | `routes/web.php` | Ruta `/generar-codex` expone schema completo sin middleware | 🔴 CRÍTICO — eliminar |
-| 2 | `PropertyController.php` | API key de SendGrid hardcodeada (`SG.LFNHt9yHSqOhintBn8ToTw...`) | 🔴 CRÍTICO — mover a `.env` |
-| 3 | `InvoicesController.php` | Keys de OpenPay hardcodeadas en `openPay_paynet()` y `openPay_spei()` — no usa `env()` | 🟠 ALTO — mover a `.env` |
+| 1 | `routes/web.php` | ~~Ruta `/generar-codex` expone schema completo sin middleware~~ — ✅ **RESUELTO** (eliminada en commit `776c1ff`, 2026-04-27, Fase 7.4). Verificado 2026-07-07: no existe en `web.php` ni `api.php`. | ✅ CERRADO |
+| 2 | `PropertyController.php` / `CompanyController.php` | ~~API key de SendGrid hardcodeada~~ — ✅ **RESUELTO**. Las 3 llamadas en `PropertyController.php` y la de `CompanyController.php` usan `env('SENDGRID_API_KEY')`. Verificado 2026-07-07. | ✅ CERRADO |
+| 3 | `InvoicesController.php` | ~~Keys de OpenPay hardcodeadas en `openPay_paynet()`/`openPay_spei()`~~ — ✅ **RESUELTO**. Ambos métodos usan `App\Services\OpenPayService`, que lee `OPENPAY_ID/KEY_SECRET/SANDBOX_ID/SANDBOX_KEY/PRODUCTION` desde `.env`. Verificado 2026-07-07. | ✅ CERRADO |
 | 4 | `PropertyController.php` | Imágenes físicas NO se eliminan al hacer delete (código comentado) | 🟡 MEDIO — acumula archivos huérfanos |
 | 5 | `UserController.php` | `$request_all;` sin inicializar si `filled('password')=false` — bug potencial | 🟡 MEDIO |
 | 6 | `CompanyController.php` | `$company;` declarada sin inicializar en `plans()` — si `company==null`, falla silenciosamente | 🟡 MEDIO |

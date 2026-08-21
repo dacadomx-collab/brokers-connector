@@ -1,6 +1,6 @@
 https://newbrokers.tourfindy.com/
 
-leolage@acadep.com 
+leolage@acadep.com
 acadep01
 *****************************************************	SITE NEW WEB	***********************
 ***********************************************	
@@ -17,6 +17,12 @@ Pass: 0!DQq-a2go(zI39;
 FTP Username: new_ftp_brokers@newbrokers.tourfindy.com
 Pass: +y!jp9?F.DF0-=$1
 FTP server: ftp.tourfindy.com
+FTP & explicit FTPS port:  21
+*****************************************************	FTP	*******************************
+***********************************************
+pass: q1y&K}Yi.P{AKO~h
+FTP Username: ftp_user@brokersconnector.com
+FTP server: ftp.brokersconnector.com
 FTP & explicit FTPS port:  21
 *****************************************************	Servidor Original *********************
 ***********************************************

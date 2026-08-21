@@ -119,7 +119,7 @@ El CLI de PHP local NO está configurado para conectarse a la base de datos del 
 
 ### 💳 PAGOS (OPENPAY)
 
-- [ ] **Variables de entorno de OpenPay:** `OPENPAY_ID`, `OPENPAY_KEY_SECRET`, `OPENPAY_PRODUCTION` deben estar en `.env`. Solo `openPay_payment()` las usa correctamente; los otros métodos de pago (`openPay_paynet`, `openPay_spei`) tienen las keys hardcodeadas (deuda técnica documentada).
+- [x] **Variables de entorno de OpenPay:** `OPENPAY_ID`, `OPENPAY_KEY_SECRET`, `OPENPAY_PRODUCTION`, `OPENPAY_SANDBOX_ID`, `OPENPAY_SANDBOX_KEY` viven en `.env`. ✅ **RESUELTO** (2026-07-07): `openPay_payment()`, `openPay_paynet()` y `openPay_spei()` usan `App\Services\OpenPayService`, que centraliza la lectura de credenciales desde `.env`. Ya no hay keys hardcodeadas.
 - [ ] **Modo Sandbox vs Producción:** `Openpay::setProductionMode(env('OPENPAY_PRODUCTION'))`. En desarrollo, `OPENPAY_PRODUCTION=false`. Cambiar a `true` solo en producción real.
 - [ ] **Webhook `/api/invoice/paynet/pay`:** Es un endpoint público sin autenticación. Debe estar en la whitelist de IPs de OpenPay en el servidor de producción.
 
@@ -127,7 +127,7 @@ El CLI de PHP local NO está configurado para conectarse a la base de datos del 
 
 ### 📧 EMAIL (SENDGRID)
 
-- [ ] **API Key de SendGrid en `.env`:** La key `SG.LFNHt9yHSqOhintBn8ToTw...` está **hardcodeada** en `PropertyController` y `CompanyController`. En cualquier código NUEVO, usar `config('services.sendgrid.key')` o `env('SENDGRID_KEY')` y moverla al `.env`.
+- [x] **API Key de SendGrid en `.env`:** ✅ **RESUELTO** (2026-07-07): las 3 llamadas en `PropertyController.php` y la de `CompanyController.php` usan `env('SENDGRID_API_KEY')`. La key vive únicamente en `.env`. En código NUEVO, seguir usando `env('SENDGRID_API_KEY')`.
 - [ ] **From address:** Los correos se envían desde `propiedades@brokersconnector.com` y `correos@brokersconnector.com`. Verificar que estos dominios están verificados en SendGrid antes de enviar en producción.
 
 ---
@@ -141,7 +141,7 @@ El CLI de PHP local NO está configurado para conectarse a la base de datos del 
 
 ### 🗂️ RUTAS Y ESTRUCTURA
 
-- [ ] **Ruta `/generar-codex` — ELIMINAR ANTES DE PRODUCCIÓN:** Presente en `routes/web.php`. Expone el schema completo de la BD sin autenticación. Es una violación del Mandamiento #8.
+- [x] **Ruta `/generar-codex`:** ✅ **RESUELTO** — eliminada en commit `776c1ff` (2026-04-27, Fase 7.4). Verificado 2026-07-07: no existe en `web.php` ni `api.php`.
 - [ ] **`AuthController::register()` tiene `dd($request)`:** El registro de usuarios vía API está inutilizado intencionalmente (commented out en `routes/api.php`). Si se reactiva, eliminar el `dd()` primero.
 - [ ] **Feeds de portales son públicos:** `/propiedades-com/feed`, `/lgi/feed`, `/doomos/feed`, `/lamudi/feed`, `/casafy/feed` no tienen middleware. Son intencionalmente públicos para los scrapers de portales.
 

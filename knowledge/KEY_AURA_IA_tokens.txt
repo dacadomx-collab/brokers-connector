@@ -1,0 +1,12 @@
+¿Qué debe hacer BrokersConnector para conectarse?
+Para restaurar su flujo de servicio bajo el nuevo estándar de seguridad militar y alta velocidad, el equipo de desarrollo de BrokersConnector debe actualizar la variable de entorno o configuración de su sistema:
+
+La Llave Nueva: Deben sustituir su API Key anterior por la nueva clave cruda en texto plano de alta entropía que generó Claude:
+a96bf520f9a1355baae955c4c0bf014e004cdbbaa5b1769f8c7ed06f4347dfad
+
+El Header: Su sistema debe seguir enviando esta cadena de 64 caracteres hexadecimales contiguos exactamente dentro de la cabecera X-AURA-KEY en cada petición HTTP hacia aura.acadep.com.
+
+Al hacer este cambio, el backend de Go interceptará el prefijo automáticamente y validará el hash por igualdad determínistica en el índice de PostgreSQL, cruzando el perímetro de seguridad en microsegundos reales.
+
+
+

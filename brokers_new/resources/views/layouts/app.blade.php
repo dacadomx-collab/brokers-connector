@@ -85,6 +85,7 @@
     @include('layouts.sidemenu')
 
     <div class="all-content-wrapper">
+        @unless(request()->routeIs('home'))
         <div class="container-fluid">
             <div class="row">
                 <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
@@ -94,6 +95,7 @@
                 </div>
             </div>
         </div>
+        @endunless
 
         @include('layouts.topbar')
 

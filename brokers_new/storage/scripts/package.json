@@ -1,0 +1,8 @@
+{
+  "private": true,
+  "name": "setues-verify-script",
+  "description": "Verificación puntual (1 folio por invocación) contra el RAPI de SETUES BCS. NO es un scraper masivo — ver comentarios en setuesScraper.js.",
+  "dependencies": {
+    "playwright": "^1.44.0"
+  }
+}

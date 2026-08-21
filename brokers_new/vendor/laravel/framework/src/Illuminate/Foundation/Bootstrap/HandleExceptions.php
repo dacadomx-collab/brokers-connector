@@ -38,7 +38,12 @@ class HandleExceptions
 
         $this->app = $app;
 
-        error_reporting(-1);
+        // PHP 8.4: error_reporting(-1) reactiva E_DEPRECATED, y handleError() lanza
+        // ErrorException ante notices de deprecacion emitidos durante inheritance-check
+        // (p.ej. Collection::offsetExists vs ArrayAccess). Lanzar una excepcion en ese
+        // punto es fatal e incapturable ("During inheritance of X: Uncaught ErrorException").
+        // Se excluyen E_DEPRECATED/E_USER_DEPRECATED para evitar el 500 en cada request.
+        error_reporting(-1 & ~E_DEPRECATED & ~E_USER_DEPRECATED);
 
         set_error_handler([$this, 'handleError']);
 

@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nuevo Expediente de Propiedad — Broker Brain IA</title>
+  <link rel="stylesheet" href="../shared/v2.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+</head>
+<body class="v2-root">
+
+  <!-- ══ PANTALLA: CARGANDO ══════════════════════════════════════ -->
+  <div id="screen-loading" class="v2-screen">
+    <div class="v2-spinner"></div>
+    <p class="v2-loading-text">Preparando el Expediente Jurídico&hellip;</p>
+  </div>
+
+  <!-- ══ PANTALLA: ERROR ═════════════════════════════════════════ -->
+  <div id="screen-error" class="v2-screen hidden">
+    <div class="v2-error-card">
+      <div class="v2-error-icon">🔒</div>
+      <h2>Acceso denegado</h2>
+      <p id="error-message">Este enlace ya no es válido. Regresa al panel e intenta de nuevo.</p>
+      <a href="#" id="error-back-btn" class="v2-btn v2-btn-primary">
+        <i class="fa fa-arrow-left"></i> Volver al panel
+      </a>
+    </div>
+  </div>
+
+  <!-- ══ PANTALLA: EXPEDIENTE JURÍDICO ═══════════════════════════ -->
+  <div id="screen-main" class="v2-screen hidden"
+       style="display:none; flex-direction:column; justify-content:flex-start;
+              padding:0; min-height:100vh; align-items:stretch;">
+
+    <!-- ── Header (idéntico al estándar V2 — Mandamiento #14) ──── -->
+    <header class="v2-header">
+      <a href="#" id="header-logo-link" class="v2-header-logo">
+        <img id="header-logo-img" src="" alt="Brokers Connector" height="36"
+             style="max-width:160px; display:block;">
+        <span id="header-logo-fallback"
+              style="display:none; align-items:center; gap:8px; font-size:17px; font-weight:700;">
+          <i class="fa fa-home"></i>
+          Brokers <span style="color:var(--v2-accent);">Connector</span>
+        </span>
+      </a>
+
+      <div class="v2-header-right">
+        <nav class="v2-nav-desktop">
+          <a id="nav-ai-hub" href="#" class="v2-nav-link">
+            <i class="fa fa-magic"></i> Broker Brain IA
+          </a>
+          <a id="nav-panel" href="#" class="v2-nav-link">
+            <i class="fa fa-th-large"></i> Panel de Control
+          </a>
+          <a id="nav-logout" href="#" class="v2-nav-link v2-nav-logout">
+            <i class="fa fa-sign-out"></i> Cerrar Sesi&oacute;n
+          </a>
+        </nav>
+        <button class="v2-hamburger" id="hamburger-btn"
+                aria-expanded="false" aria-label="Abrir menú">
+          <span></span><span></span><span></span>
+        </button>
+      </div>
+
+      <nav class="v2-mobile-menu" id="mobile-menu" aria-hidden="true">
+        <a id="nav-ai-hub-m" href="#" class="v2-mobile-link">
+          <i class="fa fa-magic"></i> Broker Brain IA
+        </a>
+        <a id="nav-panel-m" href="#" class="v2-mobile-link">
+          <i class="fa fa-th-large"></i> Panel de Control
+        </a>
+        <a id="nav-logout-m" href="#" class="v2-mobile-link v2-nav-logout">
+          <i class="fa fa-sign-out"></i> Cerrar Sesi&oacute;n
+        </a>
+      </nav>
+    </header>
+
+    <!-- ── Cuerpo: Expediente Jurídico ──────────────────────────── -->
+    <main class="maia-main">
+
+      <div class="maia-page-header">
+        <div class="maia-page-icon"><i class="fa fa-briefcase"></i></div>
+        <div>
+          <h1 class="maia-page-title">Nuevo Expediente de Propiedad</h1>
+          <p class="maia-page-sub">
+            Sube los documentos legales del inmueble. Broker Brain IA (Motor MAIA)
+            los analizará para validar propietario, vigencia y datos catastrales.
+          </p>
+        </div>
+      </div>
+
+      <form id="form-maia-expediente" class="maia-form" novalidate>
+
+        <div class="maia-dropzone-grid">
+
+          <!-- Título de propiedad — OBLIGATORIO -->
+          <article class="maia-doc-card" data-doc-key="titulo_propiedad">
+            <div class="maia-doc-card-header">
+              <div class="maia-doc-icon"><i class="fa fa-file-text-o"></i></div>
+              <div class="maia-doc-info">
+                <span class="maia-doc-title">Título de propiedad</span>
+                <span class="maia-doc-badge maia-doc-badge--required">Obligatorio</span>
+              </div>
+            </div>
+            <label class="maia-dropzone" for="doc-titulo-propiedad" data-doc-key="titulo_propiedad">
+              <input type="file" id="doc-titulo-propiedad" name="titulo_propiedad"
+                     class="maia-doc-input" data-doc-key="titulo_propiedad"
+                     accept=".pdf,.jpg,.jpeg,.png" required hidden>
+              <i class="fa fa-cloud-upload maia-dropzone-icon"></i>
+              <span class="maia-dropzone-text">Arrastra el archivo o haz clic para seleccionar</span>
+              <span class="maia-dropzone-filename"></span>
+            </label>
+          </article>
+
+          <!-- Libertad de gravamen — OBLIGATORIO -->
+          <article class="maia-doc-card" data-doc-key="libertad_gravamen">
+            <div class="maia-doc-card-header">
+              <div class="maia-doc-icon"><i class="fa fa-shield"></i></div>
+              <div class="maia-doc-info">
+                <span class="maia-doc-title">Libertad de gravamen</span>
+                <span class="maia-doc-badge maia-doc-badge--required">Obligatorio</span>
+              </div>
+            </div>
+            <label class="maia-dropzone" for="doc-libertad-gravamen" data-doc-key="libertad_gravamen">
+              <input type="file" id="doc-libertad-gravamen" name="libertad_gravamen"
+                     class="maia-doc-input" data-doc-key="libertad_gravamen"
+                     accept=".pdf,.jpg,.jpeg,.png" required hidden>
+              <i class="fa fa-cloud-upload maia-dropzone-icon"></i>
+              <span class="maia-dropzone-text">Arrastra el archivo o haz clic para seleccionar</span>
+              <span class="maia-dropzone-filename"></span>
+            </label>
+          </article>
+
+          <!-- Valuación catastral — OBLIGATORIO -->
+          <article class="maia-doc-card" data-doc-key="valuacion_catastral">
+            <div class="maia-doc-card-header">
+              <div class="maia-doc-icon"><i class="fa fa-bank"></i></div>
+              <div class="maia-doc-info">
+                <span class="maia-doc-title">Valuación catastral</span>
+                <span class="maia-doc-badge maia-doc-badge--required">Obligatorio</span>
+              </div>
+            </div>
+            <label class="maia-dropzone" for="doc-valuacion-catastral" data-doc-key="valuacion_catastral">
+              <input type="file" id="doc-valuacion-catastral" name="valuacion_catastral"
+                     class="maia-doc-input" data-doc-key="valuacion_catastral"
+                     accept=".pdf,.jpg,.jpeg,.png" required hidden>
+              <i class="fa fa-cloud-upload maia-dropzone-icon"></i>
+              <span class="maia-dropzone-text">Arrastra el archivo o haz clic para seleccionar</span>
+              <span class="maia-dropzone-filename"></span>
+            </label>
+          </article>
+
+          <!-- Contrato de Comercialización — OBLIGATORIO + select exclusividad -->
+          <article class="maia-doc-card" data-doc-key="contrato_comercializacion">
+            <div class="maia-doc-card-header">
+              <div class="maia-doc-icon"><i class="fa fa-handshake-o"></i></div>
+              <div class="maia-doc-info">
+                <span class="maia-doc-title">Contrato de Comercialización</span>
+                <span class="maia-doc-badge maia-doc-badge--required">Obligatorio</span>
+              </div>
+            </div>
+
+            <div class="maia-field">
+              <label for="tipo-contrato">Tipo de contrato</label>
+              <select id="tipo-contrato" name="tipo_contrato" class="v2-input maia-select" required>
+                <option value="">Selecciona una opción</option>
+                <option value="con_exclusiva">Con Exclusiva</option>
+                <option value="sin_exclusiva">Promoción sin exclusiva</option>
+              </select>
+            </div>
+
+            <label class="maia-dropzone" for="doc-contrato-comercializacion" data-doc-key="contrato_comercializacion">
+              <input type="file" id="doc-contrato-comercializacion" name="contrato_comercializacion"
+                     class="maia-doc-input" data-doc-key="contrato_comercializacion"
+                     accept=".pdf,.jpg,.jpeg,.png" required hidden>
+              <i class="fa fa-cloud-upload maia-dropzone-icon"></i>
+              <span class="maia-dropzone-text">Arrastra el archivo o haz clic para seleccionar</span>
+              <span class="maia-dropzone-filename"></span>
+            </label>
+          </article>
+
+          <!-- Valuación comercial — OPCIONAL -->
+          <article class="maia-doc-card" data-doc-key="valuacion_comercial">
+            <div class="maia-doc-card-header">
+              <div class="maia-doc-icon"><i class="fa fa-line-chart"></i></div>
+              <div class="maia-doc-info">
+                <span class="maia-doc-title">Valuación comercial</span>
+                <span class="maia-doc-badge maia-doc-badge--optional">Opcional</span>
+              </div>
+            </div>
+            <label class="maia-dropzone" for="doc-valuacion-comercial" data-doc-key="valuacion_comercial">
+              <input type="file" id="doc-valuacion-comercial" name="valuacion_comercial"
+                     class="maia-doc-input" data-doc-key="valuacion_comercial"
+                     accept=".pdf,.jpg,.jpeg,.png" hidden>
+              <i class="fa fa-cloud-upload maia-dropzone-icon"></i>
+              <span class="maia-dropzone-text">Arrastra el archivo o haz clic para seleccionar</span>
+              <span class="maia-dropzone-filename"></span>
+            </label>
+          </article>
+
+        </div><!-- /maia-dropzone-grid -->
+
+        <div class="maia-submit-row">
+          <p id="maia-submit-hint" class="maia-submit-hint">
+            <i class="fa fa-info-circle"></i> Sube los 4 documentos obligatorios para continuar.
+          </p>
+          <button type="submit" id="btn-submit-maia" class="v2-btn v2-btn-primary" disabled>
+            <i class="fa fa-magic"></i> Guardar y Analizar con IA
+          </button>
+        </div>
+
+      </form>
+
+    </main>
+
+    <!-- ── Footer ─────────────────────────────────────────────── -->
+    <footer class="v2-footer">
+      &copy; <span id="footer-year"></span> Brokers Connector &mdash;
+      <a id="footer-privacy" href="#" target="_blank" rel="noopener">Aviso de privacidad</a>
+    </footer>
+
+  </div><!-- /screen-main -->
+
+  <script src="create.js"></script>
+</body>
+</html>
